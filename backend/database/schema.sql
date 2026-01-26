@@ -1,0 +1,133 @@
+CREATE DATABASE IF NOT EXISTS myeduport CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE myeduport;
+
+CREATE TABLE IF NOT EXISTS users (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('student', 'parent') NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS students (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL UNIQUE,
+  grade_level VARCHAR(50) DEFAULT '',
+  school VARCHAR(120) DEFAULT '',
+  target_countries VARCHAR(120) DEFAULT '',
+  intended_major VARCHAR(120) DEFAULT '',
+  invite_code VARCHAR(32) UNIQUE,
+  bio TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS parents (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS parent_student_links (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  parent_id INT NOT NULL,
+  student_id INT NOT NULL,
+  invite_code VARCHAR(32) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_parent_student (parent_id, student_id),
+  FOREIGN KEY (parent_id) REFERENCES parents(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS academic_records (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  student_id INT NOT NULL,
+  year VARCHAR(20) DEFAULT '',
+  course VARCHAR(120) DEFAULT '',
+  level VARCHAR(50) DEFAULT '',
+  grade VARCHAR(50) DEFAULT '',
+  school_system VARCHAR(50) DEFAULT '',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS test_scores (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  student_id INT NOT NULL,
+  test_type VARCHAR(50) DEFAULT '',
+  test_date DATE,
+  score VARCHAR(50) DEFAULT '',
+  superscore VARCHAR(50) DEFAULT '',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS activities (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  student_id INT NOT NULL,
+  title VARCHAR(120) DEFAULT '',
+  description TEXT,
+  role VARCHAR(80) DEFAULT '',
+  hours_per_week INT DEFAULT 0,
+  leadership BOOLEAN DEFAULT FALSE,
+  start_date DATE,
+  end_date DATE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS awards (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  student_id INT NOT NULL,
+  title VARCHAR(120) DEFAULT '',
+  description TEXT,
+  award_date DATE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS documents (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  student_id INT NOT NULL,
+  file_path VARCHAR(255) NOT NULL,
+  original_name VARCHAR(255) NOT NULL,
+  category VARCHAR(50) DEFAULT 'general',
+  uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ai_reports (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  student_id INT NOT NULL,
+  report_type VARCHAR(50) NOT NULL,
+  payload_json JSON NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ai_chat_sessions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ai_chat_messages (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  session_id INT NOT NULL,
+  sender_role VARCHAR(20) NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (session_id) REFERENCES ai_chat_sessions(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS universities (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(180) NOT NULL,
+  country VARCHAR(40) NOT NULL,
+  city VARCHAR(100) DEFAULT '',
+  selectivity_band VARCHAR(40) DEFAULT '',
+  major_tags VARCHAR(255) DEFAULT ''
+);

@@ -1,0 +1,268 @@
+
+
+--- Page 1 ---
+MyEduPort Requirements for Dev
+1. Project overview
+ Build MyEduPort, a web plaƞorm for students (Grade 9–12, Year 10-13) and parents to:
+ Create and maintain an educaƟonal porƞolio.
+ Get AI-based guidance for US/UK/China university applicaƟons (later: other 
+countries).
+ Target roles:
+ Student, Parent, (later: Counselor / School admin).
+2. Core user ﬂows (MVP)
+2.1 AuthenƟcaƟon & roles
+ Email/password login + password reset.
+ OpƟonal social login (Google) if easy.
+ Role selecƟon at signup: Student / Parent.
+ Parent can link to one or more student accounts via invite/unique code.
+2.2 Student proﬁle & porƞolio
+ Proﬁle pages to capture:
+ Personal info (name, grade level, school, target countries, intended major).
+ Academics: yearly grades, GPA, course list (with level: standard/AP/IB/A-Level etc.),
+standardized tests (SAT, ACT, IELTS, TOEFL, etc.).
+ Extracurricular acƟviƟes (Ɵtle, descripƟon, role, duraƟon, hours/week, leadership).
+ Awards, compeƟƟons, volunteering, work experience, research, arts/sports 
+achievements.
+ Document upload & management:
+ Upload cerƟﬁcates, transcripts, test score reports, photos (PDF/JPG/PNG).
+ Tag by category (academics, awards, test scores, etc.).
+ Basic storage limits per plan (for example, 20 ﬁles free, more in paid).
+2.3 Porƞolio dashboard
+ Student dashboard showing:
+ CompleƟon status (for example, 60% proﬁle complete).
+ Key secƟons with “complete / missing” indicators.
+
+
+--- Page 2 ---
+ Simple visuals: academic summary, acƟvity count, uploaded documents count.
+3. AI features (MVP implementaƟon)
+You do not need to build ML models now; just integrate with an LLM API (for example,
+OpenAI/Anthropic) with our prompts and our database.
+3.1 Student Proﬁle Strength Score
+ Backend service that:
+ Reads structured porƞolio data from DB.
+ Calls LLM with system prompt + student data to output:
+ Overall score 0–100.
+ Category scores (Academic, Extracurricular, Achievements, etc.).
+ 3–5 bullet strengths, 3–5 bullet weaknesses.
+ Frontend: display as simple cards or bar chart in the dashboard.
+3.2 Basic University RecommendaƟons
+ Simple form: student selects target country (US/UK/China), intended major, and up to 5
+dream schools.
+ Backend:
+ Query a university table (we will provide CSV/DB) with ﬁelds: country, name,
+major/subject areas, general selecƟvity band, typical GPA/scores.
+ Call LLM to categorize suggesƟons as Reach / Target / Safety based on student proﬁle 
++ simple rules.
+ Frontend output:
+ List of 10–15 suggested universiƟes with category, country, and short explanaƟon.
+3.3 Simple Gap Analysis (Lite version)
+ For MVP:
+ Take proﬁle + intended country/major .
+ LLM returns up to 5 “next recommended acƟons” (for example, “take one 
+higher-level math,” “add a long-term volunteering acƟvity”).
+ Show in a “Next Steps” secƟon with priority labels (High / Medium / Low).
+3.4 Basic AI Chatbot (EduBot v1)
+ Single chat interface page with:
+ LeŌ side: chat history.
+
+
+--- Page 3 ---
+ Right side: quick buƩons (for example, “Ask about US requirements,” “Ask about my 
+proﬁle”).
+ Backend:
+ Chat calls LLM API with:
+ System prompt describing MyEduPort role and rules.
+ Student proﬁle summary (pulled from DB).
+ Enforce token and rate limits (for example, X messages per day, more for paid users).
+4. Data & database requirements
+ Suggested stack:
+ Backend: Node.js (NestJS/Express) or Python (Django/FastAPI).
+ Frontend: React/Next.js (responsive, mobile-friendly).
+ DB: PostgreSQL or MySQL.
+ Key tables/enƟƟes:
+ Users (auth, role, locale).
+ Students (linked to User; grade level, school, countries, intended major).
+ Parents (linked to User).
+ AcademicRecords (year, course, level, grade, school system ﬂag).
+ TestScores (type, date, score, superscore where relevant).
+ AcƟviƟes (type, Ɵtle, descripƟon, start/end date, hours/week, leadership ﬂag).
+ Awards & Achievements.
+ Documents (ﬁle path, category, linked student).
+ AIReports (proﬁle score, date, raw JSON of response).
+ AIChatSessions & AIChatMessages (for context and safety logs).
+ AI RecommendaƟons
+ UniversiƟes (name, country, city, selecƟvity band, typical stats, major tags).
+5. Plans & payments (basic integraƟon only)
+Tier 1: FREE (Starter)
+Purpose: Lead generaƟon, demonstrate value, serve budget-conscious families
+Features:
+
+
+--- Page 4 ---
+ Create basic student proﬁle
+ Manual porƞolio builder (no AI assistance)
+ Access to university database (search only)
+ General college prep resources and blog
+ Timeline template (not personalized)
+ Document storage: 100MB
+ Community forum access
+ 3 AI chatbot quesƟons (one-Ɵme)
+LimitaƟons:
+ No AI acceptance predicƟons
+ No personalized recommendaƟons
+ No gap analysis
+ No parent dashboard
+ No export/sharing capabiliƟes
+ Basic support only (email, 48hr response)
+Strategy: Free Ɵer users see "upgrade to unlock" prompts, demonstraƟng what they're missing
+Tier 2: ESSENTIAL ($29/month or $290/year)
+Target: Grade 10-12/Year 9-12 students who need immediate help, budget-conscious families
+Everything in Free, plus:
+ Complete AI-powered porƞolio builder
+ Basic AI acceptance predicƟons (up to 10 universiƟes)
+ University recommendaƟons (Reach/Target/Safety)
+ Basic gap analysis (idenƟﬁes major gaps only)
+ Personalized Ɵmeline with reminders
+ Document storage: 3GB
+ 30 AI chatbot queries per month
+ Country-speciﬁc guides (US, UK, or China - choose one)
+ Email support (24hr response)
+ Export porƞolio as PDF
+ Basic analyƟcs dashboard
+
+
+--- Page 5 ---
+Annual Savings: $58/year (16% discount)
+Why $29/month:
+ Psychological pricing ($29 feels signiﬁcantly less than $30)
+ SƟll aﬀordable for most families (~$1/day)
+ Annual opƟon ($290) = cost of 1-2 SAT prep books per month
+ CompeƟƟve with other ed-tech subscripƟons
+Tier 3: PROFESSIONAL ($49/month or $490/year)
+Target: Serious students (Grade 10-13), families who want comprehensive support
+Everything in EssenƟal, plus:
+ Unlimited AI acceptance predicƟons (any number of universiƟes)
+ Advanced AI recommendaƟons with detailed explanaƟons
+ Comprehensive gap analysiswith impact predicƟons and improvement roadmap
+ AI chatbot: 150 queries/month (5/day average)
+ All country guides (US, UK, China, EU access)
+ Field-of-study speciﬁc guidance (detailed major exploraƟon)
+ Essay analyzer with AI feedback (up to 5 essays/month)
+ Parent dashboard with progress monitoring
+ Advanced analyƟcs and reports (monthly progress reports)
+ CompeƟƟon analysis (see how you compare to typical admits)
+ Document storage: 10GB
+ Priority email support (12hr response)
+ Live chat support (business hours)
+ Video tutorials and webinars (exclusive access)
+ RecommendaƟon leƩer tracker and templates
+Annual Savings: $98/year (16.6% discount)
+Why $49/month:
+ SƟll far below consultant costs ($3,000-15,000)
+ Annual opƟon ($490) = cost of one essay ediƟng service
+ PosiƟoned as "serious student" Ɵer
+ $20 premium over EssenƟal shows signiﬁcant added value
+
+
+--- Page 6 ---
+Tier 4: ELITE ($99/month or $990/year or $1,749/2-year)
+Target: High-achieving students targeƟng top 20 universiƟes, families wanƟng white-glove service
+Everything in Professional, plus:
+ Unlimited AI chatbot queries
+ Personal success advisor (1 video call per month, 30 min)
+ Essay ediƟng service (1 professional edit per month, included)
+ Interview preparaƟon (AI mock interviews + feedback)
+ Unlimited essay analysis with detailed AI feedback
+ Advanced "What-if" scenario modeling (test impact of improvements)
+ Early access to new features
+ Custom university research reports (on-demand)
+ Document storage: 50GB
+ 24/7 priority support (phone, email, chat)
+ Dedicated success manager (for 2-year plan)
+ Porƞolio review by admission expert (2x per year)
+ Exclusive networking events (virtual with successful students/counselors)
+ College applicaƟon checklist and deadline management
+ Financial aid and scholarship guidance
+Annual Savings: $198/year (16.6% discount) 2-Year Savings: $626 (26% discount)
+Why $99/month:
+ Anchors lower Ɵers as "aﬀordable"
+ SƟll 97% cheaper than typical consultant
+ Includes human experƟse component (video calls, expert reviews)
+ 2-year commitment opƟon ($1,749) = $72.87/month (targets Grade 10-11 students)
+Family Plan OpƟons
+EssenƟal Family: $49/month or $490/year
+ 2-3 students
+ All EssenƟal features per student
+ Shared parent dashboard
+
+
+--- Page 7 ---
+ $19 savings per addiƟonal student
+Professional Family: $89/month or $890/year
+ 2-3 students
+ All Professional features per student
+ Shared parent dashboard
+ $49 savings per addiƟonal student
+Elite Family: $169/month or $1,690/year
+ 2-3 students
+ All Elite features per student
+ Shared success advisor for all students
+ $129 savings per addiƟonal student
+Payment OpƟons and Flexibility
+Payment Plans:
+1. Monthly SubscripƟon
+o Most ﬂexible
+o Cancel anyƟme
+o No commitment
+2. Annual SubscripƟon
+o ~17% discount (2 months free)
+o One-Ɵme payment
+o Best value for 1-year users
+3. 2-Year Plan (Elite only)
+o 26% discount
+o Ideal for Grade 10-11 students
+o Locks in long-term value
+o Monthly or upfront payment opƟon
+4. 3-Year Plan (Elite only, Grade 9 students)
+o 35% discount
+o Complete high school journey
+o Payment plan: upfront or quarterly ($455/quarter)
+
+
+--- Page 8 ---
+Payment Methods:
+ Credit/Debit cards (Visa, Mastercard, Amex)
+ PayPal
+ Apple Pay / Google Pay
+ Bank transfer (for annual/mulƟ-year plans)
+ Alipay, WeChat Pay (China)
+ Regional payment methods as needed
+Billing Transparency:
+ Clear refund policy (30-day money-back guarantee)
+ No hidden fees
+ Cancel anyƟme (monthly plans)
+ Prorated refunds for annual plans (if within 90 days)
+6. Security, privacy, and admin
+ Basic security:
+ HTTPS everywhere.
+ Password hashing, JWT or session-based auth.
+ Role-based access: parents can only see linked students; no cross-student access.
+ Privacy:
+ Ability to delete account and all data.
+ Consent checkbox at signup for data processing for guidance and model
+improvement, as described in your AI secƟon.
+ Admin panel:
+ See list of users, students, and usage stats.
+ Manually block/disable accounts.
+ Edit university database entries.
+
+
+--- Page 9 ---
+7. Phase 1 vs later phases
+Ask developer to scope Phase 1 only as:
+ Features: secƟons 2, 3.1–3.4, 4, basic in 5, and minimum in 6.
+ Later phase can be developed to iOS and Android app.
+ Timeline goal: working MVP in 3–4 months with clean code structure so AI features can be
+upgraded to your full Acceptance PredicƟon, Gap Analysis, and Timeline engines later.
+

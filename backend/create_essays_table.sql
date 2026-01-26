@@ -1,0 +1,13 @@
+USE myeduport;
+
+CREATE TABLE IF NOT EXISTS essays (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  student_id INT NOT NULL,
+  title VARCHAR(255) NOT NULL DEFAULT '',
+  content TEXT NOT NULL,
+  word_count INT DEFAULT 0,
+  last_edited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  INDEX idx_student_id (student_id)
+);

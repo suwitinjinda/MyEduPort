@@ -1,0 +1,80 @@
+
+
+--- Page 1 ---
+MyEduPort Sample
+1. MyEduPort Homepage
+This is the landing page for MyEduPort, designed to welcome students (Grades 9-13) and parents. It 
+highlights the plaƞorm's core value proposiƟon of combining a structured educaƟonal porƞolio with 
+AI-powered university guidance for the US, UK, and China. The page features a clear call to acƟon for 
+both student and parent sign-ups.
+2. Student Dashboard
+The student dashboard is the central hub for users. It prominently displays the porƞolio compleƟon 
+status and provides quick access to key secƟons like the academic summary, extracurricular acƟviƟes, 
+and uploaded documents. A "Next Steps" secƟon features AI-generated, prioriƟzed 
+recommendaƟons for improving the student's proﬁle.
+
+
+
+--- Page 2 ---
+3. Academic Proﬁle Editor
+This screen shows the academic secƟon of the proﬁle editor, a crucial part of the porƞolio. It includes 
+structured forms for entering school informaƟon, yearly grades with course details (level, grade), and 
+standardized test scores (SAT, ACT, IELTS, etc.). A sidebar allows for easy navigaƟon to other parts of 
+the porƞolio like extracurriculars and awards.
+
+
+
+--- Page 3 ---
+4. AI University RecommendaƟons
+This image visualizes the "Basic University RecommendaƟons" feature. Based on the student's 
+proﬁle, the AI categorizes suggested universiƟes into "Reach," "Target," and "Safety". Each 
+recommendaƟon includes a country ﬂag (US, UK, China) and a brief explanaƟon, as speciﬁed in the 
+requirements.
+5. EduBot Chat Interface
+This screen shows the "EduBot" AI chatbot. The interface is designed as a single chat page, featuring 
+a chat history on the leŌ and a set of quick-prompt buƩons on the right, such as "Ask about US 
+requirements" or "Timeline & Deadlines". The bot provides personalized guidance based on the 
+student's proﬁle.
+
+
+
+--- Page 4 ---
+6. Parent Dashboard
+This image illustrates the dashboard for a parent user . Parents can link their account to one or more 
+student accounts, allowing them to monitor each student's proﬁle compleƟon progress and receive 
+important noƟﬁcaƟons.
+
+
+
+--- Page 5 ---
+7. Extracurricular AcƟviƟes Editor
+This screen demonstrates the process of adding a new extracurricular acƟvity to a student's porƞolio. 
+The form includes all the required ﬁelds as speciﬁed in the project requirements, such as Ɵtle, role, 
+descripƟon, start/end dates, hours per week, and a checkbox to indicate a leadership role.
+8. AI Essay Editor
+This image demonstrates the AI-powered essay editor . Students can write their personal statements 
+or essays within the plaƞorm, and the AI provides real-Ɵme feedback on grammar, style, clarity, and 
+structure, suggesƟng improvements to strengthen their wriƟng.
+
+
+
+--- Page 6 ---
+9. Pricing Plan
+This screen presents the freemium pricing model of MyEduPort. It clearly displays the "Free" plan 
+alongside paid Ɵers ("Standard" and "Premium"). Each plan lists its speciﬁc feature limits, such as 
+document storage and the number of AI calls allowed, as outlined in the project's payment 
+integraƟon plan.
+
+
+
+--- Page 7 ---
+10. Porƞolio ExporƟng
+This image shows a modal window that allows students to export their complete educaƟonal 
+porƞolio. Users can choose the export format (e.g., PDF or ZIP) and select which secƟons to include, 
+such as academics, extracurriculars, and uploaded documents, enabling them to share their porƞolio 
+with counselors or universiƟes.
+11. Sample of exported porƞolio
+
+
+
+--- Page 8 ---

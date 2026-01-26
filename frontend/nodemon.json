@@ -1,0 +1,7 @@
+{
+  "watch": ["src"],
+  "ext": "js,jsx,css,json",
+  "ignore": ["node_modules", "dist"],
+  "exec": "vite",
+  "delay": 500
+}
