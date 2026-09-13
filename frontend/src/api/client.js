@@ -1,4 +1,16 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+// API URL resolution:
+//   1. Explicit VITE_API_URL wins (e.g. local dev pointing elsewhere)
+//   2. Production HTTPS uses same-origin → nginx proxies /api/* → backend :4000
+//   3. Local HTTP dev falls back to :4000 on the same host (Vite dev convenience)
+const API_URL = (() => {
+  const explicit = import.meta.env.VITE_API_URL;
+  if (explicit) return explicit;
+  if (typeof window !== "undefined") {
+    if (window.location.protocol === "https:") return ""; // same-origin
+    return `${window.location.protocol}//${window.location.hostname}:4000`;
+  }
+  return "http://localhost:4000";
+})();
 
 export function setToken(token) {
   localStorage.setItem("myeduport_token", token);
@@ -38,6 +50,18 @@ export async function apiFetch(path, options = {}) {
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     const error = payload.error || "Request failed";
+    // Session invalid/expired: clear the stale token and bounce to login
+    // (a bad token otherwise surfaces as a confusing "Invalid token" popup).
+    if (response.status === 401 && token) {
+      clearToken();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("auth-change"));
+        if (!window.location.pathname.startsWith("/login")) {
+          window.location.assign("/login");
+        }
+      }
+      throw new Error("Your session expired — please sign in again.");
+    }
     throw new Error(error);
   }
   return response.json();

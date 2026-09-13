@@ -1,6 +1,7 @@
 const express = require("express");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
+const { getPlanLimits, setPlanLimits, DEFAULT_LIMITS } = require("../services/plan");
 
 const router = express.Router();
 
@@ -19,21 +20,22 @@ router.get("/users", authRequired, async (req, res) => {
   let rows;
   try {
     [rows] = await pool.query(
-      `SELECT id, email, role, name, data_consent, is_disabled, deleted_at, created_at 
-       FROM users 
+      `SELECT id, email, role, name, plan, data_consent, is_disabled, deleted_at, created_at
+       FROM users
        WHERE deleted_at IS NULL
        ORDER BY created_at DESC LIMIT 100`
     );
   } catch (err) {
-    // Security columns don't exist, use basic query
+    // Security columns don't exist, use basic query (plan column does exist)
     [rows] = await pool.query(
-      `SELECT id, email, role, name, created_at 
-       FROM users 
+      `SELECT id, email, role, name, plan, created_at
+       FROM users
        ORDER BY created_at DESC LIMIT 100`
     );
     // Add default values for missing columns
     rows = rows.map(user => ({
       ...user,
+      plan: user.plan || "free",
       data_consent: null,
       is_disabled: false,
       deleted_at: null
@@ -219,6 +221,57 @@ router.delete("/universities/:id", authRequired, async (req, res) => {
   const { id } = req.params;
   await pool.query("DELETE FROM universities WHERE id = ?", [id]);
   return res.json({ status: "deleted" });
+});
+
+// Set a user's subscription plan (free / essential / professional)
+router.put("/users/:id/plan", authRequired, async (req, res) => {
+  if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
+  const { id } = req.params;
+  const { plan } = req.body || {};
+  if (!["free", "essential", "professional"].includes(plan)) {
+    return res.status(400).json({ error: "plan must be free, essential, or professional" });
+  }
+  try {
+    await pool.query("UPDATE users SET plan = ? WHERE id = ?", [plan, id]);
+    return res.json({ status: "ok", plan });
+  } catch (err) {
+    if (err.code === "ER_BAD_FIELD_ERROR") {
+      return res.status(400).json({ error: "Database migration required. Run alter_phase3_plan.sql" });
+    }
+    throw err;
+  }
+});
+
+// ---- Admin: configurable plan limits / feature gating ----
+router.get("/settings/plan-limits", authRequired, async (req, res) => {
+  if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
+  const limits = await getPlanLimits();
+  return res.json({ limits, defaults: DEFAULT_LIMITS });
+});
+
+router.put("/settings/plan-limits", authRequired, async (req, res) => {
+  if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
+  const { limits } = req.body || {};
+  if (!limits || typeof limits !== "object") return res.status(400).json({ error: "limits object required" });
+  const clean = {};
+  for (const tier of ["free", "essential", "professional"]) {
+    const src = limits[tier] || {};
+    clean[tier] = {
+      adviai: Boolean(src.adviai),
+      export: Boolean(src.export),
+      gap: Boolean(src.gap),
+      predictions: Number.isFinite(Number(src.predictions)) ? Number(src.predictions) : 0,
+      edubot: Number.isFinite(Number(src.edubot)) ? Number(src.edubot) : 0,
+      essay_feedback: Number.isFinite(Number(src.essay_feedback)) ? Number(src.essay_feedback) : 0
+    };
+  }
+  try {
+    await setPlanLimits(clean);
+    return res.json({ status: "ok", limits: clean });
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE") return res.status(400).json({ error: "Run alter_phase4_plan_settings.sql" });
+    throw err;
+  }
 });
 
 module.exports = router;

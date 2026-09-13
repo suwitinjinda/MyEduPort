@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="arrow-grad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <linearGradient id="word-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="50%" stop-color="#1f3461"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#ffffff"/>
+  <rect x="0" y="0" width="1200" height="8" fill="#10b981"/>
+
+  <!-- Brand mark -->
+  <g transform="translate(80, 80) scale(2.5)">
+    <path d="M 4 24 L 32 12 L 60 24 L 32 36 Z" fill="#1f3461"/>
+    <path d="M 12 30 L 12 44 Q 12 50 32 50 Q 52 50 52 44 L 52 30 L 32 38 Z" fill="#1f3461"/>
+    <path d="M 26 38 L 32 64 L 38 38 Z" fill="#2dd4bf"/>
+    <path d="M 38 28 L 56 12 L 52 12 L 56 4 L 60 12 L 56 12 Z" fill="url(#arrow-grad)"/>
+  </g>
+
+  <text x="80" y="380" font-family="Inter, -apple-system, sans-serif" font-size="84" font-weight="800" letter-spacing="-0.02em">
+    <tspan fill="#1f3461">MyEdu</tspan><tspan fill="url(#word-grad)">Port</tspan>
+  </text>
+
+  <text x="80" y="440" font-family="Lora, Georgia, serif" font-style="italic" font-size="28" fill="#4a5872">
+    The portfolio platform for top university admissions.
+  </text>
+
+  <text x="80" y="540" font-family="Inter, sans-serif" font-size="22" font-weight="600" fill="#0d9488" letter-spacing="0.16em">
+    THE EXCELLENT PORTFOLIO GUIDE
+  </text>
+</svg>

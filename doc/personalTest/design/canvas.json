@@ -1,0 +1,11 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 820, "h": 800, "title": "1 · Intro" },
+    { "file": "Question.dc.html", "x": 920, "y": 0, "w": 820, "h": 620, "title": "2 · Taking the test" },
+    { "file": "Report.dc.html", "x": 1840, "y": 0, "w": 820, "h": 940, "title": "3 · Report" }
+  ],
+  "annotations": [
+    { "id": "flow-note", "x": 0, "y": -96, "w": 560, "text": "IPIP-50 Personality Test — flow for Portfolio → Personal (PRO / AdviAI)\nIntro → 50 questions (1 per screen) → Big Five report. Matches MyEduPort tokens (navy #1f3461 + emerald #10b981, Inter, 16px radius)." }
+  ],
+  "launch": { "view": "canvas" }
+}

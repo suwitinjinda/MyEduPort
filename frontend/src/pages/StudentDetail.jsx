@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import Skeleton from "../components/Skeleton.jsx";
+
+const FLAG = { US: "🇺🇸", UK: "🇬🇧", China: "🇨🇳" };
 
 export default function StudentDetail() {
   const { studentId } = useParams();
@@ -22,51 +25,26 @@ export default function StudentDetail() {
 
   if (loading) {
     return (
-      <div className="card">
-        <p className="muted">Loading student data...</p>
+      <div style={{ display: "grid", gap: "2rem" }}>
+        <Skeleton lines={3} />
+        <Skeleton lines={5} />
       </div>
     );
   }
-
   if (!data) return null;
 
-  const { profile, academics, tests, activities, awards, documents } = data;
+  const { profile, academics, tests, activities, awards, documents, tasks = [], savedUniversities = [], essays = [], acceptance } = data;
 
-  // Calculate GPA
   const calculateGPA = () => {
-    if (!academics || academics.length === 0) return "0.0";
-    
-    const gradeMap = {
-      'A+': 4.0, 'A': 4.0, 'A-': 3.7,
-      'B+': 3.3, 'B': 3.0, 'B-': 2.7,
-      'C+': 2.3, 'C': 2.0, 'C-': 1.7,
-      'D+': 1.3, 'D': 1.0, 'D-': 0.7,
-      'F': 0.0
-    };
-    
-    const ibToGPA = (score) => {
-      const map = { 7: 4.0, 6: 3.7, 5: 3.3, 4: 3.0, 3: 2.0, 2: 1.0, 1: 0.0 };
-      return map[score] || 0;
-    };
-    
-    let totalPoints = 0;
-    let count = 0;
-    
-    academics.forEach(record => {
-      let points = 0;
-      if (gradeMap[record.grade]) {
-        points = gradeMap[record.grade];
-      } else if (!isNaN(record.grade)) {
-        points = ibToGPA(parseInt(record.grade));
-      }
-      if (points > 0) {
-        totalPoints += points;
-        count++;
-      }
+    if (!academics?.length) return "—";
+    const gm = { "A+": 4.0, A: 4.0, "A-": 3.7, "B+": 3.3, B: 3.0, "B-": 2.7, "C+": 2.3, C: 2.0, "C-": 1.7, "D+": 1.3, D: 1.0, "D-": 0.7, F: 0.0 };
+    const ib = (s) => ({ 7: 4.0, 6: 3.7, 5: 3.3, 4: 3.0, 3: 2.0, 2: 1.0, 1: 0.0 })[s] || 0;
+    let t = 0, c = 0;
+    academics.forEach((r) => {
+      const p = gm[r.grade] ?? (!isNaN(r.grade) ? ib(parseInt(r.grade)) : 0);
+      if (p > 0) { t += p; c++; }
     });
-    
-    if (count === 0) return "0.0";
-    return (totalPoints / count).toFixed(1);
+    return c ? (t / c).toFixed(2) : "—";
   };
 
   const gpa = calculateGPA();
@@ -78,461 +56,430 @@ export default function StudentDetail() {
      (documents.length > 0 ? 1 : 0) * 0.15) * 100
   );
 
+  const overdueTasks = tasks.filter((t) => t.status !== "done" && t.due_date && new Date(t.due_date) < new Date());
+
   const tabs = [
-    { id: "overview", label: "Overview", icon: "📊" },
-    { id: "academics", label: "Academics", icon: "📚" },
-    { id: "tests", label: "Test Scores", icon: "📝" },
-    { id: "activities", label: "Activities", icon: "🎯" },
-    { id: "awards", label: "Awards", icon: "🏆" },
-    { id: "documents", label: "Documents", icon: "📄" }
+    { id: "overview", label: "Overview" },
+    { id: "academics", label: "Academics", count: academics.length },
+    { id: "tests", label: "Tests", count: tests.length },
+    { id: "activities", label: "Activities", count: activities.length },
+    { id: "awards", label: "Awards", count: awards.length },
+    { id: "essays", label: "Essays", count: essays.length },
+    { id: "colleges", label: "College List", count: savedUniversities.length },
+    { id: "tasks", label: "Tasks", count: tasks.length, alert: overdueTasks.length > 0 },
+    { id: "documents", label: "Documents", count: documents.length }
   ];
 
   return (
-    <div className="grid" style={{ gap: "1.5rem" }}>
-      {/* Header Banner */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)",
-          color: "#fff",
-          padding: "2rem",
-          borderRadius: "0.75rem",
-          boxShadow: "var(--shadow-lg)"
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
-          <button
-            className="button"
-            onClick={() => navigate("/parent")}
-            style={{
-              background: "rgba(255,255,255,0.2)",
-              color: "#fff",
-              border: "1px solid rgba(255,255,255,0.3)"
-            }}
-          >
-            ← Back to Dashboard
+    <div>
+      {/* Header */}
+      <header style={{ borderBottom: "1px solid var(--rule)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
+        <button
+          className="button ghost"
+          onClick={() => navigate("/parent")}
+          style={{ marginBottom: "1.25rem", padding: "0.5rem 1rem", fontSize: "0.7rem" }}
+        >
+          ← Parent Dashboard
+        </button>
+        <div className="eyebrow">Student Portfolio · Parent View (read-only)</div>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2.25rem", color: "var(--ink)", letterSpacing: "-0.02em" }}>
+          {profile.name}
+        </h1>
+        <p className="muted" style={{ marginTop: "0.5rem" }}>
+          {profile.email}
+          {profile.grade_level ? ` · ${profile.grade_level}` : ""}
+          {profile.school ? ` · ${profile.school}` : ""}
+        </p>
+        <div style={{ marginTop: "1.5rem", maxWidth: "480px" }}>
+          <div className="flex-between" style={{ marginBottom: "0.4rem", fontSize: "0.78rem", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 600 }}>
+            <span>Portfolio completion</span>
+            <span style={{ color: "var(--ink)" }}>{completion}%</span>
+          </div>
+          <div className="progress large">
+            <span style={{ width: `${completion}%` }} />
+          </div>
+        </div>
+      </header>
+
+      {/* Overdue tasks banner */}
+      {overdueTasks.length > 0 && (
+        <div
+          style={{
+            padding: "0.85rem 1.25rem",
+            background: "var(--error-soft)",
+            borderLeft: "3px solid var(--error)",
+            marginBottom: "1.5rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "1rem",
+            flexWrap: "wrap"
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--error)", fontWeight: 700 }}>Heads up</div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "0.95rem", color: "var(--ink)" }}>
+              {overdueTasks.length} task{overdueTasks.length === 1 ? "" : "s"} overdue for {profile.name}.
+            </div>
+          </div>
+          <button onClick={() => setActiveTab("tasks")} className="button ghost" style={{ padding: "0.4rem 0.85rem", fontSize: "0.7rem" }}>
+            See tasks →
           </button>
         </div>
-        <h1 style={{ fontSize: "2rem", fontWeight: "700", marginBottom: "0.5rem" }}>
-          {profile.name}'s Portfolio
-        </h1>
-        <p style={{ fontSize: "1.125rem", opacity: 0.95, marginBottom: "1rem" }}>
-          {profile.email}
-        </p>
-        <div style={{ marginTop: "1rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.9375rem", opacity: 0.95 }}>Profile Completion: {completion}%</span>
-          </div>
-          <div className="progress large" style={{ background: "rgba(255,255,255,0.3)" }}>
-            <span style={{ width: `${completion}%`, background: "#fff" }} />
-          </div>
-        </div>
-      </div>
+      )}
 
-      {/* Summary Cards */}
-      <div className="grid three">
-        <div className="card" style={{ textAlign: "center", padding: "1.5rem" }}>
-          <div style={{ fontSize: "2.5rem", fontWeight: "700", color: "#14b8a6", marginBottom: "0.5rem" }}>
-            {gpa}
+      {/* KPI Strip */}
+      <section className="stats-grid">
+        <div className="stat-card"><div className="value">{gpa}</div><div className="label">GPA</div></div>
+        {acceptance?.average !== undefined && (
+          <div className="stat-card" style={{ borderTopColor: "var(--gold-deep)" }}>
+            <div className="value" style={{ color: "var(--gold-deep)" }}>{acceptance.average}%</div>
+            <div className="label">Avg Acceptance</div>
           </div>
-          <div className="section-title" style={{ fontSize: "0.875rem", marginBottom: "0.25rem" }}>GPA</div>
-          <p className="muted" style={{ fontSize: "0.75rem" }}>{academics.length} courses</p>
-        </div>
-        <div className="card" style={{ textAlign: "center", padding: "1.5rem" }}>
-          <div style={{ fontSize: "2.5rem", fontWeight: "700", color: "#14b8a6", marginBottom: "0.5rem" }}>
-            {tests.length}
-          </div>
-          <div className="section-title" style={{ fontSize: "0.875rem", marginBottom: "0.25rem" }}>Test Scores</div>
-          <p className="muted" style={{ fontSize: "0.75rem" }}>Standardized tests</p>
-        </div>
-        <div className="card" style={{ textAlign: "center", padding: "1.5rem" }}>
-          <div style={{ fontSize: "2.5rem", fontWeight: "700", color: "#14b8a6", marginBottom: "0.5rem" }}>
-            {activities.length}
-          </div>
-          <div className="section-title" style={{ fontSize: "0.875rem", marginBottom: "0.25rem" }}>Activities</div>
-          <p className="muted" style={{ fontSize: "0.75rem" }}>Extracurriculars</p>
-        </div>
-      </div>
+        )}
+        <div className="stat-card"><div className="value">{tests.length}</div><div className="label">Test Scores</div></div>
+        <div className="stat-card"><div className="value">{activities.length}</div><div className="label">Activities</div></div>
+        <div className="stat-card"><div className="value">{awards.length}</div><div className="label">Awards</div></div>
+        <div className="stat-card"><div className="value">{essays.length}</div><div className="label">Essays</div></div>
+        <div className="stat-card"><div className="value">{savedUniversities.length}</div><div className="label">Saved Schools</div></div>
+        <div className="stat-card"><div className="value">{documents.length}</div><div className="label">Documents</div></div>
+      </section>
 
-      {/* Tab Navigation */}
-      <div className="card" style={{ padding: "1rem" }}>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`button ${activeTab === tab.id ? "" : "ghost"}`}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: "0.75rem 1.25rem",
-                background: activeTab === tab.id ? "#14b8a6" : "transparent",
-                color: activeTab === tab.id ? "#fff" : "var(--text-primary)",
-                border: activeTab === tab.id ? "none" : "1px solid var(--border)",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem"
-              }}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Tab nav */}
+      <nav style={{ display: "flex", gap: "0", flexWrap: "wrap", borderBottom: "1px solid var(--rule)", marginBottom: "2rem" }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: "0.85rem 1.15rem",
+              background: "transparent",
+              border: "none",
+              borderBottom: activeTab === tab.id ? "2px solid var(--gold)" : "2px solid transparent",
+              color: activeTab === tab.id ? "var(--ink)" : "var(--ink-muted)",
+              fontFamily: "inherit",
+              fontSize: "0.82rem",
+              fontWeight: activeTab === tab.id ? 600 : 500,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              cursor: "pointer",
+              marginBottom: "-1px",
+              position: "relative"
+            }}
+          >
+            {tab.label}
+            {typeof tab.count === "number" && tab.count > 0 && (
+              <span style={{ marginLeft: "0.4rem", fontSize: "0.72rem", color: tab.alert ? "var(--error)" : "var(--gold-deep)", fontWeight: 700 }}>
+                {tab.count}
+              </span>
+            )}
+            {tab.alert && (
+              <span style={{ position: "absolute", top: "0.5rem", right: "0.5rem", width: "6px", height: "6px", background: "var(--error)", borderRadius: "50%" }} />
+            )}
+          </button>
+        ))}
+      </nav>
 
-      {/* Tab Content */}
+      {/* ===== Overview ===== */}
       {activeTab === "overview" && (
         <>
           <div className="grid two">
             <div className="card">
-              <div className="section-title">Profile Information</div>
-              <div className="list" style={{ marginTop: "1rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", borderBottom: "1px solid var(--border-light)" }}>
-                  <span className="muted">Grade Level:</span>
-                  <strong>{profile.grade_level || "Not set"}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", borderBottom: "1px solid var(--border-light)" }}>
-                  <span className="muted">School:</span>
-                  <strong>{profile.school || "Not set"}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", borderBottom: "1px solid var(--border-light)" }}>
-                  <span className="muted">Target Countries:</span>
-                  <strong>{profile.target_countries || "Not set"}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0" }}>
-                  <span className="muted">Intended Major:</span>
-                  <strong>{profile.intended_major || "Not set"}</strong>
-                </div>
-              </div>
+              <h2 className="section-title" style={{ fontSize: "1.25rem" }}>Profile</h2>
+              <Row label="Grade Level" value={profile.grade_level} />
+              <Row label="School" value={profile.school} />
+              <Row label="Target Countries" value={profile.target_countries} />
+              <Row label="Intended Major" value={profile.intended_major} />
+              <Row label="Class Rank" value={profile.class_rank} />
               {profile.bio && (
-                <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border-light)" }}>
-                  <div className="subtitle" style={{ marginBottom: "0.75rem" }}>Bio</div>
-                  <p className="muted" style={{ lineHeight: "1.6" }}>{profile.bio}</p>
+                <div style={{ marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "1px solid var(--rule-soft)" }}>
+                  <div className="eyebrow" style={{ paddingLeft: 0, display: "block", marginBottom: "0.5rem" }}>Bio</div>
+                  <p style={{ fontFamily: "var(--font-serif)", color: "var(--ink-soft)", lineHeight: 1.65 }}>{profile.bio}</p>
                 </div>
               )}
             </div>
-            <div className="card">
-              <div className="section-title">Portfolio Summary</div>
-              <div className="list" style={{ marginTop: "1rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid var(--border-light)" }}>
-                  <span className="muted">Academic Records:</span>
-                  <span className="badge" style={{ background: "#14b8a6", color: "#fff" }}>{academics.length}</span>
+
+            <div>
+              {acceptance && (
+                <div className="card" style={{ marginBottom: "1.25rem", borderTop: "2px solid var(--gold)" }}>
+                  <div className="eyebrow" style={{ paddingLeft: 0, display: "block", marginBottom: "0.5rem" }}>
+                    AI Acceptance Probability
+                  </div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "2.5rem", fontWeight: 700, color: "var(--gold-deep)", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                    {acceptance.average}<span style={{ fontSize: "1rem", color: "var(--ink-muted)" }}>%</span>
+                  </div>
+                  {acceptance.by_bucket && (
+                    <div style={{ marginTop: "0.85rem", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", fontFamily: "var(--font-mono)", fontSize: "0.78rem" }}>
+                      <div style={{ padding: "0.5rem", background: "var(--error-soft)", color: "var(--error)" }}>R · {acceptance.by_bucket.reach || 0}%</div>
+                      <div style={{ padding: "0.5rem", background: "var(--gold-soft)", color: "var(--gold-deep)" }}>T · {acceptance.by_bucket.target || 0}%</div>
+                      <div style={{ padding: "0.5rem", background: "var(--success-soft)", color: "var(--success)" }}>S · {acceptance.by_bucket.safety || 0}%</div>
+                    </div>
+                  )}
+                  {acceptance.note && (
+                    <p className="text-muted" style={{ marginTop: "0.75rem", fontStyle: "italic", fontFamily: "var(--font-serif)" }}>
+                      {acceptance.note}
+                    </p>
+                  )}
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid var(--border-light)" }}>
-                  <span className="muted">Test Scores:</span>
-                  <span className="badge" style={{ background: "#14b8a6", color: "#fff" }}>{tests.length}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid var(--border-light)" }}>
-                  <span className="muted">Activities:</span>
-                  <span className="badge" style={{ background: "#14b8a6", color: "#fff" }}>{activities.length}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid var(--border-light)" }}>
-                  <span className="muted">Awards:</span>
-                  <span className="badge" style={{ background: "#14b8a6", color: "#fff" }}>{awards.length}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 0" }}>
-                  <span className="muted">Documents:</span>
-                  <span className="badge" style={{ background: "#14b8a6", color: "#fff" }}>{documents.length}</span>
-                </div>
+              )}
+              <div className="card">
+                <h2 className="section-title" style={{ fontSize: "1.25rem" }}>At a glance</h2>
+                <Row label="Academic Records" value={academics.length} />
+                <Row label="Test Scores" value={tests.length} />
+                <Row label="Activities" value={activities.length} />
+                <Row label="Awards" value={awards.length} />
+                <Row label="Essays Drafted" value={essays.length} />
+                <Row label="College List" value={`${savedUniversities.length} schools`} />
+                <Row label="Open Tasks" value={tasks.filter((t) => t.status !== "done").length} />
+                <Row label="Documents" value={documents.length} />
               </div>
             </div>
           </div>
-          <div className="card" style={{ background: "linear-gradient(135deg, rgba(20, 184, 166, 0.05) 0%, rgba(13, 148, 136, 0.05) 100%)", border: "2px solid rgba(20, 184, 166, 0.2)" }}>
-            <div className="section-title">Portfolio Completion Tips</div>
-            <div className="list" style={{ marginTop: "1rem" }}>
-              {academics.length < 3 && (
-                <div style={{ display: "flex", alignItems: "start", gap: "0.75rem", padding: "0.75rem", background: "#fff", borderRadius: "0.5rem", marginBottom: "0.5rem" }}>
-                  <span style={{ fontSize: "1.25rem" }}>⚠️</span>
-                  <p className="muted" style={{ margin: 0 }}>Add at least 3 academic records for better portfolio strength</p>
-                </div>
+
+          <div className="card highlight" style={{ marginTop: "1.75rem" }}>
+            <div className="advisory-label">Completion tips</div>
+            <ul className="list" style={{ marginTop: "0.5rem" }}>
+              {academics.length < 3 && <li>Add at least 3 academic records for portfolio strength</li>}
+              {tests.length < 2 && <li>Add at least 2 standardized test scores</li>}
+              {activities.length < 4 && <li>Add more activities to demonstrate range and impact</li>}
+              {awards.length < 2 && <li>Add awards and honors to highlight achievements</li>}
+              {essays.length === 0 && <li>Start the Common App personal statement (650 words)</li>}
+              {savedUniversities.length === 0 && <li>Build a balanced college list (8–12 schools across Reach/Target/Safety)</li>}
+              {academics.length >= 3 && tests.length >= 2 && activities.length >= 4 && awards.length >= 2 && essays.length > 0 && savedUniversities.length > 0 && (
+                <li style={{ color: "var(--success)", fontWeight: 600 }}>Portfolio looks strong. Keep refining.</li>
               )}
-              {tests.length < 2 && (
-                <div style={{ display: "flex", alignItems: "start", gap: "0.75rem", padding: "0.75rem", background: "#fff", borderRadius: "0.5rem", marginBottom: "0.5rem" }}>
-                  <span style={{ fontSize: "1.25rem" }}>⚠️</span>
-                  <p className="muted" style={{ margin: 0 }}>Add at least 2 standardized test scores (SAT, ACT, IELTS, etc.)</p>
-                </div>
-              )}
-              {activities.length < 4 && (
-                <div style={{ display: "flex", alignItems: "start", gap: "0.75rem", padding: "0.75rem", background: "#fff", borderRadius: "0.5rem", marginBottom: "0.5rem" }}>
-                  <span style={{ fontSize: "1.25rem" }}>⚠️</span>
-                  <p className="muted" style={{ margin: 0 }}>Add more extracurricular activities to showcase well-roundedness</p>
-                </div>
-              )}
-              {awards.length < 2 && (
-                <div style={{ display: "flex", alignItems: "start", gap: "0.75rem", padding: "0.75rem", background: "#fff", borderRadius: "0.5rem", marginBottom: "0.5rem" }}>
-                  <span style={{ fontSize: "1.25rem" }}>⚠️</span>
-                  <p className="muted" style={{ margin: 0 }}>Add awards and achievements to highlight accomplishments</p>
-                </div>
-              )}
-              {academics.length >= 3 && tests.length >= 2 && activities.length >= 4 && awards.length >= 2 && (
-                <div style={{ display: "flex", alignItems: "start", gap: "0.75rem", padding: "0.75rem", background: "#fff", borderRadius: "0.5rem" }}>
-                  <span style={{ fontSize: "1.25rem" }}>✓</span>
-                  <p style={{ margin: 0, color: "#10b981", fontWeight: "600" }}>Portfolio looks strong! Keep adding more details.</p>
-                </div>
-              )}
-            </div>
+            </ul>
           </div>
         </>
       )}
 
+      {/* ===== Academics ===== */}
       {activeTab === "academics" && (
-        <div className="card">
-          <div className="section-title">Academic Records</div>
-          {academics.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "3rem 2rem" }}>
-              <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📚</div>
-              <p className="muted">No academic records yet.</p>
-            </div>
-          ) : (
-            <div className="grid two" style={{ marginTop: "1rem", gap: "1rem" }}>
-              {academics.map((record) => (
-                <div
-                  key={record.id}
-                  className="card"
-                  style={{
-                    padding: "1.25rem",
-                    border: "1px solid var(--border)",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#14b8a6";
-                    e.currentTarget.style.boxShadow = "var(--shadow-md)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border)";
-                    e.currentTarget.style.boxShadow = "var(--shadow)";
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "0.75rem" }}>
-                    <div>
-                      <strong style={{ fontSize: "1.125rem" }}>{record.course}</strong>
-                      <p className="muted" style={{ fontSize: "0.875rem", marginTop: "0.25rem" }}>
-                        {record.year} • {record.level || "N/A"}
-                      </p>
-                    </div>
-                    <span className="badge" style={{ fontSize: "1rem", padding: "0.5rem 1rem", background: "#14b8a6", color: "#fff", fontWeight: "700" }}>
-                      {record.grade}
-                    </span>
-                  </div>
-                  {record.school_system && (
-                    <p className="muted" style={{ fontSize: "0.875rem" }}>System: {record.school_system}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+        <div style={{ display: "grid", gap: "0.85rem" }}>
+          {academics.length === 0 && <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No academic records yet.</p>}
+          {academics.map((r) => (
+            <article key={r.id} className="card compact flex-between">
+              <div>
+                <div className="subtitle" style={{ fontSize: "1rem" }}>{r.course}</div>
+                <p className="text-muted" style={{ marginTop: "0.25rem" }}>{r.year || "—"} · {r.level || "Standard"}</p>
+              </div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "1.65rem", fontWeight: 700, color: "var(--gold-deep)" }}>{r.grade || "—"}</div>
+            </article>
+          ))}
         </div>
       )}
 
+      {/* ===== Tests ===== */}
       {activeTab === "tests" && (
-        <div className="card">
-          <div className="section-title">Test Scores</div>
-          {tests.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "3rem 2rem" }}>
-              <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📝</div>
-              <p className="muted">No test scores yet.</p>
-            </div>
-          ) : (
-            <div className="grid two" style={{ marginTop: "1rem", gap: "1rem" }}>
-              {tests.map((test) => (
-                <div
-                  key={test.id}
-                  className="card"
-                  style={{
-                    padding: "1.25rem",
-                    border: "1px solid var(--border)",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#14b8a6";
-                    e.currentTarget.style.boxShadow = "var(--shadow-md)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border)";
-                    e.currentTarget.style.boxShadow = "var(--shadow)";
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "0.75rem" }}>
-                    <div>
-                      <strong style={{ fontSize: "1.125rem" }}>{test.test_type}</strong>
-                      <p className="muted" style={{ fontSize: "0.875rem", marginTop: "0.25rem" }}>
-                        Date: {test.test_date ? new Date(test.test_date).toLocaleDateString() : "N/A"}
-                      </p>
-                      {test.superscore && (
-                        <p className="muted" style={{ fontSize: "0.875rem", marginTop: "0.25rem" }}>
-                          Superscore: {test.superscore}
-                        </p>
-                      )}
-                    </div>
-                    <span className="badge" style={{ fontSize: "1.25rem", padding: "0.5rem 1rem", background: "#14b8a6", color: "#fff", fontWeight: "700" }}>
-                      {test.score}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <div style={{ display: "grid", gap: "0.85rem" }}>
+          {tests.length === 0 && <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No test scores yet.</p>}
+          {tests.map((t) => (
+            <article key={t.id} className="card compact flex-between">
+              <div>
+                <div className="subtitle" style={{ fontSize: "1rem" }}>{t.test_type}</div>
+                <p className="text-muted" style={{ marginTop: "0.25rem" }}>
+                  {t.test_date ? new Date(t.test_date).toLocaleDateString() : "—"}
+                  {t.superscore ? ` · super ${t.superscore}` : ""}
+                </p>
+              </div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "1.65rem", fontWeight: 700, color: "var(--gold-deep)" }}>{t.superscore || t.score || "—"}</div>
+            </article>
+          ))}
         </div>
       )}
 
+      {/* ===== Activities ===== */}
       {activeTab === "activities" && (
-        <div className="card">
-          <div className="section-title">Extracurricular Activities</div>
-          {activities.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "3rem 2rem" }}>
-              <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🎯</div>
-              <p className="muted">No activities yet.</p>
-            </div>
-          ) : (
-            <div className="grid two" style={{ marginTop: "1rem", gap: "1rem" }}>
-              {activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="card"
-                  style={{
-                    padding: "1.25rem",
-                    border: "1px solid var(--border)",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#14b8a6";
-                    e.currentTarget.style.boxShadow = "var(--shadow-md)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border)";
-                    e.currentTarget.style.boxShadow = "var(--shadow)";
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "0.75rem" }}>
-                    <strong style={{ fontSize: "1.125rem" }}>{activity.title}</strong>
-                    {activity.leadership && (
-                      <span className="badge" style={{ background: "#14b8a6", color: "#fff" }}>Leadership</span>
-                    )}
+        <div style={{ display: "grid", gap: "0.85rem" }}>
+          {activities.length === 0 && <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No activities yet.</p>}
+          {activities.map((a, idx) => (
+            <article key={a.id} className="card">
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "1rem" }}>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--gold-deep)" }}>
+                  {String(idx + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline", flexWrap: "wrap" }}>
+                    <strong style={{ fontFamily: "var(--font-display)", fontSize: "1.05rem", color: "var(--ink)" }}>{a.title}</strong>
+                    {a.leadership ? <span className="badge primary">Leadership</span> : null}
+                    {a.category ? <span className="badge">{a.category}</span> : null}
                   </div>
-                  {activity.role && (
-                    <p className="muted" style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}>
-                      <strong>Role:</strong> {activity.role}
+                  <p className="muted" style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>
+                    {a.role}{a.hours_per_week ? ` · ${a.hours_per_week} hrs/wk` : ""}
+                  </p>
+                  {a.description && (
+                    <p style={{ fontFamily: "var(--font-serif)", fontSize: "0.92rem", color: "var(--ink-soft)", marginTop: "0.5rem", lineHeight: 1.55 }}>
+                      {a.description}
                     </p>
                   )}
-                  {activity.description && (
-                    <p className="muted" style={{ fontSize: "0.875rem", marginBottom: "0.75rem", lineHeight: "1.6" }}>
-                      {activity.description}
-                    </p>
-                  )}
-                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                    {activity.hours_per_week > 0 && (
-                      <span className="badge" style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)" }}>
-                        {activity.hours_per_week} hrs/week
-                      </span>
-                    )}
-                    {activity.start_date && (
-                      <span className="badge" style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)" }}>
-                        {new Date(activity.start_date).toLocaleDateString()} - {activity.end_date ? new Date(activity.end_date).toLocaleDateString() : "Ongoing"}
-                      </span>
-                    )}
-                  </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            </article>
+          ))}
         </div>
       )}
 
+      {/* ===== Awards ===== */}
       {activeTab === "awards" && (
-        <div className="card">
-          <div className="section-title">Awards & Achievements</div>
-          {awards.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "3rem 2rem" }}>
-              <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🏆</div>
-              <p className="muted">No awards yet.</p>
+        <div style={{ display: "grid", gap: "0.75rem" }}>
+          {awards.length === 0 && <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No awards yet.</p>}
+          {awards.map((a) => (
+            <div key={a.id} className="card compact">
+              <div className="subtitle">{a.title}</div>
+              {a.description && <p className="muted" style={{ fontSize: "0.9rem", marginTop: "0.4rem" }}>{a.description}</p>}
+              {a.award_date && <p className="text-muted" style={{ marginTop: "0.4rem" }}>{new Date(a.award_date).toLocaleDateString()}</p>}
             </div>
+          ))}
+        </div>
+      )}
+
+      {/* ===== Essays ===== */}
+      {activeTab === "essays" && (
+        <div style={{ display: "grid", gap: "0.85rem" }}>
+          {essays.length === 0 && <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No essays drafted yet.</p>}
+          {essays.map((e) => (
+            <article key={e.id} className="card compact flex-between">
+              <div>
+                <div className="subtitle" style={{ fontSize: "1rem" }}>{e.title || "Untitled Essay"}</div>
+                <p className="text-muted" style={{ marginTop: "0.25rem" }}>
+                  {e.word_count || 0} words
+                  {e.last_edited_at && ` · Last edited ${new Date(e.last_edited_at).toLocaleDateString()}`}
+                </p>
+              </div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 700, color: e.word_count > 650 ? "var(--error)" : e.word_count >= 500 ? "var(--success)" : "var(--ink-muted)" }}>
+                {e.word_count > 650 ? "Over 650" : e.word_count >= 500 ? "Ready" : "Draft"}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {/* ===== Colleges ===== */}
+      {activeTab === "colleges" && (
+        <div>
+          {savedUniversities.length === 0 ? (
+            <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No colleges saved yet.</p>
           ) : (
-            <div className="grid two" style={{ marginTop: "1rem", gap: "1rem" }}>
-              {awards.map((award) => (
-                <div
-                  key={award.id}
-                  className="card"
-                  style={{
-                    padding: "1.25rem",
-                    border: "1px solid var(--border)",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#14b8a6";
-                    e.currentTarget.style.boxShadow = "var(--shadow-md)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border)";
-                    e.currentTarget.style.boxShadow = "var(--shadow)";
-                  }}
-                >
-                  <strong style={{ fontSize: "1.125rem" }}>{award.title}</strong>
-                  {award.description && (
-                    <p className="muted" style={{ fontSize: "0.875rem", marginTop: "0.75rem", lineHeight: "1.6" }}>
-                      {award.description}
-                    </p>
-                  )}
-                  {award.award_date && (
-                    <p className="muted" style={{ fontSize: "0.875rem", marginTop: "0.75rem" }}>
-                      <strong>Date:</strong> {new Date(award.award_date).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-              ))}
+            <div style={{ display: "grid", gap: "0.85rem" }}>
+              {["reach", "target", "safety"].map((bucket) => {
+                const list = savedUniversities.filter((u) => u.bucket === bucket);
+                if (!list.length) return null;
+                const accent = bucket === "reach" ? "var(--error)" : bucket === "target" ? "var(--gold-deep)" : "var(--success)";
+                return (
+                  <section key={bucket}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "0.85rem", marginBottom: "0.75rem", paddingBottom: "0.4rem", borderBottom: `2px solid ${accent}` }}>
+                      <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", color: "var(--ink)", textTransform: "capitalize" }}>{bucket}</h3>
+                      <span className="text-muted">{list.length} school{list.length === 1 ? "" : "s"}</span>
+                    </div>
+                    <div style={{ display: "grid", gap: "0.5rem" }}>
+                      {list.map((s) => (
+                        <div key={s.id} className="card compact" style={{ display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: "1rem", alignItems: "center" }}>
+                          <span style={{ fontSize: "1.25rem" }}>{FLAG[s.country] || "🏛"}</span>
+                          <div>
+                            <strong style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>{s.name}</strong>
+                            <p className="text-muted" style={{ marginTop: "0.15rem" }}>{s.country}{s.city ? ` · ${s.city}` : ""}{s.selectivity_band ? ` · ${s.selectivity_band}` : ""}</p>
+                          </div>
+                          <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink-muted)" }}>
+                            {s.application_round || "—"}
+                          </div>
+                          <div className="mono" style={{ fontSize: "0.85rem", color: "var(--ink)", fontWeight: 600 }}>
+                            {s.deadline ? new Date(s.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      {activeTab === "documents" && (
-        <div className="card">
-          <div className="section-title">Documents</div>
-          {documents.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "3rem 2rem" }}>
-              <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📄</div>
-              <p className="muted">No documents uploaded yet.</p>
-            </div>
-          ) : (
-            <div className="grid two" style={{ marginTop: "1rem", gap: "1rem" }}>
-              {documents.map((doc) => (
+      {/* ===== Tasks ===== */}
+      {activeTab === "tasks" && (
+        <div style={{ display: "grid", gap: "0.6rem" }}>
+          {tasks.length === 0 && <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No tasks tracked yet.</p>}
+          {tasks.map((t) => {
+            const isOverdue = t.status !== "done" && t.due_date && new Date(t.due_date) < new Date();
+            return (
+              <article
+                key={t.id}
+                className="card compact"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "auto 1fr auto",
+                  gap: "0.85rem",
+                  alignItems: "start",
+                  borderLeft: isOverdue ? "2px solid var(--error)" : t.status === "done" ? "2px solid var(--success)" : t.status === "in_progress" ? "2px solid var(--gold)" : "1px solid var(--rule)"
+                }}
+              >
                 <div
-                  key={doc.id}
-                  className="card"
                   style={{
-                    padding: "1.25rem",
-                    border: "1px solid var(--border)",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#14b8a6";
-                    e.currentTarget.style.boxShadow = "var(--shadow-md)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border)";
-                    e.currentTarget.style.boxShadow = "var(--shadow)";
+                    width: "20px",
+                    height: "20px",
+                    borderRadius: "50%",
+                    border: `2px solid ${t.status === "done" ? "var(--success)" : isOverdue ? "var(--error)" : t.status === "in_progress" ? "var(--gold-deep)" : "var(--rule)"}`,
+                    background: t.status === "done" ? "var(--success)" : "transparent",
+                    color: "var(--paper)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "11px",
+                    lineHeight: "16px",
+                    marginTop: "2px"
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-                    <div>
-                      <strong style={{ fontSize: "1.125rem" }}>{doc.original_name}</strong>
-                      <p className="muted" style={{ fontSize: "0.875rem", marginTop: "0.25rem" }}>
-                        {doc.category} • Uploaded {new Date(doc.uploaded_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <a
-                      href={`${import.meta.env.VITE_API_URL || "http://localhost:4000"}/uploads/${doc.file_path}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="button"
-                      style={{ padding: "0.5rem 1rem", fontSize: "0.875rem", background: "#14b8a6" }}
-                    >
-                      View
-                    </a>
+                  {t.status === "done" ? "✓" : ""}
+                </div>
+                <div>
+                  <div style={{ fontFamily: "var(--font-display)", color: "var(--ink)", fontWeight: 600, textDecoration: t.status === "done" ? "line-through" : "none", opacity: t.status === "done" ? 0.6 : 1 }}>
+                    {t.title}
+                  </div>
+                  <div style={{ marginTop: "0.3rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "baseline" }}>
+                    <span className="badge">{t.category || "general"}</span>
+                    {t.due_date && (
+                      <span style={{ fontSize: "0.75rem", color: isOverdue ? "var(--error)" : "var(--ink-muted)", fontWeight: 600 }}>
+                        Due {new Date(t.due_date).toLocaleDateString()}
+                        {isOverdue && " — overdue"}
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <span style={{ fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 600 }}>
+                  {t.status?.replace("_", " ")}
+                </span>
+              </article>
+            );
+          })}
         </div>
       )}
+
+      {/* ===== Documents ===== */}
+      {activeTab === "documents" && (
+        <div style={{ display: "grid", gap: "0.5rem" }}>
+          {documents.length === 0 && <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No documents uploaded.</p>}
+          {documents.map((d) => (
+            <div key={d.id} className="card compact flex-between">
+              <div>
+                <strong style={{ color: "var(--ink)" }}>{d.original_name || d.filename || "Document"}</strong>
+                <p className="text-muted" style={{ marginTop: "0.25rem" }}>
+                  {d.category} · {d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString() : "—"}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, value }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.7rem 0", borderBottom: "1px solid var(--rule-soft)" }}>
+      <span className="muted" style={{ fontSize: "0.85rem" }}>{label}</span>
+      <strong style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>{value || "—"}</strong>
     </div>
   );
 }

@@ -1,0 +1,456 @@
+{
+  "instrument": "IPIP-50 (Big-Five Factor Markers)",
+  "source": "International Personality Item Pool, ipip.ori.org",
+  "license": "Public domain; no permission required, attribution requested",
+  "responseScale": {
+    "type": "Likert",
+    "points": 5,
+    "labels": {
+      "1": "Very Inaccurate",
+      "2": "Moderately Inaccurate",
+      "3": "Neither Accurate Nor Inaccurate",
+      "4": "Moderately Accurate",
+      "5": "Very Accurate"
+    }
+  },
+  "stem": "Describe yourself as you generally are now, not as you wish to be in the future. Describe yourself as you honestly see yourself, in relation to other people you know of the same sex as you are, and roughly your same age.",
+  "factors": {
+    "Extraversion": {
+      "code": "E",
+      "positiveKeyed": [
+        1,
+        11,
+        21,
+        31,
+        41
+      ],
+      "negativeKeyed": [
+        6,
+        16,
+        26,
+        36,
+        46
+      ]
+    },
+    "Agreeableness": {
+      "code": "A",
+      "positiveKeyed": [
+        7,
+        17,
+        27,
+        37,
+        42,
+        47
+      ],
+      "negativeKeyed": [
+        2,
+        12,
+        22,
+        32
+      ]
+    },
+    "Conscientiousness": {
+      "code": "C",
+      "positiveKeyed": [
+        3,
+        13,
+        23,
+        33,
+        43,
+        48
+      ],
+      "negativeKeyed": [
+        8,
+        18,
+        28,
+        38
+      ]
+    },
+    "Emotional Stability": {
+      "code": "ES",
+      "positiveKeyed": [
+        9,
+        19
+      ],
+      "negativeKeyed": [
+        4,
+        14,
+        24,
+        29,
+        34,
+        39,
+        44,
+        49
+      ]
+    },
+    "Intellect/Imagination": {
+      "code": "I",
+      "positiveKeyed": [
+        5,
+        15,
+        25,
+        35,
+        40,
+        45,
+        50
+      ],
+      "negativeKeyed": [
+        10,
+        20,
+        30
+      ]
+    }
+  },
+  "items": [
+    {
+      "id": 1,
+      "text": "Am the life of the party.",
+      "factor": "Extraversion",
+      "factorCode": "E",
+      "keyed": "+"
+    },
+    {
+      "id": 2,
+      "text": "Feel little concern for others.",
+      "factor": "Agreeableness",
+      "factorCode": "A",
+      "keyed": "-"
+    },
+    {
+      "id": 3,
+      "text": "Am always prepared.",
+      "factor": "Conscientiousness",
+      "factorCode": "C",
+      "keyed": "+"
+    },
+    {
+      "id": 4,
+      "text": "Get stressed out easily.",
+      "factor": "Emotional Stability",
+      "factorCode": "ES",
+      "keyed": "-"
+    },
+    {
+      "id": 5,
+      "text": "Have a rich vocabulary.",
+      "factor": "Intellect/Imagination",
+      "factorCode": "I",
+      "keyed": "+"
+    },
+    {
+      "id": 6,
+      "text": "Don't talk a lot.",
+      "factor": "Extraversion",
+      "factorCode": "E",
+      "keyed": "-"
+    },
+    {
+      "id": 7,
+      "text": "Am interested in people.",
+      "factor": "Agreeableness",
+      "factorCode": "A",
+      "keyed": "+"
+    },
+    {
+      "id": 8,
+      "text": "Leave my belongings around.",
+      "factor": "Conscientiousness",
+      "factorCode": "C",
+      "keyed": "-"
+    },
+    {
+      "id": 9,
+      "text": "Am relaxed most of the time.",
+      "factor": "Emotional Stability",
+      "factorCode": "ES",
+      "keyed": "+"
+    },
+    {
+      "id": 10,
+      "text": "Have difficulty understanding abstract ideas.",
+      "factor": "Intellect/Imagination",
+      "factorCode": "I",
+      "keyed": "-"
+    },
+    {
+      "id": 11,
+      "text": "Feel comfortable around people.",
+      "factor": "Extraversion",
+      "factorCode": "E",
+      "keyed": "+"
+    },
+    {
+      "id": 12,
+      "text": "Insult people.",
+      "factor": "Agreeableness",
+      "factorCode": "A",
+      "keyed": "-"
+    },
+    {
+      "id": 13,
+      "text": "Pay attention to details.",
+      "factor": "Conscientiousness",
+      "factorCode": "C",
+      "keyed": "+"
+    },
+    {
+      "id": 14,
+      "text": "Worry about things.",
+      "factor": "Emotional Stability",
+      "factorCode": "ES",
+      "keyed": "-"
+    },
+    {
+      "id": 15,
+      "text": "Have a vivid imagination.",
+      "factor": "Intellect/Imagination",
+      "factorCode": "I",
+      "keyed": "+"
+    },
+    {
+      "id": 16,
+      "text": "Keep in the background.",
+      "factor": "Extraversion",
+      "factorCode": "E",
+      "keyed": "-"
+    },
+    {
+      "id": 17,
+      "text": "Sympathize with others' feelings.",
+      "factor": "Agreeableness",
+      "factorCode": "A",
+      "keyed": "+"
+    },
+    {
+      "id": 18,
+      "text": "Make a mess of things.",
+      "factor": "Conscientiousness",
+      "factorCode": "C",
+      "keyed": "-"
+    },
+    {
+      "id": 19,
+      "text": "Seldom feel blue.",
+      "factor": "Emotional Stability",
+      "factorCode": "ES",
+      "keyed": "+"
+    },
+    {
+      "id": 20,
+      "text": "Am not interested in abstract ideas.",
+      "factor": "Intellect/Imagination",
+      "factorCode": "I",
+      "keyed": "-"
+    },
+    {
+      "id": 21,
+      "text": "Start conversations.",
+      "factor": "Extraversion",
+      "factorCode": "E",
+      "keyed": "+"
+    },
+    {
+      "id": 22,
+      "text": "Am not interested in other people's problems.",
+      "factor": "Agreeableness",
+      "factorCode": "A",
+      "keyed": "-"
+    },
+    {
+      "id": 23,
+      "text": "Get chores done right away.",
+      "factor": "Conscientiousness",
+      "factorCode": "C",
+      "keyed": "+"
+    },
+    {
+      "id": 24,
+      "text": "Am easily disturbed.",
+      "factor": "Emotional Stability",
+      "factorCode": "ES",
+      "keyed": "-"
+    },
+    {
+      "id": 25,
+      "text": "Have excellent ideas.",
+      "factor": "Intellect/Imagination",
+      "factorCode": "I",
+      "keyed": "+"
+    },
+    {
+      "id": 26,
+      "text": "Have little to say.",
+      "factor": "Extraversion",
+      "factorCode": "E",
+      "keyed": "-"
+    },
+    {
+      "id": 27,
+      "text": "Have a soft heart.",
+      "factor": "Agreeableness",
+      "factorCode": "A",
+      "keyed": "+"
+    },
+    {
+      "id": 28,
+      "text": "Often forget to put things back in their proper place.",
+      "factor": "Conscientiousness",
+      "factorCode": "C",
+      "keyed": "-"
+    },
+    {
+      "id": 29,
+      "text": "Get upset easily.",
+      "factor": "Emotional Stability",
+      "factorCode": "ES",
+      "keyed": "-"
+    },
+    {
+      "id": 30,
+      "text": "Do not have a good imagination.",
+      "factor": "Intellect/Imagination",
+      "factorCode": "I",
+      "keyed": "-"
+    },
+    {
+      "id": 31,
+      "text": "Talk to a lot of different people at parties.",
+      "factor": "Extraversion",
+      "factorCode": "E",
+      "keyed": "+"
+    },
+    {
+      "id": 32,
+      "text": "Am not really interested in others.",
+      "factor": "Agreeableness",
+      "factorCode": "A",
+      "keyed": "-"
+    },
+    {
+      "id": 33,
+      "text": "Like order.",
+      "factor": "Conscientiousness",
+      "factorCode": "C",
+      "keyed": "+"
+    },
+    {
+      "id": 34,
+      "text": "Change my mood a lot.",
+      "factor": "Emotional Stability",
+      "factorCode": "ES",
+      "keyed": "-"
+    },
+    {
+      "id": 35,
+      "text": "Am quick to understand things.",
+      "factor": "Intellect/Imagination",
+      "factorCode": "I",
+      "keyed": "+"
+    },
+    {
+      "id": 36,
+      "text": "Don't like to draw attention to myself.",
+      "factor": "Extraversion",
+      "factorCode": "E",
+      "keyed": "-"
+    },
+    {
+      "id": 37,
+      "text": "Take time out for others.",
+      "factor": "Agreeableness",
+      "factorCode": "A",
+      "keyed": "+"
+    },
+    {
+      "id": 38,
+      "text": "Shirk my duties.",
+      "factor": "Conscientiousness",
+      "factorCode": "C",
+      "keyed": "-"
+    },
+    {
+      "id": 39,
+      "text": "Have frequent mood swings.",
+      "factor": "Emotional Stability",
+      "factorCode": "ES",
+      "keyed": "-"
+    },
+    {
+      "id": 40,
+      "text": "Use difficult words.",
+      "factor": "Intellect/Imagination",
+      "factorCode": "I",
+      "keyed": "+"
+    },
+    {
+      "id": 41,
+      "text": "Don't mind being the center of attention.",
+      "factor": "Extraversion",
+      "factorCode": "E",
+      "keyed": "+"
+    },
+    {
+      "id": 42,
+      "text": "Feel others' emotions.",
+      "factor": "Agreeableness",
+      "factorCode": "A",
+      "keyed": "+"
+    },
+    {
+      "id": 43,
+      "text": "Follow a schedule.",
+      "factor": "Conscientiousness",
+      "factorCode": "C",
+      "keyed": "+"
+    },
+    {
+      "id": 44,
+      "text": "Get irritated easily.",
+      "factor": "Emotional Stability",
+      "factorCode": "ES",
+      "keyed": "-"
+    },
+    {
+      "id": 45,
+      "text": "Spend time reflecting on things.",
+      "factor": "Intellect/Imagination",
+      "factorCode": "I",
+      "keyed": "+"
+    },
+    {
+      "id": 46,
+      "text": "Am quiet around strangers.",
+      "factor": "Extraversion",
+      "factorCode": "E",
+      "keyed": "-"
+    },
+    {
+      "id": 47,
+      "text": "Make people feel at ease.",
+      "factor": "Agreeableness",
+      "factorCode": "A",
+      "keyed": "+"
+    },
+    {
+      "id": 48,
+      "text": "Am exacting in my work.",
+      "factor": "Conscientiousness",
+      "factorCode": "C",
+      "keyed": "+"
+    },
+    {
+      "id": 49,
+      "text": "Often feel blue.",
+      "factor": "Emotional Stability",
+      "factorCode": "ES",
+      "keyed": "-"
+    },
+    {
+      "id": 50,
+      "text": "Am full of ideas.",
+      "factor": "Intellect/Imagination",
+      "factorCode": "I",
+      "keyed": "+"
+    }
+  ]
+}

@@ -217,3 +217,15 @@ secrets/
 # Ignore generated scripts
 *.generated.js
 *.generated.ts
+
+# SSL private keys — never commit
+deploy/ssl/
+*.key.pem
+*.pem
+
+# Local DB backups (data only; schema in database/*.sql)
+backups/data/
+backups/backup.log
+
+# generated design-canvas payload (regenerate from *.dc.html)
+doc/personalTest/design/ipip50-personality-test.html

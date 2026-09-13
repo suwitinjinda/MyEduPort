@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import { PORTFOLIO_GUIDE } from "../components/AdvisoryNote.jsx";
+import Skeleton, { EmptyState } from "../components/Skeleton.jsx";
 
-const FLAG_EMOJIS = {
-  US: "🇺🇸",
-  UK: "🇬🇧",
-  China: "🇨🇳"
-};
+const FLAG = { US: "🇺🇸", UK: "🇬🇧", China: "🇨🇳", Canada: "🇨🇦", Australia: "🇦🇺", Japan: "🇯🇵", Germany: "🇩🇪", Singapore: "🇸🇬", "Hong Kong": "🇭🇰" };
 
 export default function Recommendations() {
   const [form, setForm] = useState({ country: "All", major: "", gpa: "3.7" });
@@ -14,21 +13,14 @@ export default function Recommendations() {
   const [sortBy, setSortBy] = useState("country");
   const [loading, setLoading] = useState(false);
 
-  // Auto-load recommendations on mount
-  useEffect(() => {
-    loadRecommendations();
-  }, []);
+  useEffect(() => { loadRecommendations(); }, []);
 
   const updateField = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const loadRecommendations = async () => {
     setLoading(true);
-    setStatus("Loading recommendations...");
     try {
-      const data = await apiFetch("/api/ai/recommendations", {
-        method: "POST",
-        body: JSON.stringify({ ...form, sortBy })
-      });
+      const data = await apiFetch("/api/ai/recommendations", { method: "POST", body: JSON.stringify({ ...form, sortBy }) });
       setResults(data.results || []);
       setStatus("");
     } catch (err) {
@@ -40,43 +32,41 @@ export default function Recommendations() {
 
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
-    if (results.length > 0) {
-      loadRecommendations();
-    }
+    if (results.length > 0) loadRecommendations();
   };
 
-  // Group results by category
   const reach = results.filter((r) => r.category === "Reach");
   const target = results.filter((r) => r.category === "Target");
   const safety = results.filter((r) => r.category === "Safety");
 
   return (
-    <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
-      {/* Header Banner */}
+    <div>
+      {/* Header banner */}
       <div
         style={{
-          background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)",
+          background: "var(--grad)",
           color: "#fff",
           padding: "1.5rem 2rem",
-          borderRadius: "0.75rem 0.75rem 0 0",
-          marginBottom: "0"
+          borderRadius: "var(--r-lg) var(--r-lg) 0 0",
+          fontSize: "1.1rem",
+          fontWeight: 700,
+          letterSpacing: "-0.01em"
         }}
       >
-        <div className="section-title" style={{ color: "#fff", marginBottom: "0" }}>
-          AI University Recommendations
-        </div>
+        AI University Recommendations
       </div>
 
-      {/* Main Content Card */}
-      <div className="card" style={{ borderRadius: "0 0 0.75rem 0.75rem", marginTop: "0", padding: "2rem" }}>
-        {/* Main Heading */}
-        <h1 style={{ fontSize: "2rem", fontWeight: "700", marginBottom: "1.5rem", color: "var(--text-primary)" }}>
+      <div
+        className="card"
+        style={{ borderRadius: "0 0 var(--r-lg) var(--r-lg)", padding: "2rem", borderTop: "none", marginBottom: "2rem" }}
+      >
+        <h1 className="section-title" style={{ fontSize: "1.75rem", marginBottom: "1.5rem" }}>
           Your University Recommendations
         </h1>
 
         {/* Filters */}
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div className="input" style={{ marginBottom: "0", minWidth: "180px" }}>
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "end", marginBottom: "1.5rem" }}>
+          <div className="input" style={{ marginBottom: 0, minWidth: "160px" }}>
             <label>Sort by:</label>
             <select value={sortBy} onChange={handleSortChange}>
               <option value="country">Country</option>
@@ -84,16 +74,19 @@ export default function Recommendations() {
               <option value="name">Name</option>
             </select>
           </div>
-          <div className="input" style={{ marginBottom: "0", minWidth: "180px" }}>
+          <span style={{ paddingBottom: "0.65rem", color: "var(--ink-muted)" }}>—</span>
+          <div className="input" style={{ marginBottom: 0, minWidth: "160px" }}>
             <label>Country:</label>
             <select value={form.country} onChange={updateField("country")}>
               <option value="All">All Countries</option>
               <option value="US">United States</option>
               <option value="UK">United Kingdom</option>
               <option value="China">China</option>
+              <option value="Canada">Canada</option>
+              <option value="Australia">Australia</option>
             </select>
           </div>
-          <div className="input" style={{ marginBottom: "0", minWidth: "180px" }}>
+          <div className="input" style={{ marginBottom: 0, minWidth: "180px" }}>
             <label>Major:</label>
             <select value={form.major} onChange={updateField("major")}>
               <option value="">All Majors</option>
@@ -105,178 +98,86 @@ export default function Recommendations() {
             </select>
           </div>
           <button className="button" onClick={loadRecommendations} disabled={loading}>
-            {loading ? "Loading..." : "Refresh"}
+            {loading ? "Loading…" : "Refresh"}
           </button>
         </div>
 
-        {status && !loading && (
-          <p className="muted" style={{ marginBottom: "1rem" }}>{status}</p>
+        {/* Three columns */}
+        {loading && results.length === 0 ? (
+          <Skeleton lines={8} />
+        ) : results.length === 0 ? (
+          <EmptyState
+            title="No university matches yet."
+            hint="Click below to generate AI-curated recommendations based on your profile."
+            action={<button className="button" onClick={loadRecommendations}>Generate recommendations →</button>}
+          />
+        ) : (
+          <div
+            className="recommendations-grid"
+            style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem" }}
+          >
+            <Column title="Reach" data={reach} cls="reach" />
+            <Column title="Target" data={target} cls="target" />
+            <Column title="Safety" data={safety} cls="safety" />
+          </div>
         )}
 
-        {/* Category Explanation */}
-        <div className="card" style={{ background: "var(--bg-secondary)", marginBottom: "1.5rem", padding: "1rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                <div style={{ width: "12px", height: "12px", background: "var(--primary)", borderRadius: "50%" }}></div>
-                <strong>Reach</strong>
-              </div>
-              <p className="muted" style={{ fontSize: "0.875rem" }}>
-                Highly competitive universities. Admission is challenging even with strong credentials. Match: 25-40%
-              </p>
-            </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                <div style={{ width: "12px", height: "12px", background: "#14b8a6", borderRadius: "50%" }}></div>
-                <strong>Target</strong>
-              </div>
-              <p className="muted" style={{ fontSize: "0.875rem" }}>
-                Good match universities. Admission is likely with your credentials. Match: 50-80%
-              </p>
-            </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                <div style={{ width: "12px", height: "12px", background: "#10b981", borderRadius: "50%" }}></div>
-                <strong>Safety</strong>
-              </div>
-              <p className="muted" style={{ fontSize: "0.875rem" }}>
-                More accessible universities. Good chance of admission with your profile. Match: 60-80%
-              </p>
-            </div>
+        {status && !loading && <p className="muted" style={{ marginTop: "1rem" }}>{status}</p>}
+      </div>
+
+      {/* Demonstrated Interest + Recs ref */}
+      <section className="grid two">
+        <div className="card" style={{ padding: "1.75rem" }}>
+          <div className="advisory-label" style={{ marginBottom: "0.5rem", color: "var(--teal-deep)", fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+            Demonstrated Interest
           </div>
+          <h3 className="subtitle">{PORTFOLIO_GUIDE.demonstratedInterest.title}</h3>
+          <p className="muted" style={{ fontSize: "0.9rem", marginTop: "0.5rem", marginBottom: "0.85rem" }}>
+            {PORTFOLIO_GUIDE.demonstratedInterest.summary}
+          </p>
+          <ul className="list">
+            {PORTFOLIO_GUIDE.demonstratedInterest.ways.slice(0, 4).map((w, i) => (
+              <li key={i} style={{ fontSize: "0.88rem" }}>{w}</li>
+            ))}
+          </ul>
+          <Link to="/guide#interest" style={{ color: "var(--teal-deep)", fontSize: "0.78rem", fontWeight: 700, marginTop: "1rem", display: "inline-block" }}>
+            Full guidance →
+          </Link>
         </div>
 
-        {/* Three Column Layout */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "1.5rem",
-            marginTop: "2rem"
-          }}
-          className="recommendations-grid"
-        >
-          {/* Reach Column */}
-          <div>
-            <div
-              style={{
-                background: "var(--primary)",
-                color: "#fff",
-                padding: "1rem",
-                borderRadius: "0.5rem 0.5rem 0 0",
-                fontWeight: "700",
-                fontSize: "1.125rem",
-                textAlign: "center"
-              }}
-            >
-              Reach
-            </div>
-            <div
-              style={{
-                background: "var(--bg-secondary)",
-                padding: "1rem",
-                borderRadius: "0 0 0.5rem 0.5rem",
-                minHeight: "400px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.75rem"
-              }}
-            >
-              {reach.length === 0 ? (
-                <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>
-                  No reach universities found
-                </p>
-              ) : (
-                reach.map((uni) => (
-                  <UniversityCard key={uni.id} university={uni} />
-                ))
-              )}
-            </div>
+        <div className="card" style={{ padding: "1.75rem" }}>
+          <div className="advisory-label" style={{ marginBottom: "0.5rem", color: "var(--teal-deep)", fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+            Recommendation Letters
           </div>
-
-          {/* Target Column */}
-          <div>
-            <div
-              style={{
-                background: "#14b8a6",
-                color: "#fff",
-                padding: "1rem",
-                borderRadius: "0.5rem 0.5rem 0 0",
-                fontWeight: "700",
-                fontSize: "1.125rem",
-                textAlign: "center"
-              }}
-            >
-              Target
-            </div>
-            <div
-              style={{
-                background: "var(--bg-secondary)",
-                padding: "1rem",
-                borderRadius: "0 0 0.5rem 0.5rem",
-                minHeight: "400px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.75rem"
-              }}
-            >
-              {target.length === 0 ? (
-                <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>
-                  No target universities found
-                </p>
-              ) : (
-                target.map((uni) => (
-                  <UniversityCard key={uni.id} university={uni} />
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Safety Column */}
-          <div>
-            <div
-              style={{
-                background: "#10b981",
-                color: "#fff",
-                padding: "1rem",
-                borderRadius: "0.5rem 0.5rem 0 0",
-                fontWeight: "700",
-                fontSize: "1.125rem",
-                textAlign: "center"
-              }}
-            >
-              Safety
-            </div>
-            <div
-              style={{
-                background: "var(--bg-secondary)",
-                padding: "1rem",
-                borderRadius: "0 0 0.5rem 0.5rem",
-                minHeight: "400px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.75rem"
-              }}
-            >
-              {safety.length === 0 ? (
-                <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>
-                  No safety universities found
-                </p>
-              ) : (
-                safety.map((uni) => (
-                  <UniversityCard key={uni.id} university={uni} />
-                ))
-              )}
-            </div>
-          </div>
+          <h3 className="subtitle">{PORTFOLIO_GUIDE.recommendations.title}</h3>
+          <p className="muted" style={{ fontSize: "0.9rem", marginTop: "0.5rem", marginBottom: "0.85rem" }}>
+            {PORTFOLIO_GUIDE.recommendations.summary}
+          </p>
+          <ul className="list">
+            {PORTFOLIO_GUIDE.recommendations.timeline.map((t, i) => (
+              <li key={i} style={{ fontSize: "0.88rem" }}>{t}</li>
+            ))}
+          </ul>
+          <Link to="/guide#recs" style={{ color: "var(--teal-deep)", fontSize: "0.78rem", fontWeight: 700, marginTop: "1rem", display: "inline-block" }}>
+            Full guidance →
+          </Link>
         </div>
+      </section>
+    </div>
+  );
+}
 
-        {results.length === 0 && !loading && (
-          <div style={{ textAlign: "center", padding: "3rem" }}>
-            <p className="muted" style={{ fontSize: "1.125rem", marginBottom: "1rem" }}>
-              No recommendations yet. Click "Refresh" to generate recommendations.
-            </p>
-          </div>
+function Column({ title, data, cls }) {
+  return (
+    <div>
+      <div className={`rec-col-header ${cls}`}>{title}</div>
+      <div className="rec-col-body">
+        {data.length === 0 ? (
+          <p className="muted" style={{ textAlign: "center", padding: "1.5rem 0", fontSize: "0.85rem" }}>
+            No matches yet.
+          </p>
+        ) : (
+          data.map((uni) => <UniversityCard key={uni.id} university={uni} />)
         )}
       </div>
     </div>
@@ -284,48 +185,36 @@ export default function Recommendations() {
 }
 
 function UniversityCard({ university }) {
-  const flag = FLAG_EMOJIS[university.country] || "🏛️";
-  const matchPercentage = university.matchPercentage || 50;
-
+  const flag = FLAG[university.country] || "🏛";
+  const match = university.matchPercentage || 50;
   return (
-    <div
-      className="card"
+    <article
       style={{
-        padding: "1rem",
-        margin: "0",
-        cursor: "pointer",
-        transition: "all 0.2s ease"
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "var(--shadow-md)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "var(--shadow)";
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
+        gap: "0.65rem",
+        alignItems: "start",
+        background: "var(--surface)",
+        border: "1px solid var(--rule)",
+        borderRadius: "var(--r-md)",
+        padding: "0.85rem 1rem"
       }}
     >
-      <div style={{ display: "flex", alignItems: "start", gap: "0.75rem" }}>
-        <div style={{ fontSize: "1.5rem", lineHeight: "1" }}>{flag}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: "700", fontSize: "0.9375rem", marginBottom: "0.25rem" }}>
-            {university.name}
-          </div>
-          <div className="muted" style={{ fontSize: "0.8125rem", lineHeight: "1.4" }}>
-            {university.explanation || "Top-tier research, competitive"}
-          </div>
+      <span style={{ fontSize: "1.25rem", lineHeight: 1 }}>{flag}</span>
+      <div>
+        <div style={{ fontWeight: 700, fontSize: "0.92rem", color: "var(--ink)", lineHeight: 1.25 }}>
+          {university.name}
         </div>
-        <div
-          style={{
-            fontSize: "0.875rem",
-            fontWeight: "700",
-            color: "var(--primary)",
-            whiteSpace: "nowrap"
-          }}
-        >
-          {matchPercentage}% Match
+        <p className="muted" style={{ fontSize: "0.75rem", marginTop: "0.15rem", lineHeight: 1.35 }}>
+          {university.explanation || "Top-tier research, competitive"}
+        </p>
+      </div>
+      <div style={{ textAlign: "right" }}>
+        <div style={{ fontSize: "1rem", fontWeight: 800, color: "var(--teal-deep)", lineHeight: 1 }}>{match}%</div>
+        <div style={{ fontSize: "0.65rem", color: "var(--ink-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "0.2rem", fontWeight: 600 }}>
+          Match
         </div>
       </div>
-    </div>
+    </article>
   );
 }

@@ -3,253 +3,141 @@ import React, { useState } from "react";
 const plans = {
   free: {
     name: "Free",
-    tagline: "Get started with basic tools",
+    tagline: "Get started with the basics",
     monthly: "$0",
     annual: "$0",
     features: [
       "Create basic student profile",
       "Manual portfolio builder (no AI assistance)",
-      "Access to university database (search only)",
-      "General college prep resources and blog",
+      "University database (search only)",
       "Timeline template (not personalized)",
       "Document storage: 100MB",
-      "Community forum access",
-      "3 AI chatbot questions (one-time)"
+      "3 EduBot questions (one-time)"
     ],
     limitations: [
       "No AI acceptance predictions",
       "No personalized recommendations",
       "No gap analysis",
       "No parent dashboard",
-      "No export/sharing capabilities",
-      "Basic support only (email, 48hr response)"
+      "No export"
     ],
-    color: "#64748b",
-    buttonText: "Get Started Free",
+    cta: "Start free",
     popular: false
   },
   essential: {
     name: "Essential",
-    tagline: "Perfect for students getting started",
+    tagline: "For students getting started",
     monthly: "$29",
     annual: "$290",
-    savings: "Save $58/year",
+    savings: "Save $58 / yr",
     features: [
       "Everything in Free, plus:",
-      "Complete AI-powered portfolio builder",
-      "Basic AI acceptance predictions (up to 10 universities)",
-      "University recommendations (Reach/Target/Safety)",
-      "Basic gap analysis (identifies major gaps only)",
+      "Complete AI portfolio builder",
+      "AI acceptance predictions (10 universities)",
+      "Reach / Target / Safety matching",
+      "Basic gap analysis",
       "Personalized timeline with reminders",
       "Document storage: 3GB",
-      "30 AI chatbot queries per month",
-      "Country-specific guides (US, UK, or China - choose one)",
-      "Email support (24hr response)",
-      "Export portfolio as PDF",
-      "Basic analytics dashboard"
+      "30 EduBot queries / month",
+      "PDF portfolio export"
     ],
-    color: "#2563eb",
-    buttonText: "Start Essential Plan",
+    cta: "Start Essential",
     popular: true
   },
   professional: {
     name: "Professional",
-    tagline: "For serious students targeting top universities",
+    tagline: "For ambitious students targeting top universities",
     monthly: "$49",
     annual: "$490",
-    savings: "Save $98/year",
+    savings: "Save $98 / yr",
     features: [
       "Everything in Essential, plus:",
-      "Unlimited AI acceptance predictions (any number of universities)",
-      "Advanced AI recommendations with detailed explanations",
-      "Comprehensive gap analysis with impact predictions and improvement roadmap",
-      "AI chatbot: 150 queries/month (5/day average)",
-      "All country guides (US, UK, China, EU access)",
-      "Field-of-study specific guidance (detailed major exploration)",
-      "Essay analyzer with AI feedback (up to 5 essays/month)",
-      "Parent dashboard with progress monitoring",
-      "Advanced analytics and reports (monthly progress reports)",
-      "Competition analysis (see how you compare to typical admits)",
-      "Document storage: 10GB",
-      "Priority email support (12hr response)",
-      "Live chat support (business hours)",
-      "Video tutorials and webinars (exclusive access)",
-      "Recommendation letter tracker and templates"
+      "Unlimited AI acceptance predictions",
+      "Comprehensive gap analysis with roadmap",
+      "150 EduBot queries / month",
+      "All country guides (US, UK, China, EU)",
+      "Field-specific guidance",
+      "Essay analyzer (5 essays / month)",
+      "Parent dashboard",
+      "Document storage: 10GB"
     ],
-    color: "#7c3aed",
-    buttonText: "Start Professional Plan",
+    cta: "Start Professional",
     popular: false
-  },
-  elite: {
-    name: "Elite",
-    tagline: "White-glove service for top-tier applicants",
-    monthly: "$99",
-    annual: "$990",
-    twoYear: "$1,749",
-    savings: "Save $198/year",
-    savings2Year: "Save $626 (26% discount)",
-    features: [
-      "Everything in Professional, plus:",
-      "Unlimited AI chatbot queries",
-      "Personal success advisor (1 video call per month, 30 min)",
-      "Essay editing service (1 professional edit per month, included)",
-      "Interview preparation (AI mock interviews + feedback)",
-      "Unlimited essay analysis with detailed AI feedback",
-      "Advanced 'What-if' scenario modeling (test impact of improvements)",
-      "Early access to new features",
-      "Custom university research reports (on-demand)",
-      "Document storage: 50GB",
-      "24/7 priority support (phone, email, chat)",
-      "Dedicated success manager (for 2-year plan)",
-      "Portfolio review by admission expert (2x per year)",
-      "Exclusive networking events (virtual with successful students/counselors)",
-      "College application checklist and deadline management",
-      "Financial aid and scholarship guidance"
-    ],
-    color: "#f59e0b",
-    buttonText: "Start Elite Plan",
-    popular: false
-  }
-};
-
-const familyPlans = {
-  essential: {
-    name: "Essential Family",
-    monthly: "$49",
-    annual: "$490",
-    students: "2-3 students",
-    features: [
-      "All Essential features per student",
-      "Shared parent dashboard",
-      "$19 savings per additional student"
-    ]
-  },
-  professional: {
-    name: "Professional Family",
-    monthly: "$89",
-    annual: "$890",
-    students: "2-3 students",
-    features: [
-      "All Professional features per student",
-      "Shared parent dashboard",
-      "$49 savings per additional student"
-    ]
-  },
-  elite: {
-    name: "Elite Family",
-    monthly: "$169",
-    annual: "$1,690",
-    students: "2-3 students",
-    features: [
-      "All Elite features per student",
-      "Shared success advisor for all students",
-      "$129 savings per additional student"
-    ]
   }
 };
 
 export default function Pricing() {
-  const [billingCycle, setBillingCycle] = useState("monthly"); // "monthly" or "annual"
+  const [cycle, setCycle] = useState("monthly");
 
-  const getPrice = (plan, cycle) => {
-    if (plan.name === "Free") return plan.monthly;
-    return cycle === "monthly" ? plan.monthly : plan.annual;
-  };
-
-  const getPeriod = (cycle) => {
-    return cycle === "monthly" ? "/month" : "/year";
-  };
+  const getPrice = (p) => p.name === "Free" ? p.monthly : (cycle === "monthly" ? p.monthly : p.annual);
+  const period = cycle === "monthly" ? "/month" : "/year";
 
   return (
-    <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "2rem" }}>
-      {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-        <h1 style={{ fontSize: "3rem", fontWeight: "700", marginBottom: "1rem", background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-          Choose Your Plan
+    <div>
+      <header style={{ textAlign: "center", maxWidth: "640px", margin: "0 auto 3rem", borderBottom: "1px solid var(--rule)", paddingBottom: "2rem" }}>
+        <div className="eyebrow" style={{ paddingLeft: 0, display: "block" }}>Pricing</div>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2.75rem", color: "var(--ink)", letterSpacing: "-0.02em", marginBottom: "0.75rem" }}>
+          Choose your plan.
         </h1>
-        <p style={{ fontSize: "1.25rem", color: "var(--text-secondary)", marginBottom: "2rem" }}>
-          Start your journey to top universities with AI-powered guidance
+        <p className="lede">
+          Free to start. Premium tiers unlock the AI coaching, gap
+          analysis, and unlimited recommendations.
         </p>
 
-        {/* Billing Toggle */}
-        <div style={{ display: "inline-flex", background: "var(--bg-tertiary)", padding: "0.5rem", borderRadius: "0.75rem", gap: "0.5rem" }}>
-          <button
-            onClick={() => setBillingCycle("monthly")}
-            style={{
-              padding: "0.75rem 1.5rem",
-              borderRadius: "0.5rem",
-              border: "none",
-              background: billingCycle === "monthly" ? "var(--primary)" : "transparent",
-              color: billingCycle === "monthly" ? "#fff" : "var(--text-primary)",
-              fontWeight: "600",
-              cursor: "pointer",
-              transition: "all 0.2s ease"
-            }}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBillingCycle("annual")}
-            style={{
-              padding: "0.75rem 1.5rem",
-              borderRadius: "0.5rem",
-              border: "none",
-              background: billingCycle === "annual" ? "var(--primary)" : "transparent",
-              color: billingCycle === "annual" ? "#fff" : "var(--text-primary)",
-              fontWeight: "600",
-              cursor: "pointer",
-              transition: "all 0.2s ease"
-            }}
-          >
-            Annual
-            <span style={{ fontSize: "0.75rem", marginLeft: "0.25rem", opacity: 0.9 }}>(Save ~17%)</span>
-          </button>
+        <div style={{ display: "inline-flex", marginTop: "2rem", border: "1px solid var(--rule)", background: "var(--surface)", padding: "4px" }}>
+          {[
+            { id: "monthly", label: "Monthly" },
+            { id: "annual", label: "Annual · save ~17%" }
+          ].map((b) => (
+            <button
+              key={b.id}
+              onClick={() => setCycle(b.id)}
+              style={{
+                padding: "0.6rem 1.25rem",
+                border: "none",
+                background: cycle === b.id ? "var(--ink)" : "transparent",
+                color: cycle === b.id ? "var(--paper)" : "var(--ink-muted)",
+                fontFamily: "inherit",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                cursor: "pointer",
+                transition: "all 0.15s ease"
+              }}
+            >
+              {b.label}
+            </button>
+          ))}
         </div>
-      </div>
+      </header>
 
-      {/* Pricing Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem", marginBottom: "4rem" }}>
+      {/* Main plans */}
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.5rem", marginBottom: "4rem" }}>
         {Object.values(plans).map((plan) => (
-          <div
+          <article
             key={plan.name}
             className="card"
             style={{
-              position: "relative",
-              border: plan.popular ? `3px solid ${plan.color}` : "1px solid var(--border)",
-              borderRadius: "1rem",
               padding: "2rem",
-              transition: "all 0.3s ease",
-              transform: plan.popular ? "scale(1.05)" : "scale(1)",
-              boxShadow: plan.popular ? "var(--shadow-xl)" : "var(--shadow)"
-            }}
-            onMouseEnter={(e) => {
-              if (!plan.popular) {
-                e.currentTarget.style.transform = "translateY(-4px)";
-                e.currentTarget.style.boxShadow = "var(--shadow-lg)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!plan.popular) {
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow = "var(--shadow)";
-              }
+              position: "relative",
+              borderTop: plan.popular ? "3px solid var(--gold)" : "1px solid var(--rule)",
+              boxShadow: plan.popular ? "var(--shadow-md)" : "var(--shadow-sm)"
             }}
           >
             {plan.popular && (
               <div
                 style={{
                   position: "absolute",
-                  top: "-12px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  background: plan.color,
-                  color: "#fff",
-                  padding: "0.25rem 1rem",
-                  borderRadius: "1rem",
-                  fontSize: "0.75rem",
-                  fontWeight: "700",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em"
+                  top: "-1px",
+                  right: "2rem",
+                  background: "var(--gold)",
+                  color: "var(--ink)",
+                  padding: "0.3rem 0.85rem",
+                  fontSize: "0.66rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase"
                 }}
               >
                 Most Popular
@@ -257,206 +145,100 @@ export default function Pricing() {
             )}
 
             <div style={{ marginBottom: "1.5rem" }}>
-              <h2 style={{ fontSize: "1.5rem", fontWeight: "700", marginBottom: "0.5rem", color: plan.color }}>
-                {plan.name}
-              </h2>
-              <p className="muted" style={{ fontSize: "0.875rem" }}>{plan.tagline}</p>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--ink)" }}>{plan.name}</div>
+              <p className="muted" style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>{plan.tagline}</p>
             </div>
 
             <div style={{ marginBottom: "1.5rem" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                <span style={{ fontSize: "3rem", fontWeight: "700", color: plan.color }}>
-                  {getPrice(plan, billingCycle)}
-                </span>
-                {plan.name !== "Free" && (
-                  <span style={{ fontSize: "1.25rem", color: "var(--text-secondary)" }}>
-                    {getPeriod(billingCycle)}
-                  </span>
-                )}
+              <div style={{ display: "flex", alignItems: "baseline", gap: "0.4rem" }}>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: "2.75rem", fontWeight: 700, color: "var(--ink)", letterSpacing: "-0.02em" }}>{getPrice(plan)}</span>
+                {plan.name !== "Free" && <span className="muted">{period}</span>}
               </div>
-              {plan.savings && billingCycle === "annual" && (
-                <p style={{ fontSize: "0.875rem", color: "var(--success)", fontWeight: "600" }}>
+              {plan.savings && cycle === "annual" && (
+                <p style={{ fontSize: "0.78rem", color: "var(--success)", fontWeight: 600, marginTop: "0.4rem", letterSpacing: "0.06em", textTransform: "uppercase" }}>
                   {plan.savings}
-                </p>
-              )}
-              {plan.savings2Year && plan.name === "Elite" && (
-                <p style={{ fontSize: "0.875rem", color: "var(--success)", fontWeight: "600", marginTop: "0.25rem" }}>
-                  2-Year: {plan.twoYear} ({plan.savings2Year})
                 </p>
               )}
             </div>
 
             <button
-              className="button"
-              style={{
-                width: "100%",
-                marginBottom: "1.5rem",
-                background: plan.color,
-                color: "#fff",
-                padding: "0.75rem 1.5rem",
-                fontSize: "1rem",
-                fontWeight: "600"
-              }}
+              className={plan.popular ? "button" : "button ghost"}
+              style={{ width: "100%", marginBottom: "1.5rem" }}
             >
-              {plan.buttonText}
+              {plan.cta}
             </button>
 
-            <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "1.5rem" }}>
-              <h3 style={{ fontSize: "0.875rem", fontWeight: "700", marginBottom: "1rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)" }}>
-                Features
-              </h3>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                {plan.features.map((feature, idx) => (
-                  <li
-                    key={idx}
-                    style={{
-                      padding: "0.5rem 0",
-                      fontSize: "0.875rem",
-                      display: "flex",
-                      alignItems: "start",
-                      gap: "0.5rem"
-                    }}
-                  >
-                    <span style={{ color: plan.color, fontSize: "1rem", lineHeight: "1.2" }}>✓</span>
-                    <span style={{ color: feature.startsWith("Everything") ? "var(--text-secondary)" : "var(--text-primary)", fontWeight: feature.startsWith("Everything") ? "600" : "400" }}>
-                      {feature}
-                    </span>
+            <div style={{ borderTop: "1px solid var(--rule-soft)", paddingTop: "1.25rem" }}>
+              <ul className="list">
+                {plan.features.map((f, idx) => (
+                  <li key={idx} style={{ fontSize: "0.88rem", color: f.startsWith("Everything") ? "var(--ink-muted)" : "var(--ink-soft)", fontWeight: f.startsWith("Everything") ? 600 : 400 }}>
+                    {f}
                   </li>
                 ))}
               </ul>
 
               {plan.limitations && plan.limitations.length > 0 && (
-                <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border-light)" }}>
-                  <h3 style={{ fontSize: "0.875rem", fontWeight: "700", marginBottom: "1rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)" }}>
-                    Limitations
-                  </h3>
+                <>
+                  <div className="eyebrow" style={{ paddingLeft: 0, display: "block", marginTop: "1.5rem", marginBottom: "0.5rem" }}>
+                    Not included
+                  </div>
                   <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {plan.limitations.map((limitation, idx) => (
+                    {plan.limitations.map((l, idx) => (
                       <li
                         key={idx}
                         style={{
-                          padding: "0.5rem 0",
-                          fontSize: "0.875rem",
-                          display: "flex",
-                          alignItems: "start",
-                          gap: "0.5rem",
-                          color: "var(--text-secondary)"
+                          padding: "0.25rem 0 0.25rem 1.25rem",
+                          fontSize: "0.82rem",
+                          color: "var(--ink-faint)",
+                          position: "relative",
+                          textDecoration: "line-through"
                         }}
                       >
-                        <span style={{ color: "var(--error)", fontSize: "1rem" }}>✗</span>
-                        <span>{limitation}</span>
+                        <span style={{ position: "absolute", left: 0, top: 0, color: "var(--error)" }}>×</span>
+                        {l}
                       </li>
                     ))}
                   </ul>
-                </div>
+                </>
               )}
             </div>
-          </div>
+          </article>
         ))}
-      </div>
+      </section>
 
-      {/* Family Plans Section */}
-      <div style={{ marginBottom: "4rem" }}>
-        <h2 style={{ fontSize: "2rem", fontWeight: "700", textAlign: "center", marginBottom: "1rem" }}>
-          Family Plans
-        </h2>
-        <p style={{ textAlign: "center", color: "var(--text-secondary)", marginBottom: "2rem" }}>
-          Perfect for families with multiple students
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
-          {Object.values(familyPlans).map((plan) => (
-            <div key={plan.name} className="card" style={{ padding: "1.5rem" }}>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: "700", marginBottom: "0.5rem" }}>{plan.name}</h3>
-              <p className="muted" style={{ fontSize: "0.875rem", marginBottom: "1rem" }}>{plan.students}</p>
-              <div style={{ marginBottom: "1rem" }}>
-                <span style={{ fontSize: "2rem", fontWeight: "700", color: "var(--primary)" }}>
-                  {billingCycle === "monthly" ? plan.monthly : plan.annual}
-                </span>
-                <span style={{ fontSize: "1rem", color: "var(--text-secondary)", marginLeft: "0.25rem" }}>
-                  {billingCycle === "monthly" ? "/month" : "/year"}
-                </span>
-              </div>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                {plan.features.map((feature, idx) => (
-                  <li
-                    key={idx}
-                    style={{
-                      padding: "0.5rem 0",
-                      fontSize: "0.875rem",
-                      display: "flex",
-                      alignItems: "start",
-                      gap: "0.5rem"
-                    }}
-                  >
-                    <span style={{ color: "var(--success)", fontSize: "1rem" }}>✓</span>
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                className="button"
-                style={{
-                  width: "100%",
-                  marginTop: "1rem",
-                  background: "var(--primary)",
-                  color: "#fff"
-                }}
-              >
-                Choose Family Plan
-              </button>
-            </div>
-          ))}
+      {/* Payment */}
+      <section className="card" style={{ padding: "2.5rem", background: "var(--surface-warm)" }}>
+        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <h2 className="section-title" style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>Flexible payment options</h2>
+          <p className="muted">No hidden fees. 30-day money-back guarantee. Cancel anytime.</p>
         </div>
-      </div>
-
-      {/* Payment Options */}
-      <div className="card" style={{ padding: "2rem", background: "var(--bg-secondary)" }}>
-        <h2 style={{ fontSize: "1.5rem", fontWeight: "700", marginBottom: "1rem", textAlign: "center" }}>
-          Flexible Payment Options
-        </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1.5rem" }}>
-          <div>
-            <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "0.75rem" }}>Payment Plans</h3>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ Monthly Subscription</li>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ Annual (Save ~17%)</li>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ 2-Year Plan (Elite only)</li>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ 3-Year Plan (Elite only)</li>
-            </ul>
-          </div>
-          <div>
-            <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "0.75rem" }}>Payment Methods</h3>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ Credit/Debit Cards</li>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ PayPal</li>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ Apple Pay / Google Pay</li>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ Alipay, WeChat Pay</li>
-            </ul>
-          </div>
-          <div>
-            <h3 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "0.75rem" }}>Billing Transparency</h3>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ 30-day money-back guarantee</li>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ No hidden fees</li>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ Cancel anytime</li>
-              <li style={{ padding: "0.5rem 0", fontSize: "0.875rem" }}>✓ Prorated refunds</li>
-            </ul>
-          </div>
+        <div className="grid three">
+          <PaymentBlock title="Plans" items={["Monthly subscription", "Annual (save ~17%)", "Upgrade anytime", "Downgrade anytime"]} />
+          <PaymentBlock title="Methods" items={["Credit / Debit", "PayPal", "Apple Pay / Google Pay", "Alipay, WeChat Pay"]} />
+          <PaymentBlock title="Guarantee" items={["30-day money-back", "No hidden fees", "Cancel anytime", "Prorated refunds"]} />
         </div>
-      </div>
+      </section>
 
-      {/* FAQ or Additional Info */}
-      <div style={{ textAlign: "center", marginTop: "3rem", padding: "2rem", background: "linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%)", borderRadius: "1rem" }}>
-        <h3 style={{ fontSize: "1.25rem", fontWeight: "700", marginBottom: "1rem" }}>
+      <section className="card dark" style={{ textAlign: "center", padding: "2.5rem", marginTop: "2rem" }}>
+        <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", color: "var(--paper)", marginBottom: "0.5rem" }}>
           Questions about pricing?
         </h3>
-        <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
-          All plans include a 30-day money-back guarantee. Cancel anytime with no questions asked.
+        <p style={{ color: "var(--paper-deep)", fontFamily: "var(--font-serif)", fontStyle: "italic", marginBottom: "1.5rem" }}>
+          We're happy to help you find the right plan.
         </p>
-        <button className="button" style={{ background: "var(--primary)", color: "#fff" }}>
-          Contact Support
-        </button>
-      </div>
+        <button className="button gold">Contact support</button>
+      </section>
+    </div>
+  );
+}
+
+function PaymentBlock({ title, items }) {
+  return (
+    <div>
+      <div className="eyebrow" style={{ paddingLeft: 0, display: "block", marginBottom: "0.85rem" }}>{title}</div>
+      <ul className="list">
+        {items.map((i) => <li key={i} style={{ fontSize: "0.88rem" }}>{i}</li>)}
+      </ul>
     </div>
   );
 }

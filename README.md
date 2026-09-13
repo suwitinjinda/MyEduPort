@@ -65,9 +65,73 @@ Phase 1 MVP implementation for the MyEduPort portfolio platform with a React fro
 - ✅ Student overview
 - ✅ Account disable functionality
 
+## Login with Google
+
+1. Create OAuth credentials at [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+   - Create a "Web application" OAuth 2.0 Client ID
+   - Add your frontend origin(s) to "Authorized JavaScript origins" (e.g. `http://localhost:5173`, `https://yourdomain.com`)
+   - Add redirect URI if required
+
+2. Run the database migration:
+   ```bash
+   mysql -u your_user -p myeduport < backend/database/alter_add_google_auth.sql
+   ```
+
+3. Add to backend `.env`:
+   ```
+   GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+   ```
+
+4. Add to frontend `.env` (or `.env.local`):
+   ```
+   VITE_GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+   ```
+
+5. Restart both backend and frontend servers.
+
+## AI with Claude Sonnet
+
+EduBot, essay feedback, and gap analysis use **Claude Sonnet** (Anthropic) when configured:
+
+1. Get an API key at [console.anthropic.com](https://console.anthropic.com/)
+2. Add to `backend/.env`:
+   ```
+   ANTHROPIC_API_KEY=your_api_key
+   ```
+3. Restart the backend
+
+Without the key, fallback heuristic responses are used. Optional: `CLAUDE_MODEL=claude-sonnet-4-6` (default — latest stable Sonnet 4.6).
+
+The EduBot chat system prompt is grounded in the Excellent Portfolio Guide, so answers stay on-brand with admissions strategy. See `backend/src/services/aiClient.js` for the embedded `PORTFOLIO_GUIDE_CONTEXT`.
+
 ## Notes
-- AI endpoints currently return deterministic mock data (no external LLM API).
 - Uploads are stored in `backend/uploads`.
 - Configure `VITE_API_URL` in the frontend if your API runs elsewhere.
 - Admin access: Set `ADMIN_EMAIL` in backend `.env` to enable admin routes.
+
+## v2 Schema Expansion (May 2026)
+
+After upgrading, run the new migration once:
+
+```bash
+mysql -u your_user -p myeduport < backend/database/alter_full_expansion.sql
+```
+
+This adds:
+- `activities.category` — Common App activity category
+- `students.class_rank`, `students.share_token`, `students.share_expires_at`
+- `tasks` table — application checklist with deadlines
+- `saved_universities` table — your college list with Reach/Target/Safety buckets
+
+## New Features (v2)
+
+- **`/guide`** — The complete Excellent Portfolio Guide (11 sections, sticky TOC)
+- **`/tasks`** — Application checklist with due-date tracker and seed template
+- **`/compare`** — Side-by-side college list with Reach/Target/Safety, application rounds, deadlines, countdown
+- **`/share/:token`** — Public read-only portfolio link (generated in Settings)
+- **Acceptance Probability** — AI-driven estimate on Dashboard, computed across saved universities
+- **EduBot grounded** — Chat system prompt now embeds the Portfolio Guide for on-brand answers
+- **Language switcher** — English / ภาษาไทย / 中文 in the top nav
+- **AP subject test types** — 30+ AP subjects in the standardized test dropdown
+- **Class rank field** — Optional input in Portfolio Editor
 # MyEduPort

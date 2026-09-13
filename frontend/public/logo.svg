@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" fill="none">
+  <defs>
+    <linearGradient id="word-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="50%" stop-color="#1f3461"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <linearGradient id="arrow-g" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <linearGradient id="book-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a9b8f"/>
+      <stop offset="100%" stop-color="#2dd4bf"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icon: graduation cap with arrow -->
+  <g transform="translate(4, 8)">
+    <!-- Mortarboard top -->
+    <path d="M 4 24 L 32 12 L 60 24 L 32 36 Z" fill="#1f3461"/>
+    <!-- Mortarboard base -->
+    <path d="M 12 30 L 12 44 Q 12 50 32 50 Q 52 50 52 44 L 52 30 L 32 38 Z" fill="#1f3461"/>
+    <!-- Tassel pages (book pages effect) -->
+    <path d="M 26 38 L 32 64 L 38 38 Z" fill="url(#book-g)" opacity="0.85"/>
+    <path d="M 28 38 L 32 60 L 36 38 Z" fill="#2dd4bf" opacity="0.7"/>
+    <!-- Arrow up -->
+    <path d="M 38 28 L 56 12 L 52 12 L 56 4 L 60 12 L 56 12 Z" fill="url(#arrow-g)"/>
+    <!-- Checkmark inside arrow path -->
+    <path d="M 40 24 L 44 28 L 52 18" fill="none" stroke="url(#arrow-g)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="80" y="55" font-family="Inter, -apple-system, sans-serif" font-size="32" font-weight="800" letter-spacing="-0.02em">
+    <tspan fill="#1f3461">MyEdu</tspan><tspan fill="url(#word-grad)">Port</tspan>
+  </text>
+</svg>

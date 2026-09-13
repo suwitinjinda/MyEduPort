@@ -1,8 +1,11 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const router = express.Router();
 
@@ -19,8 +22,8 @@ router.post("/register", async (req, res) => {
   if (!email || !password || !role || !name) {
     return res.status(400).json({ error: "Missing required fields" });
   }
-  if (!["student", "parent"].includes(role)) {
-    return res.status(400).json({ error: "Role must be student or parent" });
+  if (!["student", "parent", "counselor"].includes(role)) {
+    return res.status(400).json({ error: "Role must be student, parent, or counselor" });
   }
   // Check if data_consent column exists
   let hasConsentColumn = false;
@@ -30,7 +33,7 @@ router.post("/register", async (req, res) => {
   } catch (err) {
     // Column doesn't exist yet
   }
-  
+
   if (hasConsentColumn && data_consent !== true) {
     return res.status(400).json({ error: "Data consent is required to create an account" });
   }
@@ -61,8 +64,10 @@ router.post("/register", async (req, res) => {
   const userId = result.insertId;
   if (role === "student") {
     await pool.query("INSERT INTO students (user_id, grade_level) VALUES (?, ?)", [userId, ""]);
-  } else {
+  } else if (role === "parent") {
     await pool.query("INSERT INTO parents (user_id) VALUES (?)", [userId]);
+  } else if (role === "counselor") {
+    await pool.query("INSERT INTO counselors (user_id) VALUES (?)", [userId]);
   }
   const token = buildToken({ id: userId, role, email });
   return res.json({ token });
@@ -78,6 +83,9 @@ router.post("/login", async (req, res) => {
     return res.status(401).json({ error: "Invalid credentials" });
   }
   const user = rows[0];
+  if (!user.password_hash) {
+    return res.status(401).json({ error: "This account uses Google Sign-In. Please sign in with Google." });
+  }
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) {
     return res.status(401).json({ error: "Invalid credentials" });
@@ -86,65 +94,166 @@ router.post("/login", async (req, res) => {
   return res.json({ token });
 });
 
+router.post("/google", async (req, res) => {
+  const { credential, role: requestedRole } = req.body || {};
+  if (!credential) {
+    return res.status(400).json({ error: "Missing Google credential" });
+  }
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(500).json({ error: "Google Sign-In is not configured" });
+  }
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name } = payload;
+    if (!email) {
+      return res.status(400).json({ error: "Google account has no email" });
+    }
+
+    let hasGoogleColumn = false;
+    try {
+      await pool.query("SELECT google_id FROM users LIMIT 1");
+      hasGoogleColumn = true;
+    } catch (err) {
+      return res.status(500).json({ error: "Database migration required. Run alter_add_google_auth.sql" });
+    }
+
+    let [rows] = await pool.query("SELECT * FROM users WHERE google_id = ?", [googleId]);
+    if (rows.length) {
+      const user = rows[0];
+      const [disabled] = await pool.query("SELECT is_disabled FROM users WHERE id = ?", [user.id]).catch(() => [[{ is_disabled: 0 }]]);
+      if (disabled?.[0]?.is_disabled) {
+        return res.status(403).json({ error: "Account has been disabled. Please contact support." });
+      }
+      const token = buildToken(user);
+      return res.json({ token });
+    }
+
+    [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
+    if (rows.length) {
+      const user = rows[0];
+      await pool.query("UPDATE users SET google_id = ? WHERE id = ?", [googleId, user.id]);
+      const [disabled] = await pool.query("SELECT is_disabled FROM users WHERE id = ?", [user.id]).catch(() => [[{ is_disabled: 0 }]]);
+      if (disabled?.[0]?.is_disabled) {
+        return res.status(403).json({ error: "Account has been disabled. Please contact support." });
+      }
+      const token = buildToken({ ...user, google_id: googleId });
+      return res.json({ token });
+    }
+
+    // New Google signup — honor the role chosen on the Sign-Up form (default student)
+    const role = ["student", "parent", "counselor"].includes(requestedRole) ? requestedRole : "student";
+    const displayName = name || email.split("@")[0];
+    let result;
+    try {
+      [result] = await pool.query(
+        "INSERT INTO users (email, password_hash, role, name, google_id, data_consent) VALUES (?, NULL, ?, ?, ?, TRUE)",
+        [email, role, displayName, googleId]
+      );
+    } catch (err) {
+      [result] = await pool.query(
+        "INSERT INTO users (email, password_hash, role, name, google_id) VALUES (?, NULL, ?, ?, ?)",
+        [email, role, displayName, googleId]
+      );
+    }
+    const userId = result.insertId;
+    if (role === "student") {
+      await pool.query("INSERT INTO students (user_id, grade_level) VALUES (?, ?)", [userId, ""]);
+    } else if (role === "parent") {
+      await pool.query("INSERT INTO parents (user_id) VALUES (?)", [userId]);
+    } else if (role === "counselor") {
+      await pool.query("INSERT INTO counselors (user_id) VALUES (?)", [userId]);
+    }
+    const token = buildToken({ id: userId, role, email });
+    return res.json({ token });
+  } catch (err) {
+    console.error("Google auth error:", err);
+    return res.status(401).json({ error: "Invalid Google credential" });
+  }
+});
+
 router.post("/forgot", async (req, res) => {
   // Placeholder: integrate email provider later
   return res.json({ status: "ok" });
 });
 
 router.get("/me", authRequired, async (req, res) => {
-  // Try to get user with security fields, fallback to basic query
   let rows;
   try {
-    [rows] = await pool.query("SELECT id, name, email, role, data_consent, is_disabled FROM users WHERE id = ? AND deleted_at IS NULL", [req.user.id]);
+    [rows] = await pool.query("SELECT id, name, email, role, plan, data_consent, is_disabled, password_hash, google_id FROM users WHERE id = ? AND deleted_at IS NULL", [req.user.id]);
     if (rows.length && rows[0].is_disabled) {
       return res.status(403).json({ error: "Account has been disabled. Please contact support." });
     }
   } catch (err) {
-    // Security columns don't exist, use basic query
-    [rows] = await pool.query("SELECT id, name, email, role FROM users WHERE id = ?", [req.user.id]);
+    try {
+      [rows] = await pool.query("SELECT id, name, email, role, plan, password_hash, google_id FROM users WHERE id = ?", [req.user.id]);
+    } catch {
+      [rows] = await pool.query("SELECT id, name, email, role FROM users WHERE id = ?", [req.user.id]);
+    }
   }
-  
+
   if (!rows.length) {
     return res.status(404).json({ error: "User not found" });
   }
-  return res.json(rows[0]);
+  const user = rows[0];
+  const { password_hash, google_id, ...rest } = user;
+  const authProvider = (user.google_id && !user.password_hash) ? "google" : "password";
+  return res.json({ ...rest, plan: user.plan || "free", auth_provider: authProvider });
 });
 
 // Reset password
 router.put("/password", authRequired, async (req, res) => {
   const userId = req.user.id;
   const { currentPassword, newPassword } = req.body || {};
-  
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ error: "Current password and new password are required" });
+
+  if (!newPassword) {
+    return res.status(400).json({ error: "New password is required" });
   }
-  
+
   if (newPassword.length < 6) {
     return res.status(400).json({ error: "New password must be at least 6 characters long" });
   }
-  
+
   try {
-    // Get current user with password hash
-    const [rows] = await pool.query("SELECT password_hash FROM users WHERE id = ? AND deleted_at IS NULL", [userId]);
-    
+    // Get current user with password hash and google_id
+    const [rows] = await pool.query("SELECT password_hash, google_id FROM users WHERE id = ? AND deleted_at IS NULL", [userId]);
+
     if (!rows.length) {
       return res.status(404).json({ error: "User not found" });
     }
-    
+
     const user = rows[0];
-    
+    const isGoogleOnly = !user.password_hash && user.google_id;
+
+    if (isGoogleOnly) {
+      // Google-only user: set password without current password
+      if (!currentPassword) {
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+        await pool.query("UPDATE users SET password_hash = ? WHERE id = ?", [newPasswordHash, userId]);
+        return res.json({ status: "Password set successfully. You can now sign in with email and password." });
+      }
+      return res.status(400).json({ error: "You signed in with Google. Leave current password empty to set a new password." });
+    }
+
+    if (!currentPassword) {
+      return res.status(400).json({ error: "Current password is required" });
+    }
+
     // Verify current password
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isCurrentPasswordValid) {
       return res.status(401).json({ error: "Current password is incorrect" });
     }
-    
+
     // Hash new password
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
-    
+
     // Update password
     await pool.query("UPDATE users SET password_hash = ? WHERE id = ?", [newPasswordHash, userId]);
-    
+
     return res.json({ status: "Password updated successfully" });
   } catch (err) {
     console.error("Error resetting password:", err);
@@ -156,7 +265,7 @@ router.put("/password", authRequired, async (req, res) => {
 router.delete("/me", authRequired, async (req, res) => {
   const userId = req.user.id;
   const { confirm } = req.body || {};
-  
+
   if (confirm !== "DELETE") {
     return res.status(400).json({ error: "Please confirm deletion by sending { confirm: 'DELETE' }" });
   }
@@ -171,13 +280,13 @@ router.delete("/me", authRequired, async (req, res) => {
       // Columns don't exist - migration not run
       return res.status(400).json({ error: "Account deletion requires database migration. Please contact administrator." });
     }
-    
+
     // Soft delete: mark as deleted instead of hard delete to maintain referential integrity
     await pool.query("UPDATE users SET deleted_at = NOW(), is_disabled = TRUE WHERE id = ?", [userId]);
-    
+
     // Note: Due to CASCADE foreign keys, related data in students/parents tables will be handled
     // But we keep the user record with deleted_at timestamp for audit purposes
-    
+
     return res.json({ status: "Account deleted successfully" });
   } catch (err) {
     console.error("Error deleting account:", err);

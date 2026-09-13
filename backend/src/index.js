@@ -3,13 +3,18 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
+const pool = require("./db");
+
 const authRoutes = require("./routes/auth");
 const studentRoutes = require("./routes/students");
 const parentRoutes = require("./routes/parents");
+const counselorRoutes = require("./routes/counselors");
 const aiRoutes = require("./routes/ai");
 const universityRoutes = require("./routes/universities");
 const uploadRoutes = require("./routes/uploads");
 const adminRoutes = require("./routes/admin");
+const personalityRoutes = require("./routes/personality");
+const careerRoutes = require("./routes/career");
 
 const app = express();
 
@@ -28,20 +33,52 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "2mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "..", process.env.UPLOAD_DIR || "uploads")));
 
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", time: new Date().toISOString() });
-});
+async function healthHandler(req, res) {
+  const checks = {
+    api: "ok",
+    db: "unknown",
+    ai: process.env.ANTHROPIC_API_KEY ? "configured" : "not configured",
+    time: new Date().toISOString(),
+    uptime: process.uptime()
+  };
+  try {
+    await pool.query("SELECT 1");
+    checks.db = "ok";
+  } catch (e) {
+    checks.db = "error";
+  }
+  const status = checks.db === "ok" ? 200 : 503;
+  res.status(status).json(checks);
+}
+
+app.get("/api/health", healthHandler);
+app.get("/health", healthHandler);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/parents", parentRoutes);
+app.use("/api/counselors", counselorRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/universities", universityRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/personality", personalityRoutes);
+app.use("/api/career", careerRoutes);
+
+// Safety net: never let a stray async rejection take the whole API process down.
+process.on("unhandledRejection", (reason) => {
+  console.error("unhandledRejection:", reason && reason.message ? reason.message : reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("uncaughtException:", err && err.message ? err.message : err);
+});
 
 const port = Number(process.env.PORT || 4000);
-app.listen(port, () => {
+// Bind to localhost only — the API is reached exclusively through the nginx
+// reverse proxy (proxy_pass http://127.0.0.1:4000). Override with HOST if a
+// deployment ever needs a different bind address.
+const host = process.env.HOST || "127.0.0.1";
+app.listen(port, host, () => {
   // eslint-disable-next-line no-console
-  console.log(`MyEduPort API listening on port ${port}`);
+  console.log(`MyEduPort API listening on ${host}:${port}`);
 });
