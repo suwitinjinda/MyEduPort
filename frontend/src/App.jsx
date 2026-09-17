@@ -34,6 +34,7 @@ const Compare = lazy(() => import("./pages/Compare.jsx"));
 const SharedPortfolio = lazy(() => import("./pages/SharedPortfolio.jsx"));
 const CounselorDashboard = lazy(() => import("./pages/CounselorDashboard.jsx"));
 const CounselorStudentDetail = lazy(() => import("./pages/CounselorStudentDetail.jsx"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 
 import { clearToken, getToken, getUserRole, apiFetch } from "./api/client.js";
 
@@ -111,7 +112,8 @@ export default function App() {
           <img src="/logo.svg" alt="MyEduPort" style={{ height: "56px", width: "auto", display: "block" }} />
         </NavLink>
         <nav>
-          <NavLink to="/" end>Home</NavLink>
+          {/* Home is redundant with Dashboard once signed in (the logo still links home). */}
+          {!isSignedIn && <NavLink to="/" end>Home</NavLink>}
           {userRole === "parent" ? (
             <NavLink to="/parent">Parent</NavLink>
           ) : userRole === "counselor" ? (
@@ -142,6 +144,7 @@ export default function App() {
           <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/reset" element={<ResetPassword />} />
           <Route path="/dashboard" element={<ProtectedRoute role="student"><Dashboard /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute role="student"><ProfileEditor /></ProtectedRoute>} />
           <Route path="/recommendations" element={<ProtectedRoute role="student"><Recommendations /></ProtectedRoute>} />

@@ -21,6 +21,23 @@ const TARGET_COUNTRY_OPTIONS = [
   "Netherlands", "Germany", "Switzerland", "Other"
 ];
 
+// Curated list of common undergraduate majors for the Intended Majors dropdowns.
+const MAJOR_OPTIONS = [
+  "Computer Science", "Software Engineering", "Data Science", "Artificial Intelligence",
+  "Information Technology", "Electrical Engineering", "Mechanical Engineering",
+  "Civil Engineering", "Chemical Engineering", "Aerospace Engineering",
+  "Biomedical Engineering", "Engineering (General)", "Mathematics", "Statistics",
+  "Physics", "Chemistry", "Biology", "Biochemistry", "Environmental Science",
+  "Neuroscience", "Medicine", "Nursing", "Pharmacy", "Public Health", "Dentistry",
+  "Veterinary Science", "Psychology", "Economics", "Business Administration", "Finance",
+  "Accounting", "Marketing", "Management", "International Business", "Law",
+  "Political Science", "International Relations", "Sociology", "Philosophy", "History",
+  "English Literature", "Linguistics", "Communications", "Journalism", "Media Studies",
+  "Education", "Architecture", "Art & Design", "Music", "Film & Media",
+  "Performing Arts", "Anthropology", "Geography", "Agriculture",
+  "Hospitality & Tourism", "Sports Science", "Social Work", "Other"
+];
+
 const STATEMENT_WORD_LIMIT = 500;
 const wordCount = (t) => (t || "").trim() ? (t || "").trim().split(/\s+/).length : 0;
 
@@ -34,15 +51,17 @@ export default function ProfileEditor() {
 
   if (role === "parent") return null;
 
-  const [activeSection, setActiveSection] = useState("academics");
+  const [activeSection, setActiveSection] = useState("personal");
   const [profile, setProfile] = useState({
     grade_level: "",
     school: "",
     target_countries: "",
     intended_major: "",
+    intended_universities: "",
     class_rank: "",
     bio: ""
   });
+  const [uniOptions, setUniOptions] = useState([]); // curated universities for the dropdowns
   const [academics, setAcademics] = useState([]);
   const [tests, setTests] = useState([]);
   const [awards, setAwards] = useState([]);
@@ -128,6 +147,7 @@ export default function ProfileEditor() {
             school: data.school || "",
             target_countries: data.target_countries || "",
             intended_major: data.intended_major || "",
+            intended_universities: data.intended_universities || "",
             class_rank: data.class_rank || "",
             bio: data.bio || ""
           });
@@ -141,6 +161,7 @@ export default function ProfileEditor() {
     apiFetch("/api/uploads/me").then(setDocuments).catch(() => {});
     apiFetch("/api/students/me/essays").then((d) => setEssays(Array.isArray(d) ? d : [])).catch(() => {});
     apiFetch("/api/students/me/plan").then((p) => setAdviaiOn(!!p?.features?.adviai)).catch(() => {}).finally(() => setPlanLoaded(true));
+    apiFetch("/api/universities").then((d) => setUniOptions(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   const updateField = (key) => (e) => setProfile((prev) => ({ ...prev, [key]: e.target.value }));
@@ -156,6 +177,20 @@ export default function ProfileEditor() {
     setProfile((prev) => ({ ...prev, intended_major: next.map((s) => s.trim()).filter(Boolean).join(", ") }));
   };
 
+  // Intended universities: 3 ranked picks from the curated list + a 4th free-typed entry.
+  // Pipe-delimited (NOT comma) because university names contain commas
+  // (e.g. "University of California, Berkeley"). The custom one is saved to the DB on save.
+  const intendedUnis = (() => {
+    const arr = (profile.intended_universities || "").split("|").map((s) => s.trim());
+    return [arr[0] || "", arr[1] || "", arr[2] || "", arr[3] || ""];
+  })();
+  const setIntendedUni = (i) => (e) => {
+    const next = [...intendedUnis];
+    next[i] = e.target.value;
+    // Keep slot positions (a middle pick may be blank), just trim trailing blanks.
+    setProfile((prev) => ({ ...prev, intended_universities: next.map((s) => s.trim()).join("|").replace(/\|+$/, "") }));
+  };
+
   // Target countries stored comma-separated, chosen via multi-select chips (max 3 targets)
   const selectedCountries = (profile.target_countries || "").split(",").map((s) => s.trim()).filter(Boolean);
   const toggleCountry = (c) => {
@@ -168,6 +203,11 @@ export default function ProfileEditor() {
   const saveProfile = async () => {
     setStatus("Saving…");
     try {
+      // If item 4 is a university typed by hand (not in the curated list), capture it in the DB.
+      const custom = (intendedUnis[3] || "").trim();
+      if (custom && !uniOptions.some((u) => (u.name || "").toLowerCase() === custom.toLowerCase())) {
+        try { await apiFetch("/api/universities/suggest", { method: "POST", body: JSON.stringify({ name: custom }) }); } catch (e) { /* non-fatal */ }
+      }
       await apiFetch("/api/students/me", { method: "PUT", body: JSON.stringify(profile) });
       setStatus("Saved.");
       setTimeout(() => setStatus(""), 2000);
@@ -442,17 +482,45 @@ export default function ProfileEditor() {
               </div>
 
               <div className="input">
+                <label>Intended Universities <span className="text-muted" style={{ textTransform: "none", letterSpacing: 0 }}>(up to 3, in order of preference)</span></label>
+                <div style={{ display: "grid", gap: "0.6rem" }}>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                      <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", fontWeight: 700, color: "var(--gold-deep)", minWidth: "1.5rem" }}>{i + 1}.</span>
+                      <select style={{ flex: 1 }} value={intendedUnis[i]} onChange={setIntendedUni(i)}>
+                        <option value="">{i === 0 ? "1st choice — select a university" : i === 1 ? "2nd choice" : "3rd choice"}</option>
+                        {intendedUnis[i] && !uniOptions.some((u) => u.name === intendedUnis[i]) && (
+                          <option value={intendedUnis[i]}>{intendedUnis[i]}</option>
+                        )}
+                        {uniOptions.map((u) => (
+                          <option key={u.id} value={u.name}>{u.name}{u.country ? ` (${u.country})` : ""}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", fontWeight: 700, color: "var(--gold-deep)", minWidth: "1.5rem" }}>4.</span>
+                    <input style={{ flex: 1 }} value={intendedUnis[3]} onChange={setIntendedUni(3)} placeholder="Other — type a university not in the list" />
+                  </div>
+                </div>
+                <p className="text-muted" style={{ fontSize: "0.78rem", marginTop: "0.4rem" }}>Pick from the list, or type your own in row 4 — it'll be added to the database.</p>
+              </div>
+
+              <div className="input">
                 <label>Intended Majors <span className="text-muted" style={{ textTransform: "none", letterSpacing: 0 }}>(up to 3, in order of preference)</span></label>
                 <div style={{ display: "grid", gap: "0.6rem" }}>
                   {[0, 1, 2].map((i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                       <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", fontWeight: 700, color: "var(--gold-deep)", minWidth: "1.5rem" }}>{i + 1}.</span>
-                      <input
-                        style={{ flex: 1 }}
-                        value={majors[i]}
-                        onChange={setMajor(i)}
-                        placeholder={i === 0 ? "1st choice — e.g. Computer Science" : i === 1 ? "2nd choice" : "3rd choice"}
-                      />
+                      <select style={{ flex: 1 }} value={majors[i]} onChange={setMajor(i)}>
+                        <option value="">{i === 0 ? "1st choice — select a major" : i === 1 ? "2nd choice" : "3rd choice"}</option>
+                        {majors[i] && !MAJOR_OPTIONS.includes(majors[i]) && (
+                          <option value={majors[i]}>{majors[i]}</option>
+                        )}
+                        {MAJOR_OPTIONS.map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
                     </div>
                   ))}
                 </div>
@@ -464,7 +532,7 @@ export default function ProfileEditor() {
               </div>
               <div className="input">
                 <div className="flex-between" style={{ alignItems: "baseline", flexWrap: "wrap", gap: "0.5rem" }}>
-                  <label style={{ marginBottom: 0 }}>Short Statement <span className="text-muted" style={{ textTransform: "none", letterSpacing: 0 }}>(max {STATEMENT_WORD_LIMIT} words)</span></label>
+                  <label style={{ marginBottom: 0 }}>Personal Statement <span className="text-muted" style={{ textTransform: "none", letterSpacing: 0 }}>(max {STATEMENT_WORD_LIMIT} words)</span></label>
                   <button type="button" className="button gold" style={{ padding: "0.35rem 0.9rem", fontSize: "0.72rem" }} disabled={bioFbLoading} onClick={getBioFeedback}>
                     {bioFbLoading ? "Analyzing…" : "Get EssAI feedback"}
                   </button>

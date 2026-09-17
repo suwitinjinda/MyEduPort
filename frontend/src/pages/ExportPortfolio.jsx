@@ -26,34 +26,30 @@ export default function ExportPortfolio() {
 
   useEffect(() => {
     loadPortfolioData();
-    apiFetch("/api/students/me/plan").then((p) => setCanExport(!!p?.features?.export)).catch(() => {});
   }, []);
 
   const loadPortfolioData = async () => {
     try {
-      const [user, profile, academics, tests, activities, awards, documents, essays] = await Promise.all([
-        apiFetch("/api/auth/me").catch(() => null),
-        apiFetch("/api/students/me").catch(() => null),
-        apiFetch("/api/students/me/academics").catch(() => []),
-        apiFetch("/api/students/me/tests").catch(() => []),
-        apiFetch("/api/students/me/activities").catch(() => []),
-        apiFetch("/api/students/me/awards").catch(() => []),
-        apiFetch("/api/uploads/me").catch(() => []),
-        apiFetch("/api/students/me/essays").catch(() => [])
-      ]);
-
+      // Single PAID-gated bundle: the backend blocks free users here (403), so the
+      // export is enforced server-side, not just by disabling the button.
+      const b = await apiFetch("/api/students/me/export");
       setPortfolioData({
-        user,
-        profile,
-        academics: academics || [],
-        tests: tests || [],
-        activities: activities || [],
-        awards: awards || [],
-        documents: documents || [],
-        essays: essays || []
+        user: b.user,
+        profile: b.profile,
+        academics: b.academics || [],
+        tests: b.tests || [],
+        activities: b.activities || [],
+        awards: b.awards || [],
+        documents: b.documents || [],
+        essays: b.essays || []
       });
+      setCanExport(true);
     } catch (err) {
-      console.error("Failed to load portfolio data:", err);
+      // 403 => not on a paid plan; show the upgrade card instead of data.
+      setCanExport(false);
+      if (!String(err?.message || "").toLowerCase().includes("paid")) {
+        console.error("Failed to load portfolio data:", err);
+      }
     }
   };
 
@@ -505,7 +501,7 @@ export default function ExportPortfolio() {
         doc.setFont("helvetica", "normal");
         portfolioData.documents.forEach((document, index) => {
           checkPageBreak(15);
-          const docName = document.filename || document.original_filename || `Document ${index + 1}`;
+          const docName = document.original_name || document.filename || document.original_filename || `Document ${index + 1}`;
           const docType = document.category || "General";
           doc.text(`${index + 1}. ${docName} (${docType})`, margin, yPos);
           yPos += 8;

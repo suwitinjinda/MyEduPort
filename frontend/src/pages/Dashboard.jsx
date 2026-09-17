@@ -29,7 +29,7 @@ export default function Dashboard() {
   const [score, setScore] = useState(null);
   const [savedUnis, setSavedUnis] = useState([]);
   const [profile, setProfile] = useState(null);
-  const [savingCountries, setSavingCountries] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(true); // collapsible "Quick menu" side nav
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(true);
 
@@ -71,19 +71,22 @@ export default function Dashboard() {
   };
 
   // Target countries (up to 3) — quick edit from the dashboard, saved to profile
-  const TARGET_COUNTRY_OPTIONS = ["United States", "United Kingdom", "Canada", "Australia", "China", "Hong Kong", "Singapore", "Japan", "Netherlands", "Germany", "Switzerland", "Other"];
-  const selectedCountries = (profile?.target_countries || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const toggleCountry = async (c) => {
-    const set = new Set(selectedCountries);
-    if (set.has(c)) set.delete(c);
-    else { if (set.size >= 3) return; set.add(c); } // cap at 3 targets
-    const next = Array.from(set).join(", ");
-    setProfile((prev) => ({ ...(prev || {}), target_countries: next }));
-    setSavingCountries(true);
-    try { await apiFetch("/api/students/me", { method: "PUT", body: JSON.stringify({ ...profile, target_countries: next }) }); }
-    catch (err) { /* ignore */ } finally { setSavingCountries(false); }
+  // Curated, high-level application guidance shown per selected target country.
+  const COUNTRY_ADVICE = {
+    "United States": "Apply via the Common App / Coalition. Expect essays, SAT/ACT (test-optional at many schools) and 2 teacher recs. Watch Early Decision/Action deadlines (~Nov 1).",
+    "United Kingdom": "Apply through UCAS (up to 5 courses). One subject-focused personal statement + predicted grades; Oxbridge/medicine deadline is mid-October.",
+    "Canada": "Apply directly to each university (OUAC in Ontario). Grades-driven; some programs want a supplementary essay. Deadlines run Dec–Mar.",
+    "Australia": "Apply directly or via a state admissions centre (e.g. UAC). Largely ATAR/grade-based; major intakes in Feb and Jul.",
+    "China": "Apply via each university's international portal. Often needs HSK (Chinese) or an English-taught program, plus transcripts and a study plan.",
+    "Hong Kong": "Apply directly to each university. Competitive and grade-focused; interviews are common. Main-round deadlines ~Nov–Jan.",
+    "Singapore": "Apply directly to NUS/NTU/SMU. Very selective, grade + test focused; some courses interview. Deadlines ~Feb–Mar.",
+    "Japan": "Apply via each university (many English-taught programs). May need EJU and/or English scores; essays + study plan expected.",
+    "Netherlands": "Apply through Studielink. Many English-taught bachelors; selective 'numerus fixus' courses add tests — deadline often Jan 15.",
+    "Germany": "Apply via uni-assist or directly. Low/no tuition at public universities; needs a recognized qualification (sometimes Studienkolleg) + language proof.",
+    "Switzerland": "Apply directly to each university. Qualification-based; some programs need an entrance exam and language proof (German/French/English).",
+    "Other": "Check each target university's own admissions page for deadlines, required tests, and the application portal."
   };
-
+  const selectedCountries = (profile?.target_countries || "").split(",").map((s) => s.trim()).filter(Boolean);
   const loadAiData = async () => {
     setAiLoading(true);
     try {
@@ -130,15 +133,35 @@ export default function Dashboard() {
     <div className="dash-layout">
       {/* ───────── Sidebar ───────── */}
       <aside className="dash-sidebar">
-        <NavItem to="/dashboard" icon={<ProfileIcon />} label="Profile" active />
-        <NavItem to="/profile" icon={<PortfolioIcon />} label="Portfolio" />
-        <NavItem to="/recommendations" icon={<UniversityIcon />} label="Universities" />
-        <NavItem to="/compare" icon={<CompareIcon />} label="Compare" />
-        <NavItem to="/tasks" icon={<TaskIcon />} label="Tasks" badge={overdueTasks.length} />
-        <NavItem to="/chat" icon={<ChatIcon />} label="EduBot Chat" />
-        <NavItem to="/essay" icon={<EssayIcon />} label="Essays" />
-        <NavItem to="/export" icon={<ExportIcon />} label="Portfolio Report" />
-        <NavItem to="/settings" icon={<SettingsIcon />} label="Settings" />
+        {/* "Quick menu" is a heading, not a link — click to collapse/expand the nav. */}
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-expanded={menuOpen}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            width: "100%", background: "transparent", border: "none", cursor: "pointer",
+            padding: "0.5rem 0.75rem", marginBottom: "0.35rem", fontFamily: "inherit",
+            fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em",
+            textTransform: "uppercase", color: "var(--ink-muted)"
+          }}
+        >
+          <span>Quick menu</span>
+          <span aria-hidden style={{ display: "inline-block", transition: "transform 0.2s", transform: menuOpen ? "rotate(90deg)" : "rotate(0deg)" }}>›</span>
+        </button>
+        {menuOpen && (
+          <>
+            <NavItem to="/profile" icon={<ProfileIcon />} label="Personal" />
+            <NavItem to="/profile" icon={<PortfolioIcon />} label="Portfolio" />
+            <NavItem to="/recommendations" icon={<UniversityIcon />} label="Universities" />
+            <NavItem to="/compare" icon={<CompareIcon />} label="Compare" />
+            <NavItem to="/tasks" icon={<TaskIcon />} label="Tasks" badge={overdueTasks.length} />
+            <NavItem to="/chat" icon={<ChatIcon />} label="EduBot Chat" />
+            <NavItem to="/essay" icon={<EssayIcon />} label="Essays" />
+            <NavItem to="/export" icon={<ExportIcon />} label="Portfolio Report" />
+            <NavItem to="/settings" icon={<SettingsIcon />} label="Settings" />
+          </>
+        )}
       </aside>
 
       {/* ───────── Main ───────── */}
@@ -161,17 +184,17 @@ export default function Dashboard() {
             <div style={{ display: "flex", gap: "1.25rem", flexWrap: "wrap" }}>
               {score && !aiLoading && (
                 <span style={{ fontSize: "0.85rem", opacity: 0.95 }}>
-                  Overall Portfolio Score (AI): <strong>{score.overall}/100</strong>
+                  Overall Portfolio Score: <strong>{score.overall}/100</strong>
                 </span>
               )}
               {acceptance && !aiLoading && (
                 <span style={{ fontSize: "0.85rem", opacity: 0.95 }}>
-                  Acceptance Prediction (AI): <strong>{acceptance.average}%</strong>
+                  Acceptance Prediction: <strong>{acceptance.average}%</strong>
                 </span>
               )}
               {!acceptance && !aiLoading && features && features.predictions === 0 && (
                 <Link to="/pricing" style={{ fontSize: "0.85rem", opacity: 0.95, color: "#fff", textDecoration: "underline" }}>
-                  Acceptance Prediction (AI): Upgrade to unlock →
+                  Acceptance Prediction: Upgrade to unlock →
                 </Link>
               )}
             </div>
@@ -180,38 +203,42 @@ export default function Dashboard() {
             <span style={{ width: `${completion}%`, background: "#22c55e" }} />
           </div>
 
-          {/* Target countries — up to 3 targets, quick-edit */}
+          {/* Target countries — display only. Edited on the Personal page; this shows
+              the current picks plus concise application guidance for each. */}
           <div style={{ marginTop: "1rem" }}>
             <div style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.9, marginBottom: "0.5rem", fontWeight: 600 }}>
-              Target Countries <span style={{ opacity: 0.75, textTransform: "none", letterSpacing: 0 }}>(pick up to 3){savingCountries ? " · saving…" : ""}</span>
+              Target Countries
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-              {TARGET_COUNTRY_OPTIONS.map((c) => {
-                const active = selectedCountries.includes(c);
-                const disabled = !active && selectedCountries.length >= 3;
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => toggleCountry(c)}
-                    disabled={disabled}
-                    style={{
-                      cursor: disabled ? "not-allowed" : "pointer",
-                      padding: "0.3rem 0.7rem",
-                      fontSize: "0.78rem",
-                      borderRadius: "var(--r-full)",
-                      border: active ? "1px solid #fff" : "1px solid rgba(255,255,255,0.4)",
-                      background: active ? "#fff" : "transparent",
-                      color: active ? "var(--navy)" : "#fff",
-                      opacity: disabled ? 0.4 : 1,
-                      fontWeight: active ? 700 : 500
-                    }}
-                  >
-                    {c}
-                  </button>
-                );
-              })}
-            </div>
+            {selectedCountries.length === 0 ? (
+              <div style={{ fontSize: "0.85rem", opacity: 0.9 }}>
+                None chosen yet — <Link to="/profile" style={{ color: "#fff", textDecoration: "underline", fontWeight: 600 }}>set them in Personal →</Link>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                  {selectedCountries.map((c) => (
+                    <span
+                      key={c}
+                      style={{
+                        padding: "0.3rem 0.7rem", fontSize: "0.78rem", borderRadius: "var(--r-full)",
+                        border: "1px solid #fff", background: "#fff", color: "var(--navy)", fontWeight: 700
+                      }}
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ display: "grid", gap: "0.4rem", marginTop: "0.75rem" }}>
+                  {selectedCountries.map((c) => (
+                    COUNTRY_ADVICE[c] ? (
+                      <div key={c} style={{ fontSize: "0.8rem", lineHeight: 1.5, opacity: 0.94 }}>
+                        <strong>{c}:</strong> {COUNTRY_ADVICE[c]}
+                      </div>
+                    ) : null
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -261,7 +288,7 @@ export default function Dashboard() {
         {/* 3 KPI cards */}
         <div className="grid three">
           <KpiCard
-            title="Academic Score (AI)"
+            title="Academic Score"
             value={score ? score.categories.academic : "—"}
             unit="/ 100"
             details={
@@ -294,7 +321,7 @@ export default function Dashboard() {
           />
 
           <KpiCard
-            title="Extracurricular Score (AI)"
+            title="Extracurricular Score"
             value={score ? score.categories.extracurricular : "—"}
             unit="/ 100"
             details={
@@ -310,7 +337,7 @@ export default function Dashboard() {
           />
 
           <KpiCard
-            title="Documents Score (AI)"
+            title="Documents Score"
             value={score ? score.categories.essays : "—"}
             unit="/ 100"
             details={
@@ -330,10 +357,9 @@ export default function Dashboard() {
         <div className="card">
           <div className="flex-between" style={{ marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
             <h2 className="section-title" style={{ marginBottom: 0 }}>Next Steps</h2>
-            <span className="badge primary">AI Generated</span>
           </div>
           <p className="muted" style={{ marginBottom: "1.25rem" }}>
-            Generated by AI, prioritized actions with:
+            Prioritized actions to focus on next:
           </p>
 
           {aiLoading ? (

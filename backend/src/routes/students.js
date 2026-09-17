@@ -2,7 +2,7 @@ const express = require("express");
 const crypto = require("crypto");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
-const { getUserPlan, getPlanLimits, getUsage, periodFor } = require("../services/plan");
+const { getUserPlan, getPlanLimits, getUsage, periodFor, isFeatureAllowed } = require("../services/plan");
 
 const router = express.Router();
 
@@ -31,12 +31,13 @@ router.put("/me", authRequired, async (req, res) => {
     school,
     target_countries,
     intended_major,
+    intended_universities,
     class_rank,
     bio
   } = req.body || {};
   await pool.query(
-    "UPDATE students SET grade_level = ?, school = ?, target_countries = ?, intended_major = ?, class_rank = ?, bio = ? WHERE user_id = ?",
-    [grade_level || "", school || "", target_countries || "", intended_major || "", class_rank || "", bio || "", req.user.id]
+    "UPDATE students SET grade_level = ?, school = ?, target_countries = ?, intended_major = ?, intended_universities = ?, class_rank = ?, bio = ? WHERE user_id = ?",
+    [grade_level || "", school || "", target_countries || "", intended_major || "", intended_universities || "", class_rank || "", bio || "", req.user.id]
   );
   return res.json({ status: "ok" });
 });
@@ -91,6 +92,32 @@ router.get("/me/data-export", authRequired, async (req, res) => {
     console.error("data-export error:", err.message);
     return res.status(500).json({ error: "Could not export your data. Please try again." });
   }
+});
+
+// Portfolio export bundle — PAID (export feature). Blocking here enforces the export
+// gate server-side, not just by disabling the frontend button. Returns the same row
+// shapes as the individual /me/* endpoints so the PDF renders identically.
+router.get("/me/export", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  if (!(await isFeatureAllowed(req.user.id, "export"))) {
+    return res.status(403).json({ error: "PDF export is a paid feature — upgrade to Essential or Professional." });
+  }
+  const q = async (sql) => { try { const [r] = await pool.query(sql, [studentId]); return r; } catch { return []; } };
+  const [[profile]] = await pool.query(
+    "SELECT s.*, u.name, u.email FROM students s JOIN users u ON s.user_id = u.id WHERE s.id = ?",
+    [studentId]
+  );
+  return res.json({
+    user: { name: profile?.name || "", email: profile?.email || "" },
+    profile: profile || null,
+    academics: await q("SELECT * FROM academic_records WHERE student_id = ? ORDER BY year DESC"),
+    tests: await q("SELECT * FROM test_scores WHERE student_id = ? ORDER BY test_date DESC"),
+    activities: await q("SELECT * FROM activities WHERE student_id = ? ORDER BY start_date DESC"),
+    awards: await q("SELECT * FROM awards WHERE student_id = ? ORDER BY award_date DESC"),
+    documents: await q("SELECT * FROM documents WHERE student_id = ? ORDER BY uploaded_at DESC"),
+    essays: await q("SELECT * FROM essays WHERE student_id = ? ORDER BY last_edited_at DESC")
+  });
 });
 
 router.get("/me/summary", authRequired, async (req, res) => {

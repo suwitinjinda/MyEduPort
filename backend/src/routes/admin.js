@@ -171,7 +171,7 @@ router.delete("/users/:id", authRequired, async (req, res) => {
 // University management
 router.get("/universities", authRequired, async (req, res) => {
   if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
-  const { country, limit = 100 } = req.query || {};
+  const { country, limit = 500 } = req.query || {};
   let query = "SELECT * FROM universities WHERE 1=1";
   const params = [];
   if (country) {
@@ -194,26 +194,47 @@ router.get("/universities/:id", authRequired, async (req, res) => {
 
 router.post("/universities", authRequired, async (req, res) => {
   if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
-  const { name, country, city, selectivity_band, major_tags } = req.body || {};
-  if (!name || !country) {
-    return res.status(400).json({ error: "Name and country are required" });
+  try {
+    const { name, country, city, selectivity_band, major_tags, qs_rank, source, hidden } = req.body || {};
+    if (!name || !country) {
+      return res.status(400).json({ error: "Name and country are required" });
+    }
+    const [result] = await pool.query(
+      "INSERT INTO universities (name, country, city, selectivity_band, major_tags, qs_rank, source, hidden) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [name, country, city || "", selectivity_band || "", major_tags || "",
+        qs_rank === "" || qs_rank == null ? null : Number(qs_rank),
+        source || "admin", hidden ? 1 : 0]
+    );
+    return res.json({ id: result.insertId });
+  } catch (err) {
+    console.error("POST /admin/universities:", err && err.message ? err.message : err);
+    return res.status(500).json({ error: "Failed to create university" });
   }
-  const [result] = await pool.query(
-    "INSERT INTO universities (name, country, city, selectivity_band, major_tags) VALUES (?, ?, ?, ?, ?)",
-    [name, country, city || "", selectivity_band || "", major_tags || ""]
-  );
-  return res.json({ id: result.insertId });
 });
 
 router.put("/universities/:id", authRequired, async (req, res) => {
   if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
-  const { id } = req.params;
-  const { name, country, city, selectivity_band, major_tags } = req.body || {};
-  await pool.query(
-    "UPDATE universities SET name = ?, country = ?, city = ?, selectivity_band = ?, major_tags = ? WHERE id = ?",
-    [name, country, city, selectivity_band, major_tags, id]
-  );
-  return res.json({ status: "updated" });
+  try {
+    const { id } = req.params;
+    const body = req.body || {};
+    // Whitelisted columns; only update what the request actually sends, so the
+    // legacy 5-field admin form keeps working while qs_rank/source/hidden are editable.
+    const fields = {};
+    for (const k of ["name", "country", "city", "selectivity_band", "major_tags", "source"]) {
+      if (body[k] !== undefined) fields[k] = body[k]; // only touch fields actually sent (no undefined binds)
+    }
+    if (body.qs_rank !== undefined) fields.qs_rank = body.qs_rank === "" || body.qs_rank == null ? null : Number(body.qs_rank);
+    if (body.hidden !== undefined) fields.hidden = body.hidden ? 1 : 0;
+    const keys = Object.keys(fields);
+    if (!keys.length) return res.json({ status: "no changes" });
+    const setClause = keys.map((k) => `${k} = ?`).join(", ");
+    const vals = keys.map((k) => fields[k]);
+    await pool.query(`UPDATE universities SET ${setClause} WHERE id = ?`, [...vals, id]);
+    return res.json({ status: "updated" });
+  } catch (err) {
+    console.error("PUT /admin/universities:", err && err.message ? err.message : err);
+    return res.status(500).json({ error: "Failed to update university" });
+  }
 });
 
 router.delete("/universities/:id", authRequired, async (req, res) => {

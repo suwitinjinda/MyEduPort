@@ -193,6 +193,14 @@ export default function Login() {
             </div>
           </div>
 
+          {!isRegister && (
+            <div style={{ textAlign: "right", marginTop: "-0.5rem", marginBottom: "0.5rem" }}>
+              <Link to="/reset" style={{ color: "var(--teal-deep)", fontSize: "0.82rem", textDecoration: "underline" }}>
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
           {isRegister && (
             <label
               style={{

@@ -1,5 +1,8 @@
 require("dotenv").config();
 const express = require("express");
+// Patches Express so a rejected promise in an async route reaches the error
+// handler below instead of hanging the request until the proxy times out.
+require("express-async-errors");
 const cors = require("cors");
 const path = require("path");
 
@@ -64,6 +67,15 @@ app.use("/api/uploads", uploadRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/personality", personalityRoutes);
 app.use("/api/career", careerRoutes);
+
+// Central error handler — any error thrown/rejected in a route lands here and
+// returns a clean 500 instead of leaving the request hanging (504 at the proxy).
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error("API error:", err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500).json({ error: "Something went wrong. Please try again." });
+});
 
 // Safety net: never let a stray async rejection take the whole API process down.
 process.on("unhandledRejection", (reason) => {

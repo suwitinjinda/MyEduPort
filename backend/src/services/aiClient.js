@@ -222,66 +222,39 @@ Return ONLY valid JSON, no markdown:
   return heuristic();
 }
 
+// Deterministic Reach/Target/Safety classification driven by the student's GPA
+// vs. each school's selectivity (and QS rank as a finer signal). No randomness —
+// the same student + school always yields the same match %, so results are stable
+// across reloads and actually reflect academic fit.
 function categorizeUniversities(universities, gpaScore) {
   const gpa = safeNumber(gpaScore, 3.4);
-  let categorized = universities.map((uni, index) => {
-    let category = "Target";
-    let matchPercentage = 50 + Math.floor(Math.random() * 30);
-    const selectivity = uni.selectivity_band || "";
-    if (selectivity === "Very High") {
-      category = "Reach";
-      matchPercentage = 25 + Math.floor(Math.random() * 15);
-    } else if (selectivity === "Medium") {
-      category = "Safety";
-      matchPercentage = 60 + Math.floor(Math.random() * 20);
-    } else if (selectivity === "High") {
-      if (index % 2 === 0) {
-        category = "Target";
-        matchPercentage = 50 + Math.floor(Math.random() * 30);
-      } else {
-        category = "Safety";
-        matchPercentage = 60 + Math.floor(Math.random() * 20);
-      }
-    } else {
-      if (index % 3 === 0) {
-        category = "Reach";
-        matchPercentage = 25 + Math.floor(Math.random() * 15);
-      } else if (index % 3 === 1) {
-        category = "Target";
-        matchPercentage = 50 + Math.floor(Math.random() * 30);
-      } else {
-        category = "Safety";
-        matchPercentage = 60 + Math.floor(Math.random() * 20);
-      }
+  const gpaNorm = Math.max(0, Math.min(1, gpa / 4)); // 0..1 student strength
+  // Approx. admission difficulty (higher = harder) by selectivity band.
+  const DIFFICULTY = { "Very High": 0.9, High: 0.66, Medium: 0.45 };
+
+  return universities.map((uni, index) => {
+    const band = uni.selectivity_band || "High";
+    let difficulty = DIFFICULTY[band] != null ? DIFFICULTY[band] : 0.66;
+    // Within a band, a stronger QS rank (closer to #1) is a bit harder to get into.
+    if (uni.qs_rank) {
+      const rankBump = Math.max(0, Math.min(0.06, (60 - Number(uni.qs_rank)) / 1000));
+      difficulty = Math.min(0.97, difficulty + rankBump);
     }
-    return { ...uni, category, matchPercentage, originalIndex: index };
-  });
-  const totalCount = categorized.length;
-  const safetyCount = categorized.filter((u) => u.category === "Safety").length;
-  const minSafetyCount = Math.max(2, Math.floor(totalCount * 0.2));
-  if (safetyCount < minSafetyCount) {
-    const highTargets = categorized
-      .filter((u) => u.category === "Target" && u.selectivity_band === "High")
-      .sort((a, b) => a.originalIndex - b.originalIndex);
-    const needMore = minSafetyCount - safetyCount;
-    const toConvertIndices = highTargets.slice(0, Math.min(needMore, highTargets.length)).map((tc) => tc.originalIndex);
-    categorized = categorized.map((uni) => {
-      if (toConvertIndices.includes(uni.originalIndex)) {
-        return { ...uni, category: "Safety", matchPercentage: 60 + Math.floor(Math.random() * 20) };
-      }
-      return uni;
-    });
-  }
-  categorized = categorized.map((uni) => ({
-    ...uni,
-    explanation:
-      uni.category === "Reach"
+    const gap = gpaNorm - difficulty; // >0 => student stronger than the school's bar
+    let category;
+    if (gap <= -0.08) category = "Reach";
+    else if (gap >= 0.1) category = "Safety";
+    else category = "Target";
+    // Deterministic match %: centered ~55, moves with the gap, clamped to a sane range.
+    const matchPercentage = Math.round(Math.max(8, Math.min(97, 55 + gap * 130)));
+    const explanation =
+      category === "Reach"
         ? "Top-tier research, highly competitive"
-        : uni.category === "Safety"
+        : category === "Safety"
           ? "Good match, accessible admission"
-          : "Strong match, competitive admission"
-  }));
-  return categorized;
+          : "Strong match, competitive admission";
+    return { ...uni, category, matchPercentage, explanation, originalIndex: index };
+  });
 }
 
 async function buildChatResponseWithClaude(message, history = [], profileContext = "") {

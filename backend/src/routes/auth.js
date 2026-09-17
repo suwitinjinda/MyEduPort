@@ -1,4 +1,5 @@
 const express = require("express");
+const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
@@ -175,9 +176,47 @@ router.post("/google", async (req, res) => {
   }
 });
 
+// Request a password reset. Always returns a generic response so it never reveals
+// whether an email is registered. A one-time token (hashed at rest, 1h expiry) is
+// issued; delivering it by email needs an SMTP/provider integration (not configured
+// here) — until then the link is logged server-side, and returned in non-production.
 router.post("/forgot", async (req, res) => {
-  // Placeholder: integrate email provider later
-  return res.json({ status: "ok" });
+  const { email } = req.body || {};
+  const generic = { status: "ok", message: "If an account exists for that email, a reset link has been sent." };
+  if (!email) return res.json(generic);
+  const [[user]] = await pool.query("SELECT id FROM users WHERE email = ? AND deleted_at IS NULL", [email]);
+  if (user) {
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    await pool.query(
+      "UPDATE users SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?",
+      [tokenHash, new Date(Date.now() + 60 * 60 * 1000), user.id]
+    );
+    const resetUrl = `${process.env.APP_URL || "https://myeduport.ai"}/reset?token=${token}`;
+    // Deliver by email (needs SMTP integration) — never return the token in the HTTP
+    // response, or anyone could reset another user's password by email alone.
+    console.log(`[password-reset] ${email} -> ${resetUrl}`);
+  }
+  return res.json(generic);
+});
+
+// Complete a password reset with the one-time token.
+router.post("/reset", async (req, res) => {
+  const { token, newPassword } = req.body || {};
+  if (!token || !newPassword) return res.status(400).json({ error: "Token and new password are required" });
+  if (newPassword.length < 6) return res.status(400).json({ error: "New password must be at least 6 characters long" });
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const [[user]] = await pool.query(
+    "SELECT id FROM users WHERE reset_token_hash = ? AND reset_token_expires > NOW()",
+    [tokenHash]
+  );
+  if (!user) return res.status(400).json({ error: "This reset link is invalid or has expired. Please request a new one." });
+  const newHash = await bcrypt.hash(newPassword, 10);
+  await pool.query(
+    "UPDATE users SET password_hash = ?, reset_token_hash = NULL, reset_token_expires = NULL WHERE id = ?",
+    [newHash, user.id]
+  );
+  return res.json({ status: "Password has been reset. You can now sign in with your new password." });
 });
 
 router.get("/me", authRequired, async (req, res) => {

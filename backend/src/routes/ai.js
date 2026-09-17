@@ -92,7 +92,7 @@ router.post("/recommendations", authRequired, async (req, res) => {
   const studentMajor = major || student?.intended_major || "";
 
   // Build query - if country is "All" or not specified, get all countries
-  let baseQuery = "SELECT id, name, country, city, selectivity_band, major_tags FROM universities WHERE 1=1";
+  let baseQuery = "SELECT id, name, country, city, selectivity_band, qs_rank, major_tags FROM universities WHERE hidden = 0";
   const baseParams = [];
 
   if (country && country !== "All") {
@@ -141,6 +141,8 @@ router.post("/recommendations", authRequired, async (req, res) => {
     results.sort((a, b) => a.country.localeCompare(b.country));
   } else if (sortBy === "match") {
     results.sort((a, b) => (b.matchPercentage || 0) - (a.matchPercentage || 0));
+  } else if (sortBy === "name") {
+    results.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }
 
   await pool.query(
@@ -197,8 +199,14 @@ router.post("/chat", authRequired, async (req, res) => {
 
 router.get("/acceptance-probability", authRequired, async (req, res) => {
   if (req.user.role !== "student") return res.status(403).json({ error: "Student only" });
-  if (!(await isFeatureAllowed(req.user.id, "predictions"))) {
-    return res.status(403).json({ error: "Acceptance predictions are a paid feature — upgrade to unlock." });
+  const predQuota = await checkQuota(req.user.id, "predictions");
+  if (!predQuota.allowed) {
+    return res.status(predQuota.limit === 0 ? 403 : 429).json({
+      error: predQuota.limit === 0
+        ? "Acceptance predictions are a paid feature — upgrade to unlock."
+        : `You've used all ${predQuota.limit} predictions for this ${predQuota.period === "lifetime" ? "plan" : "month"}. Upgrade for more.`,
+      quota: predQuota
+    });
   }
   const summary = await getStudentSummary(req.user.id);
   if (!summary) return res.status(404).json({ error: "Student profile missing" });
@@ -213,6 +221,7 @@ router.get("/acceptance-probability", authRequired, async (req, res) => {
     saved = rows;
   } catch (err) { /* table missing — migration needed */ }
   const result = await estimateAcceptanceProbability(summary, saved);
+  if (predQuota.limit !== -1) await incrementUsage(req.user.id, "predictions", predQuota.period);
   res.json(result);
 });
 

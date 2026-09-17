@@ -81,9 +81,8 @@ export default function Recommendations() {
               <option value="All">All Countries</option>
               <option value="US">United States</option>
               <option value="UK">United Kingdom</option>
-              <option value="China">China</option>
-              <option value="Canada">Canada</option>
               <option value="Australia">Australia</option>
+              <option value="China">China</option>
             </select>
           </div>
           <div className="input" style={{ marginBottom: 0, minWidth: "180px" }}>

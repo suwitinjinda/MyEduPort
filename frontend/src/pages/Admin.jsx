@@ -10,7 +10,7 @@ export default function Admin() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [editingUniversity, setEditingUniversity] = useState(undefined);
-  const [universityForm, setUniversityForm] = useState({ name: "", country: "", city: "", selectivity_band: "", major_tags: "" });
+  const [universityForm, setUniversityForm] = useState({ name: "", country: "", city: "", selectivity_band: "", major_tags: "", qs_rank: "", hidden: 0 });
   const [planLimits, setPlanLimits] = useState(null);
   const [savingLimits, setSavingLimits] = useState(false);
 
@@ -84,7 +84,7 @@ export default function Admin() {
         setStatus("University created");
       }
       setEditingUniversity(undefined);
-      setUniversityForm({ name: "", country: "", city: "", selectivity_band: "", major_tags: "" });
+      setUniversityForm({ name: "", country: "", city: "", selectivity_band: "", major_tags: "", qs_rank: "", hidden: 0 });
       loadData();
     } catch (err) { setStatus(`Error: ${err.message}`); }
   };
@@ -258,7 +258,7 @@ export default function Admin() {
                     className="button gold"
                     onClick={() => {
                       setEditingUniversity(null);
-                      setUniversityForm({ name: "", country: "", city: "", selectivity_band: "", major_tags: "" });
+                      setUniversityForm({ name: "", country: "", city: "", selectivity_band: "", major_tags: "", qs_rank: "", hidden: 0 });
                     }}
                   >
                     + Add university
@@ -281,7 +281,13 @@ export default function Admin() {
                           <option value="">Select</option>
                           <option value="US">United States</option>
                           <option value="UK">United Kingdom</option>
+                          <option value="Australia">Australia</option>
                           <option value="China">China</option>
+                          <option value="Canada">Canada</option>
+                          <option value="Hong Kong">Hong Kong</option>
+                          <option value="Singapore">Singapore</option>
+                          <option value="Japan">Japan</option>
+                          <option value="Germany">Germany</option>
                         </select>
                       </div>
                       <div className="input">
@@ -298,6 +304,19 @@ export default function Admin() {
                         </select>
                       </div>
                     </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                      <div className="input">
+                        <label>QS 2026 rank</label>
+                        <input type="number" value={universityForm.qs_rank ?? ""} onChange={(e) => setUniversityForm({ ...universityForm, qs_rank: e.target.value })} placeholder="e.g. 16" />
+                      </div>
+                      <div className="input">
+                        <label>Visibility</label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 400, marginTop: "0.4rem" }}>
+                          <input type="checkbox" checked={!!universityForm.hidden} onChange={(e) => setUniversityForm({ ...universityForm, hidden: e.target.checked ? 1 : 0 })} />
+                          Hidden (not shown to students)
+                        </label>
+                      </div>
+                    </div>
                     <div className="input">
                       <label>Major tags (comma-separated)</label>
                       <input value={universityForm.major_tags} onChange={(e) => setUniversityForm({ ...universityForm, major_tags: e.target.value })} placeholder="Engineering, Computer Science" />
@@ -306,7 +325,7 @@ export default function Admin() {
                       <button className="button" onClick={saveUniversity} disabled={!universityForm.name || !universityForm.country}>
                         {editingUniversity ? "Update" : "Create"}
                       </button>
-                      <button className="button ghost" onClick={() => { setEditingUniversity(undefined); setUniversityForm({ name: "", country: "", city: "", selectivity_band: "", major_tags: "" }); }}>
+                      <button className="button ghost" onClick={() => { setEditingUniversity(undefined); setUniversityForm({ name: "", country: "", city: "", selectivity_band: "", major_tags: "", qs_rank: "", hidden: 0 }); }}>
                         Cancel
                       </button>
                     </div>
@@ -316,14 +335,15 @@ export default function Admin() {
                 <div style={{ overflowX: "auto" }}>
                   <table>
                     <thead>
-                      <tr><th>Name</th><th>Country</th><th>City</th><th>Selectivity</th><th></th></tr>
+                      <tr><th>Name</th><th>Country</th><th>City</th><th>QS</th><th>Selectivity</th><th></th></tr>
                     </thead>
                     <tbody>
                       {universities.map((uni) => (
                         <tr key={uni.id}>
-                          <td><strong>{uni.name}</strong></td>
+                          <td><strong>{uni.name}</strong>{uni.hidden ? <span className="badge" style={{ marginLeft: "0.4rem", background: "var(--warn-soft)", color: "var(--warn)" }}>hidden</span> : null}</td>
                           <td>{uni.country}</td>
                           <td>{uni.city || "—"}</td>
+                          <td>{uni.qs_rank ? `#${uni.qs_rank}` : "—"}</td>
                           <td>
                             <span className="badge" style={{
                               background: uni.selectivity_band === "Very High" ? "var(--error-soft)" : uni.selectivity_band === "High" ? "var(--warn-soft)" : "var(--success-soft)",
@@ -334,7 +354,7 @@ export default function Admin() {
                           </td>
                           <td>
                             <div style={{ display: "flex", gap: "0.5rem" }}>
-                              <button className="button ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.7rem" }} onClick={() => { setEditingUniversity(uni); setUniversityForm({ name: uni.name || "", country: uni.country || "", city: uni.city || "", selectivity_band: uni.selectivity_band || "", major_tags: uni.major_tags || "" }); }}>
+                              <button className="button ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.7rem" }} onClick={() => { setEditingUniversity(uni); setUniversityForm({ name: uni.name || "", country: uni.country || "", city: uni.city || "", selectivity_band: uni.selectivity_band || "", major_tags: uni.major_tags || "", qs_rank: uni.qs_rank ?? "", hidden: uni.hidden ?? 0 }); }}>
                                 Edit
                               </button>
                               <button className="button ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.7rem", color: "var(--error)", borderColor: "var(--error)" }} onClick={() => deleteUniversity(uni.id)}>
