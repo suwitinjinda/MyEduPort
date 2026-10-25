@@ -1,0 +1,20 @@
+# MyEduPort scheduled jobs — install with:
+#
+#   crontab /home/dev/MyEduPort/deploy/crontab.myeduport
+#   crontab -l                                   # confirm
+#
+# The previous crontab is saved at deploy/crontab.previous if you need to go back:
+#   crontab /home/dev/MyEduPort/deploy/crontab.previous
+#
+# Cron runs with a bare PATH and no nvm, which is why each line sources nvm first.
+
+# Nightly backup at 03:00 — database (schema + data) and uploaded files, written to
+# /home/dev/MyEduPort/backups on this server.
+#
+# --verify restores every dump into a throwaway database and compares row counts before
+# keeping it, so a backup that cannot be restored is caught the night it is taken rather
+# than the day it is needed. On this database that check costs about two seconds.
+#
+# Replaces the older scripts/db-backup.mjs, which saved table DATA as JSON but no schema,
+# skipped backend/uploads entirely, and had no restore path.
+0 3 * * * cd /home/dev/MyEduPort/backend && /usr/bin/env bash -lc 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; node scripts/backup.js --verify >> ../backups/backup.log 2>&1'

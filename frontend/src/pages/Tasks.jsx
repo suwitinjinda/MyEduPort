@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { apiFetch } from "../api/client";
 import { EmptyState } from "../components/Skeleton.jsx";
 import Skeleton from "../components/Skeleton.jsx";
+import { fmtDate } from "../utils/date.js";
 
 const CATEGORIES = [
   { value: "general", label: "General" },
@@ -211,7 +212,7 @@ export default function Tasks() {
                     <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.35rem", flexWrap: "wrap", alignItems: "baseline" }}>
                       {t.due_date && (
                         <span style={{ fontSize: "0.75rem", color: daysUntil(t.due_date) < 0 && t.status !== "done" ? "var(--error)" : "var(--ink-muted)", fontWeight: 600 }}>
-                          Due {new Date(t.due_date).toLocaleDateString()}
+                          Due {fmtDate(t.due_date)}
                           {t.status !== "done" && ` · ${daysUntil(t.due_date) >= 0 ? `${daysUntil(t.due_date)}d left` : `${Math.abs(daysUntil(t.due_date))}d overdue`}`}
                         </span>
                       )}

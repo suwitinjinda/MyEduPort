@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { apiFetch } from "../api/client";
+import { fmtDate } from "../utils/date.js";
+import Markdown from "../components/Markdown.jsx";
 
 const QUICK_PROMPTS = [
   "What's the SAT score I need for Ivy League?",
@@ -26,6 +28,16 @@ export default function Chatbot() {
   const [activeSession, setActiveSession] = useState(null);
   const messagesEndRef = useRef(null);
   const [sending, setSending] = useState(false);
+
+  // Reopen the most recent conversation (saved in the database)
+  useEffect(() => {
+    apiFetch("/api/ai/chat/latest").then((d) => {
+      if (d?.sessionId && d.messages?.length) {
+        setSessionId(d.sessionId);
+        setMessages((prev) => [prev[0], ...d.messages.map((m) => ({ role: m.role === "user" ? "user" : "assistant", text: m.text }))]);
+      }
+    }).catch(() => {});
+  }, []);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
@@ -88,7 +100,7 @@ export default function Chatbot() {
               >
                 <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--ink)" }}>Session {idx + 1}</div>
                 <p className="text-muted" style={{ fontSize: "0.75rem", marginTop: "0.25rem" }}>
-                  {new Date(session.date).toLocaleDateString()}
+                  {fmtDate(session.date)}
                 </p>
               </div>
             ))
@@ -107,7 +119,8 @@ export default function Chatbot() {
           <div className="chat-messages">
             {messages.map((msg, idx) => (
               <div key={idx} className={`chat-bubble ${msg.role === "user" ? "user" : "bot"}`}>
-                {msg.text}
+                {/* EduBot replies in Markdown; the student's own message is plain text */}
+                {msg.role === "user" ? msg.text : <Markdown text={msg.text} />}
               </div>
             ))}
             {sending && (

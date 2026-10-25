@@ -1,73 +1,124 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { apiFetch, getToken } from "../api/client";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 
-const plans = {
-  free: {
-    name: "Free",
-    tagline: "Get started with the basics",
-    monthly: "$0",
-    annual: "$0",
-    features: [
-      "Create basic student profile",
-      "Manual portfolio builder (no AI assistance)",
-      "University database (search only)",
-      "Timeline template (not personalized)",
-      "Document storage: 100MB",
-      "3 EduBot questions (one-time)"
-    ],
-    limitations: [
-      "No AI acceptance predictions",
-      "No personalized recommendations",
-      "No gap analysis",
-      "No parent dashboard",
-      "No export"
-    ],
-    cta: "Start free",
-    popular: false
-  },
-  essential: {
-    name: "Essential",
-    tagline: "For students getting started",
-    monthly: "$29",
-    annual: "$290",
-    savings: "Save $58 / yr",
-    features: [
-      "Everything in Free, plus:",
-      "Complete AI portfolio builder",
-      "AI acceptance predictions (10 universities)",
-      "Reach / Target / Safety matching",
-      "Basic gap analysis",
-      "Personalized timeline with reminders",
-      "Document storage: 3GB",
-      "30 EduBot queries / month",
-      "PDF portfolio export"
-    ],
-    cta: "Start Essential",
-    popular: true
-  },
-  professional: {
-    name: "Professional",
-    tagline: "For ambitious students targeting top universities",
-    monthly: "$49",
-    annual: "$490",
-    savings: "Save $98 / yr",
-    features: [
-      "Everything in Essential, plus:",
-      "Unlimited AI acceptance predictions",
-      "Comprehensive gap analysis with roadmap",
-      "150 EduBot queries / month",
-      "All country guides (US, UK, China, EU)",
-      "Field-specific guidance",
-      "Essay analyzer (5 essays / month)",
-      "Parent dashboard",
-      "Document storage: 10GB"
-    ],
-    cta: "Start Professional",
-    popular: false
-  }
+// Plans, prices and limits come from Admin → Plan Settings (GET /api/options/plans), so the
+// cards and the comparison table always match what the app actually allows.
+// DEFAULT_PLANS is only a fallback if that request fails.
+const DEFAULT_PLANS = [
+  { key: "free", name: "Free", monthly: 0, annual: 0, limits: { adviai: false, export: false, prediction: "none", match: 3, parent_dashboard: false, advisor: 0, gap: false, edubot: 3, essay_feedback: 1 } },
+  { key: "essential", name: "Essential", monthly: 29, annual: 290, limits: { adviai: true, export: true, prediction: "basic", match: 10, parent_dashboard: false, advisor: 0, gap: true, edubot: 30, essay_feedback: 5 } },
+  { key: "professional", name: "Professional", monthly: 49, annual: 490, limits: { adviai: true, export: true, prediction: "advanced", match: -1, parent_dashboard: true, advisor: 1, gap: true, edubot: 150, essay_feedback: -1 } }
+];
+const TAGLINES = {
+  free: "Get started with the basics",
+  essential: "For students getting started",
+  professional: "For ambitious students targeting top universities",
+  elite: "Hands-on guidance for the most competitive applications"
 };
+const BUILDER = { free: "Basic", essential: "AI-assisted", professional: "Full AI", elite: "Full AI" };
+
+const YES = "yes";
+const NO = "no";
+const per = (n, free) => (free ? (n === 1 ? "1 time" : `${n} total`) : `${n} / month`);
+const qty = (n, free, unit = "") => (n === -1 ? "Unlimited" : !n ? NO : `${per(n, free)}${unit}`);
+
+// Comparison rows from limits
+const COMPARE = [
+  ["Portfolio Builder", (l, k) => BUILDER[k] || (l.adviai ? "AI-assisted" : "Basic")],
+  ["MEPAi Essay Score", (l, k) => qty(l.essay_feedback, k === "free")],
+  ["MEPAi University Match", (l) => (l.match === -1 ? "Unlimited" : l.match ? String(l.match) : NO)],
+  ["Acceptance Prediction", (l) => ({ none: NO, basic: "Basic", advanced: "Advanced" }[l.prediction] || NO)],
+  ["Parent Dashboard", (l) => (l.parent_dashboard ? YES : NO)],
+  ["Export PDF Portfolio", (l) => (l.export ? YES : NO)],
+  ["Human Advisor Session", (l) => (l.advisor === -1 ? "Unlimited" : l.advisor ? `${l.advisor} / month` : NO)]
+];
+
+// Card bullet lines (included) and "not included" lines for one plan
+function cardLines(l, k) {
+  const free = k === "free";
+  const inc = [];
+  const not = [];
+  inc.push(`${BUILDER[k] || (l.adviai ? "AI-assisted" : "Basic")} portfolio builder`);
+  if (l.essay_feedback) inc.push(l.essay_feedback === -1 ? "Unlimited MEPAi essay scores" : `MEPAi essay score (${per(l.essay_feedback, free)})`);
+  if (l.match) inc.push(l.match === -1 ? "Unlimited MEPAi university matches" : `MEPAi university match: ${l.match} universities`);
+  if (l.prediction === "basic") inc.push("Basic acceptance prediction");
+  else if (l.prediction === "advanced") inc.push("Advanced acceptance prediction (per university)");
+  else not.push("No acceptance prediction");
+  if (l.export) inc.push("Export PDF portfolio"); else not.push("No PDF portfolio export");
+  if (l.gap) inc.push("Gap analysis & next steps");
+  if (l.parent_dashboard) inc.push("Parent dashboard"); else not.push("No parent dashboard");
+  if (l.advisor) inc.push(l.advisor === -1 ? "Unlimited human advisor sessions" : `Human advisor session${l.advisor === 1 ? "" : "s"} (${l.advisor} / month)`); else not.push("No human advisor session");
+  if (l.edubot) inc.push(l.edubot === -1 ? "Unlimited EduBot queries" : free ? `${l.edubot} EduBot questions (one-time)` : `${l.edubot} EduBot queries / month`);
+  return { inc, not };
+}
+
+function buildCards(list) {
+  return list.map((p, i) => {
+    const { inc, not } = cardLines(p.limits, p.key);
+    const prev = i > 0 ? cardLines(list[i - 1].limits, list[i - 1].key).inc : [];
+    const fresh = inc.filter((x) => !prev.includes(x));
+    const savings = p.monthly * 12 - p.annual;
+    return {
+      key: p.key,
+      name: p.name,
+      tagline: TAGLINES[p.key] || "",
+      monthly: `$${p.monthly}`,
+      annual: `$${p.annual}`,
+      savings: p.key !== "free" && savings > 0 ? `Save $${savings} / yr` : "",
+      features: i > 0 ? [`Everything in ${list[i - 1].name}, plus:`, ...fresh] : inc,
+      limitations: not,
+      cta: p.key === "free" ? "Start 14-day free trial" : `Subscribe to ${p.name}`,
+      popular: p.key === "professional"
+    };
+  });
+}
+
+function Cell({ value }) {
+  if (value === YES) return <span aria-label="Included" style={{ color: "var(--success)", fontWeight: 700, fontSize: "1.1rem" }}>✓</span>;
+  if (value === NO) return <span aria-label="Not included" style={{ color: "var(--error)", fontWeight: 700, fontSize: "1.1rem" }}>✕</span>;
+  return <span>{value}</span>;
+}
 
 export default function Pricing() {
   const [cycle, setCycle] = useState("monthly");
+  const [planList, setPlanList] = useState(DEFAULT_PLANS);
+  useEffect(() => { apiFetch("/api/options/plans").then((d) => { if (Array.isArray(d) && d.length) setPlanList(d); }).catch(() => {}); }, []);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const loggedIn = !!getToken();
+  const [billing, setBilling] = useState(null); // { configured, test_mode, plan, … }
+  const [busyPlan, setBusyPlan] = useState("");
+  const [payMsg, setPayMsg] = useState(new URLSearchParams(location.search).get("checkout") === "cancelled" ? "Checkout cancelled — you haven't been charged." : "");
+  useEffect(() => { if (loggedIn) apiFetch("/api/billing/status").then(setBilling).catch(() => {}); }, [loggedIn]);
+  // after signing in, show the plan they were about to buy
+  useEffect(() => {
+    if (!loggedIn) return;
+    let intended = null;
+    try { intended = JSON.parse(sessionStorage.getItem("mep-intended-plan") || "null"); } catch { /* ignore */ }
+    if (!intended) return;
+    sessionStorage.removeItem("mep-intended-plan");
+    if (intended.cycle === "annual" || intended.cycle === "monthly") setCycle(intended.cycle);
+    setPayMsg(`You're signed in — continue with ${intended.key[0].toUpperCase() + intended.key.slice(1)} below.`);
+  }, [loggedIn]);
+
+  // Free → sign up / dashboard. Paid → Stripe Checkout (or the Billing Portal if already subscribed)
+  const choose = async (key) => {
+    if (!loggedIn) {
+      // come back to Pricing (and this plan) once they've signed in
+      try { sessionStorage.setItem("mep-intended-plan", JSON.stringify({ key, cycle })); } catch { /* ignore */ }
+      navigate("/login", { state: { from: "/pricing" } });
+      return;
+    }
+    if (key === "free") { navigate("/dashboard"); return; }
+    setBusyPlan(key); setPayMsg("");
+    try {
+      const r = await apiFetch("/api/billing/checkout", { method: "POST", body: JSON.stringify({ plan: key, cycle }) });
+      window.location.assign(r.url);
+    } catch (err) { setPayMsg(err.message); setBusyPlan(""); }
+  };
+  const plans = buildCards(planList);
+  const comparison = COMPARE.map(([feature, fn]) => ({ feature, cells: planList.map((p) => fn(p.limits, p.key)) }));
 
   const getPrice = (p) => p.name === "Free" ? p.monthly : (cycle === "monthly" ? p.monthly : p.annual);
   const period = cycle === "monthly" ? "/month" : "/year";
@@ -83,6 +134,15 @@ export default function Pricing() {
           Free to start. Premium tiers unlock the AI coaching, gap
           analysis, and unlimited recommendations.
         </p>
+        <div style={{ display: "inline-block", marginTop: "1rem", padding: "0.5rem 1rem", background: "var(--success-soft)", borderRadius: "var(--r-full)", fontSize: "0.9rem", fontWeight: 600, color: "var(--ink)" }}>
+          🎉 Every new account starts with a 14-day free trial of Professional
+        </div>
+        {billing?.test_mode && (
+          <div style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "var(--warn)", fontWeight: 600 }}>
+            Stripe TEST MODE — use card 4242 4242 4242 4242, any future date, any CVC. No real charges.
+          </div>
+        )}
+        {payMsg && <div style={{ marginTop: "0.75rem", fontSize: "0.88rem", color: "var(--ink)", background: "var(--warn-soft)", padding: "0.5rem 0.9rem", borderRadius: "var(--r-md)", display: "inline-block" }}>{payMsg}</div>}
 
         <div style={{ display: "inline-flex", marginTop: "2rem", border: "1px solid var(--rule)", background: "var(--surface)", padding: "4px" }}>
           {[
@@ -113,8 +173,8 @@ export default function Pricing() {
       </header>
 
       {/* Main plans */}
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.5rem", marginBottom: "4rem" }}>
-        {Object.values(plans).map((plan) => (
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "1.25rem", marginBottom: "4rem" }}>
+        {plans.map((plan) => (
           <article
             key={plan.name}
             className="card"
@@ -164,8 +224,10 @@ export default function Pricing() {
             <button
               className={plan.popular ? "button" : "button ghost"}
               style={{ width: "100%", marginBottom: "1.5rem" }}
+              disabled={!!busyPlan || (billing?.plan === plan.key && plan.key !== "free")}
+              onClick={() => choose(plan.key)}
             >
-              {plan.cta}
+              {busyPlan === plan.key ? "Opening secure checkout…" : billing?.plan === plan.key && plan.key !== "free" ? "Your current plan ✓" : plan.cta}
             </button>
 
             <div style={{ borderTop: "1px solid var(--rule-soft)", paddingTop: "1.25rem" }}>
@@ -206,17 +268,46 @@ export default function Pricing() {
         ))}
       </section>
 
+      {/* Feature comparison */}
+      <section className="card" style={{ padding: "2rem", marginBottom: "2rem" }}>
+        <h2 className="section-title" style={{ fontSize: "1.5rem", marginBottom: "1.25rem", textAlign: "center" }}>Compare plans</h2>
+        {/* tabIndex + role: the table scrolls sideways on a phone, so keyboard users need to reach it */}
+        <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Plan comparison table">
+          <table style={{ width: "100%", minWidth: "560px" }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left" }}>Feature</th>
+                {planList.map((p) => <th key={p.key}>{p.name}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.map((row) => (
+                <tr key={row.feature}>
+                  <td style={{ fontWeight: 600, color: "var(--ink)" }}>{row.feature}</td>
+                  {row.cells.map((v, i) => (
+                    <td key={planList[i].key} style={{ textAlign: "center" }}><Cell value={v} /></td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {/* Payment */}
       <section className="card" style={{ padding: "2.5rem", background: "var(--surface-warm)" }}>
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <h2 className="section-title" style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>Flexible payment options</h2>
-          <p className="muted">No hidden fees. 30-day money-back guarantee. Cancel anytime.</p>
+          <h2 className="section-title" style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>Billing &amp; payment</h2>
+          <p className="muted">All prices are in US dollars. Cancel any time — no lock-in, no hidden fees.</p>
         </div>
         <div className="grid three">
-          <PaymentBlock title="Plans" items={["Monthly subscription", "Annual (save ~17%)", "Upgrade anytime", "Downgrade anytime"]} />
-          <PaymentBlock title="Methods" items={["Credit / Debit", "PayPal", "Apple Pay / Google Pay", "Alipay, WeChat Pay"]} />
-          <PaymentBlock title="Guarantee" items={["30-day money-back", "No hidden fees", "Cancel anytime", "Prorated refunds"]} />
+          <PaymentBlock title="Billing" items={["Monthly or annual", "Annual saves ~17%", "Upgrade or downgrade any time", "Changes are prorated automatically"]} />
+          <PaymentBlock title="Payment methods" items={["Visa, Mastercard, American Express", "Apple Pay & Google Pay on supported devices", "Charged in USD", "Secure checkout by Stripe"]} />
+          <PaymentBlock title="Your control" items={["Cancel any time from Settings", "Keep access until the period ends", "Invoices &amp; receipts in your billing portal", "Card details never touch our servers"]} />
         </div>
+        <p className="text-muted" style={{ textAlign: "center", fontSize: "0.78rem", marginTop: "1.5rem", marginBottom: 0 }}>
+          Payments are processed by Stripe. Your card details are entered on Stripe's secure page and are never stored by MyEduPort.
+        </p>
       </section>
 
       <section className="card dark" style={{ textAlign: "center", padding: "2.5rem", marginTop: "2rem" }}>
@@ -226,7 +317,7 @@ export default function Pricing() {
         <p style={{ color: "var(--paper-deep)", fontFamily: "var(--font-serif)", fontStyle: "italic", marginBottom: "1.5rem" }}>
           We're happy to help you find the right plan.
         </p>
-        <button className="button gold">Contact support</button>
+        <Link to="/contact" className="button gold">Contact support</Link>
       </section>
     </div>
   );

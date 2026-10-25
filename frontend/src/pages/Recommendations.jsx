@@ -9,6 +9,7 @@ const FLAG = { US: "🇺🇸", UK: "🇬🇧", China: "🇨🇳", Canada: "🇨�
 export default function Recommendations() {
   const [form, setForm] = useState({ country: "All", major: "", gpa: "3.7" });
   const [results, setResults] = useState([]);
+  const [cap, setCap] = useState({ limit: -1, locked: 0 }); // MEPAi University Match plan cap
   const [status, setStatus] = useState("");
   const [sortBy, setSortBy] = useState("country");
   const [loading, setLoading] = useState(false);
@@ -22,6 +23,7 @@ export default function Recommendations() {
     try {
       const data = await apiFetch("/api/ai/recommendations", { method: "POST", body: JSON.stringify({ ...form, sortBy }) });
       setResults(data.results || []);
+      setCap({ limit: data.limit ?? -1, locked: data.locked || 0 });
       setStatus("");
     } catch (err) {
       setStatus(err.message);
@@ -97,7 +99,7 @@ export default function Recommendations() {
             </select>
           </div>
           <button className="button" onClick={loadRecommendations} disabled={loading}>
-            {loading ? "Loading…" : "Refresh"}
+            {loading ? "Thinking…" : "Rethink"}
           </button>
         </div>
 
@@ -118,6 +120,22 @@ export default function Recommendations() {
             <Column title="Reach" data={reach} cls="reach" />
             <Column title="Target" data={target} cls="target" />
             <Column title="Safety" data={safety} cls="safety" />
+          </div>
+        )}
+
+        {cap.locked > 0 && !loading && (
+          <div
+            style={{
+              marginTop: "1.5rem", padding: "1rem 1.25rem", background: "var(--surface-warm)",
+              border: "1px dashed var(--gold)", borderRadius: "var(--r-md)",
+              display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem"
+            }}
+          >
+            <div style={{ fontSize: "0.9rem", color: "var(--ink-soft)" }}>
+              🔒 <strong>{cap.locked} more {cap.locked === 1 ? "match" : "matches"}</strong> found. Your plan shows {cap.limit} {cap.limit === 1 ? "university" : "universities"}
+              {cap.limit < 10 ? " — Essential shows 10, Professional is unlimited." : " — Professional is unlimited."}
+            </div>
+            <Link to="/pricing" className="button gold" style={{ padding: "0.5rem 1.1rem", fontSize: "0.85rem" }}>Upgrade →</Link>
           </div>
         )}
 

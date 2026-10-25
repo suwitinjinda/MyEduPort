@@ -105,6 +105,12 @@ export default function UserProfileDropdown({ userRole, isAdmin: propIsAdmin }) 
               </button>
             )}
             {userRole === "student" && (
+              <button className="user-dropdown-menu-item" onClick={() => handleMenuClick("/admission-results")}>
+                <span style={{ color: "var(--gold-deep)" }}>★</span>
+                <span>Admission Results</span>
+              </button>
+            )}
+            {userRole === "student" && (
               <button className="user-dropdown-menu-item" onClick={() => handleMenuClick("/export")}>
                 <span style={{ color: "var(--gold-deep)" }}>↓</span>
                 <span>Export PDF</span>

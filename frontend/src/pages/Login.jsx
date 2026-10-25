@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { apiFetch, setToken, getUserRole } from "../api/client";
 import GoogleSignIn from "../components/GoogleSignIn";
 
@@ -7,6 +7,9 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // where to go after signing in: wherever they were sent from (e.g. Pricing), else their home
+  const backTo = location.state?.from && location.state.from !== "/login" ? location.state.from : null;
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
     name: "",
@@ -41,7 +44,7 @@ export default function Login() {
       setToken(result.token);
       window.dispatchEvent(new Event("auth-change"));
       const role = getUserRole();
-      const redirectPath = role === "parent" ? "/parent" : role === "counselor" ? "/counselor" : "/dashboard";
+      const redirectPath = backTo || (role === "parent" ? "/parent" : role === "counselor" ? "/counselor" : "/dashboard");
       setStatus("Signed in. Redirecting…");
       setTimeout(() => navigate(redirectPath), 400);
     } catch (err) {
@@ -64,7 +67,7 @@ export default function Login() {
       setToken(result.token);
       window.dispatchEvent(new Event("auth-change"));
       const role = getUserRole();
-      const redirectPath = role === "parent" ? "/parent" : role === "counselor" ? "/counselor" : "/dashboard";
+      const redirectPath = backTo || (role === "parent" ? "/parent" : role === "counselor" ? "/counselor" : "/dashboard");
       setStatus("Signed in. Redirecting…");
       setTimeout(() => navigate(redirectPath), 400);
     } catch (err) {
@@ -136,6 +139,11 @@ export default function Login() {
         <h1 className="section-title" style={{ fontSize: "1.75rem", marginBottom: "1.5rem" }}>
           {isRegister ? "Create your account" : "Sign in to MyEduPort"}
         </h1>
+        {isRegister && (
+          <div style={{ margin: "-0.75rem 0 1.5rem", padding: "0.7rem 0.9rem", background: "var(--success-soft)", borderLeft: "3px solid var(--success)", borderRadius: "var(--r-md)", fontSize: "0.88rem", color: "var(--ink)" }}>
+            🎉 <strong>14-day free trial</strong> — every new account gets Professional features free for 14 days. No credit card needed.
+          </div>
+        )}
 
         <form onSubmit={onSubmit}>
           {isRegister && (

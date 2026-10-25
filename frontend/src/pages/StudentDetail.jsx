@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
 import Skeleton from "../components/Skeleton.jsx";
+import { fmtDate, fmtDayMonth } from "../utils/date.js";
 
 const FLAG = { US: "🇺🇸", UK: "🇬🇧", China: "🇨🇳" };
 
@@ -11,23 +12,35 @@ export default function StudentDetail() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     apiFetch(`/api/parents/me/students/${studentId}`)
       .then(setData)
-      .catch((err) => {
-        console.error(err);
-        alert("Failed to load student data");
-        navigate("/parent");
-      })
+      .catch((err) => setLoadError(err.message || "Failed to load student data"))
       .finally(() => setLoading(false));
-  }, [studentId, navigate]);
+  }, [studentId]);
 
   if (loading) {
     return (
       <div style={{ display: "grid", gap: "2rem" }}>
         <Skeleton lines={3} />
         <Skeleton lines={5} />
+      </div>
+    );
+  }
+  if (loadError) {
+    // e.g. the Parent Dashboard is a Professional-plan feature
+    return (
+      <div className="card" style={{ textAlign: "center", padding: "2.5rem 2rem", maxWidth: "560px", margin: "2rem auto" }}>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", color: "var(--ink)", marginBottom: "0.5rem" }}>🔒 {loadError}</div>
+        <p className="muted" style={{ fontSize: "0.9rem", marginBottom: "1.25rem" }}>
+          Ask your student to upgrade to Professional, or upgrade your own account, to see their full portfolio here.
+        </p>
+        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
+          <button className="button ghost" onClick={() => navigate("/parent")}>← Back</button>
+          <button className="button gold" onClick={() => navigate("/pricing")}>View plans</button>
+        </div>
       </div>
     );
   }
@@ -278,7 +291,7 @@ export default function StudentDetail() {
               <div>
                 <div className="subtitle" style={{ fontSize: "1rem" }}>{t.test_type}</div>
                 <p className="text-muted" style={{ marginTop: "0.25rem" }}>
-                  {t.test_date ? new Date(t.test_date).toLocaleDateString() : "—"}
+                  {t.test_date ? fmtDate(t.test_date) : "—"}
                   {t.superscore ? ` · super ${t.superscore}` : ""}
                 </p>
               </div>
@@ -327,7 +340,7 @@ export default function StudentDetail() {
             <div key={a.id} className="card compact">
               <div className="subtitle">{a.title}</div>
               {a.description && <p className="muted" style={{ fontSize: "0.9rem", marginTop: "0.4rem" }}>{a.description}</p>}
-              {a.award_date && <p className="text-muted" style={{ marginTop: "0.4rem" }}>{new Date(a.award_date).toLocaleDateString()}</p>}
+              {a.award_date && <p className="text-muted" style={{ marginTop: "0.4rem" }}>{fmtDate(a.award_date)}</p>}
             </div>
           ))}
         </div>
@@ -343,7 +356,7 @@ export default function StudentDetail() {
                 <div className="subtitle" style={{ fontSize: "1rem" }}>{e.title || "Untitled Essay"}</div>
                 <p className="text-muted" style={{ marginTop: "0.25rem" }}>
                   {e.word_count || 0} words
-                  {e.last_edited_at && ` · Last edited ${new Date(e.last_edited_at).toLocaleDateString()}`}
+                  {e.last_edited_at && ` · Last edited ${fmtDate(e.last_edited_at)}`}
                 </p>
               </div>
               <div style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 700, color: e.word_count > 650 ? "var(--error)" : e.word_count >= 500 ? "var(--success)" : "var(--ink-muted)" }}>
@@ -383,7 +396,7 @@ export default function StudentDetail() {
                             {s.application_round || "—"}
                           </div>
                           <div className="mono" style={{ fontSize: "0.85rem", color: "var(--ink)", fontWeight: 600 }}>
-                            {s.deadline ? new Date(s.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+                            {s.deadline ? fmtDayMonth(s.deadline) : "—"}
                           </div>
                         </div>
                       ))}
@@ -440,7 +453,7 @@ export default function StudentDetail() {
                     <span className="badge">{t.category || "general"}</span>
                     {t.due_date && (
                       <span style={{ fontSize: "0.75rem", color: isOverdue ? "var(--error)" : "var(--ink-muted)", fontWeight: 600 }}>
-                        Due {new Date(t.due_date).toLocaleDateString()}
+                        Due {fmtDate(t.due_date)}
                         {isOverdue && " — overdue"}
                       </span>
                     )}
@@ -464,7 +477,7 @@ export default function StudentDetail() {
               <div>
                 <strong style={{ color: "var(--ink)" }}>{d.original_name || d.filename || "Document"}</strong>
                 <p className="text-muted" style={{ marginTop: "0.25rem" }}>
-                  {d.category} · {d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString() : "—"}
+                  {d.category} · {d.uploaded_at ? fmtDate(d.uploaded_at) : "—"}
                 </p>
               </div>
             </div>

@@ -1,6 +1,131 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { apiFetch, clearToken, getUserRole } from "../api/client";
+import { apiFetch, clearToken, getUserRole, getToken, API_URL } from "../api/client";
+import { fmtDate, fmtDateTime } from "../utils/date.js";
+
+// Putting a backup ZIP back into the account. Deliberately two steps: the preview reads
+// the file and shows what it holds next to what the student has now, so the swap is
+// visible before anything is replaced. Nothing is written until they confirm.
+function RestoreSection() {
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [busy, setBusy] = useState("");
+  const [msg, setMsg] = useState({ text: "", error: false });
+  const [open, setOpen] = useState(false);
+
+  const send = async (step, extra) => {
+    const form = new FormData();
+    form.append("backup", file);
+    if (extra) Object.entries(extra).forEach(([k, v]) => form.append(k, v));
+    const res = await fetch(`${API_URL}/api/students/me/restore/${step}`, {
+      method: "POST", headers: { Authorization: `Bearer ${getToken()}` }, body: form
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || `Restore failed (${res.status})`);
+    return body;
+  };
+
+  const check = async () => {
+    setBusy("preview"); setMsg({ text: "", error: false }); setPreview(null);
+    try { setPreview(await send("preview")); }
+    catch (e) { setMsg({ text: e.message, error: true }); }
+    finally { setBusy(""); }
+  };
+
+  const apply = async () => {
+    setBusy("apply"); setMsg({ text: "", error: false });
+    try {
+      const r = await send("apply", { confirm: "REPLACE" });
+      const n = Object.entries(r.restored || {}).filter(([, v]) => typeof v === "number" && v > 0)
+        .map(([k, v]) => `${v} ${k.replace(/_/g, " ")}`).join(", ");
+      setMsg({ text: `Restored${n ? ": " + n : ""}. Reload the page to see it.`, error: false });
+      setPreview(null); setFile(null);
+    } catch (e) {
+      setMsg({ text: e.message, error: true });
+    } finally { setBusy(""); }
+  };
+
+  const row = (label, now, after) => (
+    <tr key={label} style={{ borderTop: "1px solid var(--rule-soft)" }}>
+      <td style={{ padding: "0.35rem 0.75rem 0.35rem 0", fontSize: "0.85rem" }}>{label}</td>
+      <td style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem", color: "var(--ink-muted)" }}>{now ?? "—"}</td>
+      <td style={{ padding: "0.35rem 0", fontSize: "0.85rem", fontWeight: 600 }}>{after ?? "—"}</td>
+    </tr>
+  );
+
+  if (!open) {
+    return (
+      <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid var(--rule-soft)" }}>
+        <button className="button ghost" onClick={() => setOpen(true)}>↥ Restore from a backup</button>
+        <span className="text-muted" style={{ fontSize: "0.78rem", marginLeft: "0.6rem" }}>
+          Put a backup ZIP back into your account.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid var(--rule-soft)" }}>
+      <strong style={{ fontSize: "0.95rem" }}>Restore from a backup</strong>
+      <p className="text-muted" style={{ fontSize: "0.82rem", margin: "0.3rem 0 0.75rem" }}>
+        Restoring <strong>replaces</strong> what is in your account now — it does not merge.
+        Take a backup of your current work first if you might want it back.
+      </p>
+
+      <input type="file" accept=".zip,application/zip" aria-label="Your backup ZIP"
+        onChange={(e) => { setFile(e.target.files?.[0] || null); setPreview(null); setMsg({ text: "", error: false }); }} />
+
+      <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+        <button className="button ghost" disabled={!file || !!busy} onClick={check}>
+          {busy === "preview" ? "Reading…" : "Check this file"}
+        </button>
+        <button className="button ghost" onClick={() => { setOpen(false); setFile(null); setPreview(null); setMsg({ text: "", error: false }); }}>
+          Cancel
+        </button>
+      </div>
+
+      {preview && (
+        <div className="card compact" style={{ marginTop: "1rem", background: "var(--surface)" }}>
+          <p style={{ fontSize: "0.85rem", margin: "0 0 0.5rem" }}>
+            Backup taken <strong>{fmtDateTime(preview.taken_at)}</strong>
+            {preview.files_in_zip > 0 && ` · ${preview.files_in_zip} uploaded file(s)`}
+          </p>
+          {preview.different_account && (
+            <p style={{ fontSize: "0.82rem", color: "var(--error-deep)", margin: "0 0 0.5rem" }}>
+              This backup belongs to <strong>{preview.from_account}</strong>, not this account. Restoring it
+              will put that person&apos;s work into your portfolio.
+            </p>
+          )}
+          <table style={{ borderCollapse: "collapse", width: "100%" }}>
+            <thead>
+              <tr style={{ fontSize: "0.68rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)" }}>
+                <th style={{ textAlign: "left", padding: "0 0.75rem 0.35rem 0" }}>Section</th>
+                <th style={{ textAlign: "left", padding: "0 0.75rem 0.35rem" }}>You have now</th>
+                <th style={{ textAlign: "left", padding: "0 0 0.35rem" }}>After restoring</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.keys(preview.will_restore)
+                .filter((k) => k !== "personal_statement")
+                .map((k) => row(k.replace(/_/g, " "), preview.you_have_now?.[k], preview.will_restore[k]))}
+              {preview.will_restore.personal_statement && row("personal statement", "replaced", "from backup")}
+            </tbody>
+          </table>
+          <button className="button" style={{ marginTop: "0.85rem", background: "var(--error-deep)" }}
+            disabled={!!busy} onClick={apply}>
+            {busy === "apply" ? "Restoring…" : "Replace my work with this backup"}
+          </button>
+        </div>
+      )}
+
+      {msg.text && (
+        <p style={{ fontSize: "0.84rem", marginTop: "0.75rem", color: msg.error ? "var(--error-deep)" : "var(--success-deep)" }}>
+          {msg.text}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function ShareSection() {
   const [token, setToken] = useState(null);
@@ -81,7 +206,7 @@ function ShareSection() {
           </div>
           {expires && (
             <p className="text-muted" style={{ marginTop: "0.65rem" }}>
-              Expires {new Date(expires).toLocaleDateString()}
+              Expires {fmtDate(expires)}
             </p>
           )}
         </div>
@@ -95,6 +220,14 @@ export default function Settings() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [status, setStatus] = useState("");
+  const [billing, setBilling] = useState(null);
+  const [portalBusy, setPortalBusy] = useState(false);
+  useEffect(() => { apiFetch("/api/billing/status").then(setBilling).catch(() => {}); }, []);
+  const openPortal = async () => {
+    setPortalBusy(true);
+    try { const r = await apiFetch("/api/billing/portal", { method: "POST" }); window.location.assign(r.url); }
+    catch (err) { setStatus(err.message); setPortalBusy(false); }
+  };
   const [authProvider, setAuthProvider] = useState("password");
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
@@ -106,20 +239,36 @@ export default function Settings() {
 
   const isGoogleOnly = authProvider === "google";
 
+  // Downloads a ZIP: every field as JSON, each essay and draft as plain text, and the
+  // documents the student actually uploaded. Streamed from the server, so this goes
+  // through fetch directly rather than apiFetch (which parses JSON).
+  const [backingUp, setBackingUp] = useState(false);
   const downloadMyData = async () => {
+    setBackingUp(true);
+    setStatus("Packing up your work… this can take a moment.");
     try {
-      const data = await apiFetch("/api/students/me/data-export");
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const res = await fetch(`${API_URL}/api/students/me/backup`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        throw new Error(msg.error || `Backup failed (${res.status})`);
+      }
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "myeduport-my-data.json";
+      a.download = `myeduport-backup-${new Date().toISOString().slice(0, 10)}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      setStatus("Your data was downloaded.");
-    } catch (err) { setStatus(err.message || "Could not export data"); }
+      setStatus("Backup downloaded. Keep it somewhere safe — it has your essays and documents in it.");
+    } catch (err) {
+      setStatus(err.message || "Could not create your backup");
+    } finally {
+      setBackingUp(false);
+    }
   };
 
   const handlePasswordReset = async (e) => {
@@ -169,18 +318,50 @@ export default function Settings() {
         </p>
       </header>
 
+      {/* Subscription (Stripe) */}
+      {billing && (
+        <section className="card" style={{ marginBottom: "1.5rem", padding: "2rem" }}>
+          <h2 className="section-title" style={{ fontSize: "1.35rem" }}>Subscription</h2>
+          <p style={{ fontSize: "0.95rem", margin: "0.25rem 0 1rem" }}>
+            Current plan: <strong style={{ textTransform: "capitalize" }}>{billing.plan}</strong>
+            {billing.cycle && <> · billed {billing.cycle === "annual" ? "yearly" : "monthly"}</>}
+            {billing.renews_at && billing.has_subscription && <> · renews {fmtDate(billing.renews_at)}</>}
+            {billing.status && billing.status !== "active" && <> · <span style={{ color: "var(--warn)" }}>{billing.status.replace("_", " ")}</span></>}
+          </p>
+          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+            {billing.can_manage ? (
+              <button className="button" onClick={openPortal} disabled={portalBusy}>{portalBusy ? "Opening…" : "Manage subscription"}</button>
+            ) : (
+              <Link to="/pricing" className="button">See plans</Link>
+            )}
+          </div>
+          <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.75rem" }}>Change plan, update your card, download invoices or cancel — handled securely by Stripe.</p>
+        </section>
+      )}
+
       {/* Privacy & Data */}
       <section className="card" style={{ marginBottom: "1.5rem", padding: "2rem" }}>
         <h2 className="section-title" style={{ fontSize: "1.35rem" }}>Privacy & Data</h2>
         <p className="muted" style={{ fontSize: "0.92rem" }}>
-          You have control over your personal data. Download a copy of everything
-          we hold on you (including personality-test results), or delete your
-          account and all associated data at any time below.
+          Your work is yours. Take a full backup whenever you like, or delete your account
+          and everything in it below.
         </p>
         {getUserRole() === "student" && (
-          <button className="button ghost" style={{ marginTop: "1rem" }} onClick={downloadMyData}>
-            Download my data (JSON)
-          </button>
+          <>
+            <button className="button" style={{ marginTop: "1rem" }} disabled={backingUp} onClick={downloadMyData}>
+              {backingUp ? "Packing…" : "↓ Back up my work (ZIP)"}
+            </button>
+            <ul className="list" style={{ marginTop: "0.85rem", fontSize: "0.85rem", color: "var(--ink-soft)" }}>
+              <li>Your essays and every earlier draft, as plain text you can open anywhere</li>
+              <li>The documents you uploaded — the actual files, not just their names</li>
+              <li>Grades, tests, activities, awards, tasks, saved universities and admission results</li>
+              <li>Your Personal and Career test results, and the MEPAi advice you've saved</li>
+            </ul>
+            <p className="text-muted" style={{ fontSize: "0.78rem", marginTop: "0.5rem" }}>
+              This is a copy for you to keep. Downloading it changes nothing in your account.
+            </p>
+            <RestoreSection />
+          </>
         )}
       </section>
 

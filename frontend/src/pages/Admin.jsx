@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../api/client";
+import EmailMarketing from "./EmailMarketing.jsx";
+import MachineLearningAdmin from "./MachineLearningAdmin.jsx";
+import BackupAdmin from "./BackupAdmin.jsx";
+import { fmtDateTime } from "../utils/date.js";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -12,7 +16,10 @@ export default function Admin() {
   const [editingUniversity, setEditingUniversity] = useState(undefined);
   const [universityForm, setUniversityForm] = useState({ name: "", country: "", city: "", selectivity_band: "", major_tags: "", qs_rank: "", hidden: 0 });
   const [planLimits, setPlanLimits] = useState(null);
+  const [planDisplay, setPlanDisplay] = useState(null); // { [tier]: { visible, monthly, annual } } — Pricing page
+  const TIERS = ["free", "essential", "professional", "elite"];
   const [savingLimits, setSavingLimits] = useState(false);
+  const [advisorSessions, setAdvisorSessions] = useState([]);
 
   useEffect(() => { loadData(); }, [activeTab]);
 
@@ -29,9 +36,10 @@ export default function Admin() {
       }
       if (activeTab === "students") setStudents(await apiFetch("/api/admin/students").catch(() => []));
       if (activeTab === "universities") setUniversities(await apiFetch("/api/admin/universities").catch(() => []));
+      if (activeTab === "advisor") setAdvisorSessions(await apiFetch("/api/admin/advisor-sessions").catch(() => []));
       if (activeTab === "settings") {
         const d = await apiFetch("/api/admin/settings/plan-limits").catch(() => null);
-        if (d) setPlanLimits(d.limits);
+        if (d) { setPlanLimits(d.limits); setPlanDisplay(d.display || null); }
       }
       setStatus("");
     } catch (err) {
@@ -68,10 +76,21 @@ export default function Admin() {
   const savePlanLimits = async () => {
     setSavingLimits(true);
     try {
-      await apiFetch("/api/admin/settings/plan-limits", { method: "PUT", body: JSON.stringify({ limits: planLimits }) });
+      await apiFetch("/api/admin/settings/plan-limits", { method: "PUT", body: JSON.stringify({ limits: planLimits, display: planDisplay }) });
       setStatus("Plan limits saved");
     } catch (err) { setStatus(err.message); }
     finally { setSavingLimits(false); }
+  };
+  const updateAdvisorSession = async (row, patch) => {
+    const next = { ...row, ...patch };
+    try {
+      await apiFetch(`/api/admin/advisor-sessions/${row.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: next.status, scheduled_at: next.scheduled_at || null, meeting_link: next.meeting_link || "", admin_note: next.admin_note || "" })
+      });
+      setStatus("Advisor session updated");
+      loadData();
+    } catch (err) { setStatus(err.message); }
   };
   const saveUniversity = async () => {
     if (!universityForm.name || !universityForm.country) { setStatus("Name and Country are required"); return; }
@@ -99,7 +118,12 @@ export default function Admin() {
     { id: "users", label: "Users" },
     { id: "students", label: "Students" },
     { id: "universities", label: "Universities" },
-    { id: "settings", label: "Plan Settings" }
+    { id: "ml", label: "Machine Learning" },
+    { id: "email", label: "Email Marketing" },
+    { id: "lists", label: "Dropdown Lists" },
+    { id: "advisor", label: "Advisor Sessions" },
+    { id: "settings", label: "Plan Settings" },
+    { id: "backup", label: "Backups" }
   ];
 
   return (
@@ -176,7 +200,7 @@ export default function Admin() {
           {activeTab === "users" && (
             <div className="card">
               <h2 className="section-title" style={{ fontSize: "1.35rem", marginBottom: "1rem" }}>User management</h2>
-              <div style={{ overflowX: "auto" }}>
+              <div className="table-scroll" style={{ overflowX: "auto" }}>
                 <table>
                   <thead>
                     <tr>
@@ -198,7 +222,13 @@ export default function Admin() {
                             <option value="free">free</option>
                             <option value="essential">essential</option>
                             <option value="professional">professional</option>
+                            <option value="elite">elite</option>
                           </select>
+                          {(u.plan || "free") === "free" && u.trial_ends_at && (
+                            new Date(u.trial_ends_at) > new Date()
+                              ? <div style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: 600, marginTop: "0.2rem" }}>Trial · {Math.ceil((new Date(u.trial_ends_at) - new Date()) / 86400000)}d left</div>
+                              : <div className="muted" style={{ fontSize: "0.7rem", marginTop: "0.2rem" }}>Trial ended</div>
+                          )}
                         </td>
                         <td style={{ color: u.data_consent ? "var(--success)" : "var(--error)", fontWeight: 600 }}>{u.data_consent ? "Yes" : "No"}</td>
                         <td>{u.is_disabled ? <span className="badge" style={{ background: "var(--error-soft)", color: "var(--error)" }}>Disabled</span> : <span className="badge success">Active</span>}</td>
@@ -223,7 +253,7 @@ export default function Admin() {
           {activeTab === "students" && (
             <div className="card">
               <h2 className="section-title" style={{ fontSize: "1.35rem", marginBottom: "1rem" }}>Students overview</h2>
-              <div style={{ overflowX: "auto" }}>
+              <div className="table-scroll" style={{ overflowX: "auto" }}>
                 <table>
                   <thead>
                     <tr>
@@ -332,7 +362,7 @@ export default function Admin() {
                   </div>
                 )}
 
-                <div style={{ overflowX: "auto" }}>
+                <div className="table-scroll" style={{ overflowX: "auto" }}>
                   <table>
                     <thead>
                       <tr><th>Name</th><th>Country</th><th>City</th><th>QS</th><th>Selectivity</th><th></th></tr>
@@ -371,6 +401,30 @@ export default function Admin() {
             </div>
           )}
 
+          {activeTab === "ml" && <MachineLearningAdmin />}
+
+          {activeTab === "backup" && <BackupAdmin />}
+
+          {activeTab === "email" && <EmailMarketing />}
+
+          {activeTab === "lists" && <OptionListsAdmin onGoUniversities={() => setActiveTab("universities")} setStatus={setStatus} />}
+
+          {activeTab === "advisor" && (
+            <div className="card">
+              <h2 className="section-title" style={{ fontSize: "1.35rem", marginBottom: "0.25rem" }}>Human Advisor Session requests</h2>
+              <p className="muted" style={{ fontSize: "0.88rem", marginBottom: "1.25rem" }}>
+                Professional students can request 1 session per month. Set a time and meeting link, then mark it Scheduled — the student sees it on their dashboard. Cancelling gives the student their session back.
+              </p>
+              {advisorSessions.length === 0 ? (
+                <p className="muted">No requests yet.</p>
+              ) : (
+                <div style={{ display: "grid", gap: "0.75rem" }}>
+                  {advisorSessions.map((a) => <AdvisorRow key={a.id} row={a} onSave={updateAdvisorSession} />)}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === "settings" && (
             <div>
               <div className="card" style={{ marginBottom: "1.5rem" }}>
@@ -386,25 +440,72 @@ export default function Admin() {
                 {!planLimits ? (
                   <p className="muted">Loading…</p>
                 ) : (
-                  <div style={{ overflowX: "auto" }}>
+                  <div className="table-scroll" style={{ overflowX: "auto" }}>
                     <table>
                       <thead>
-                        <tr><th>Feature</th><th>Free</th><th>Essential</th><th>Professional</th></tr>
+                        <tr><th>Feature</th>{TIERS.map((t) => <th key={t} style={{ textTransform: "capitalize" }}>{t}</th>)}</tr>
                       </thead>
                       <tbody>
+                        {/* Pricing page: show/hide + prices */}
+                        <tr style={{ background: "var(--surface-warm)" }}>
+                          <td style={{ fontSize: "0.85rem", fontWeight: 700 }}>Show on Pricing page</td>
+                          {TIERS.map((tier) => (
+                            <td key={tier}>
+                              <input
+                                type="checkbox"
+                                disabled={tier === "free" || !planDisplay}
+                                checked={!!planDisplay?.[tier]?.visible}
+                                onChange={(e) => setPlanDisplay((p) => ({ ...p, [tier]: { ...p[tier], visible: e.target.checked } }))}
+                                title={tier === "free" ? "The Free plan is always shown" : "Show or hide this plan on the Pricing page"}
+                                style={{ accentColor: "var(--gold-deep)", width: "18px", height: "18px" }}
+                              />
+                              {planDisplay && !planDisplay[tier]?.visible && <span className="muted" style={{ fontSize: "0.72rem", marginLeft: "0.35rem" }}>hidden</span>}
+                            </td>
+                          ))}
+                        </tr>
+                        {[["monthly", "Price per month (USD)"], ["annual", "Price per year (USD)"]].map(([k, label]) => (
+                          <tr key={k} style={{ background: "var(--surface-warm)" }}>
+                            <td style={{ fontSize: "0.85rem", fontWeight: 700 }}>{label}</td>
+                            {TIERS.map((tier) => (
+                              <td key={tier}>
+                                {tier === "free" ? <span className="muted" style={{ fontSize: "0.8rem" }}>$0</span> : (
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={planDisplay?.[tier]?.[k] ?? ""}
+                                    onChange={(e) => setPlanDisplay((p) => ({ ...p, [tier]: { ...p[tier], [k]: e.target.value } }))}
+                                    style={{ width: "80px", padding: "0.3rem 0.4rem", fontSize: "0.8rem" }}
+                                  />
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
                         {[
-                          { key: "adviai", label: "AdviAI — personalized essay advice", type: "bool" },
-                          { key: "export", label: "PDF export (Portfolio Report)", type: "bool" },
+                          { key: "adviai", label: "MEPAi — AI portfolio builder", type: "bool" },
+                          { key: "essay_feedback", label: "MEPAi Essay Score (free=lifetime, paid=/mo)", type: "num" },
+                          { key: "match", label: "MEPAi University Match (# universities shown)", type: "num" },
+                          { key: "prediction", label: "Acceptance Prediction", type: "select", options: ["none", "basic", "advanced"] },
+                          { key: "parent_dashboard", label: "Parent Dashboard", type: "bool" },
+                          { key: "export", label: "Export PDF Portfolio", type: "bool" },
+                          { key: "advisor", label: "Human Advisor Sessions (/mo)", type: "num" },
                           { key: "gap", label: "Gap analysis", type: "bool" },
-                          { key: "predictions", label: "Acceptance predictions (# unis)", type: "num" },
-                          { key: "edubot", label: "EduBot questions (free=lifetime, paid=/mo)", type: "num" },
-                          { key: "essay_feedback", label: "EssAI Feedback (free=lifetime, paid=/mo)", type: "num" }
+                          { key: "edubot", label: "EduBot questions (free=lifetime, paid=/mo)", type: "num" }
                         ].map((f) => (
                           <tr key={f.key}>
                             <td style={{ fontSize: "0.85rem" }}>{f.label}</td>
-                            {["free", "essential", "professional"].map((tier) => (
+                            {TIERS.map((tier) => (
                               <td key={tier}>
-                                {f.type === "bool" ? (
+                                {f.type === "select" ? (
+                                  <select
+                                    value={planLimits[tier]?.[f.key] || "none"}
+                                    onChange={(e) => updateLimit(tier, f.key, e.target.value)}
+                                    style={{ padding: "0.3rem 0.4rem", fontSize: "0.8rem" }}
+                                  >
+                                    {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                                  </select>
+                                ) : f.type === "bool" ? (
                                   <input
                                     type="checkbox"
                                     checked={!!planLimits[tier]?.[f.key]}
@@ -433,6 +534,195 @@ export default function Admin() {
               </p>
             </div>
           )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// Local datetime-local value (YYYY-MM-DDTHH:mm) from a DB timestamp
+function toLocalInput(v) {
+  if (!v) return "";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function AdvisorRow({ row, onSave }) {
+  const [draft, setDraft] = useState({
+    status: row.status,
+    scheduled_at: toLocalInput(row.scheduled_at),
+    meeting_link: row.meeting_link || "",
+    admin_note: row.admin_note || ""
+  });
+  const set = (k) => (e) => setDraft((d) => ({ ...d, [k]: e.target.value }));
+  const save = () => onSave(row, { ...draft, scheduled_at: draft.scheduled_at ? new Date(draft.scheduled_at).toISOString() : null });
+  return (
+    <div style={{ border: "1px solid var(--rule)", borderRadius: "var(--r-md)", padding: "1rem" }}>
+      <div className="flex-between" style={{ flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <div>
+          <strong style={{ color: "var(--ink)" }}>{row.topic}</strong>
+          <div className="muted" style={{ fontSize: "0.8rem" }}>
+            {row.student_name} · {row.student_email} · {row.student_plan} · requested {fmtDateTime(row.created_at)}
+          </div>
+        </div>
+        <span className="badge">{row.status}</span>
+      </div>
+      {row.details && <p style={{ fontSize: "0.88rem", margin: "0 0 0.4rem", whiteSpace: "pre-wrap" }}>{row.details}</p>}
+      {row.preferred_times && <p className="muted" style={{ fontSize: "0.85rem", margin: "0 0 0.75rem" }}>Preferred: {row.preferred_times}</p>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.5rem", alignItems: "end" }}>
+        <label style={{ fontSize: "0.78rem" }}>Status
+          <select value={draft.status} onChange={set("status")} style={{ width: "100%" }}>
+            {["requested", "scheduled", "completed", "cancelled"].map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </label>
+        <label style={{ fontSize: "0.78rem" }}>Date &amp; time
+          <input type="datetime-local" value={draft.scheduled_at} onChange={set("scheduled_at")} style={{ width: "100%" }} />
+        </label>
+        <label style={{ fontSize: "0.78rem" }}>Meeting link
+          <input value={draft.meeting_link} onChange={set("meeting_link")} placeholder="https://meet.google.com/…" style={{ width: "100%" }} />
+        </label>
+        <label style={{ fontSize: "0.78rem" }}>Note to student
+          <input value={draft.admin_note} onChange={set("admin_note")} style={{ width: "100%" }} />
+        </label>
+        <button className="button" onClick={save} style={{ padding: "0.5rem 1rem" }}>Save</button>
+      </div>
+    </div>
+  );
+}
+
+// ---- Dropdown Lists: the options students pick from on their Portfolio pages ----
+const OPTION_LISTS = [
+  { key: "universities", label: "Personal › Intended Universities" },
+  { key: "majors", label: "Personal › Intended Majors" },
+  { key: "curriculums", label: "Academics › Curriculums" },
+  { key: "subjects", label: "Academics › Subjects" },
+  { key: "tests", label: "Academics › Section II › Tests" }
+];
+
+function OptionListsAdmin({ onGoUniversities, setStatus }) {
+  const [data, setData] = useState(null); // { lists, defaults }
+  const [active, setActive] = useState("majors");
+  const [groups, setGroups] = useState([]);
+  const [newItem, setNewItem] = useState({}); // { [groupIndex]: text }
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => { apiFetch("/api/admin/option-lists").then(setData).catch((e) => setStatus(e.message)); }, []);
+  useEffect(() => {
+    if (data && active !== "universities") {
+      setGroups(JSON.parse(JSON.stringify(data.lists[active] || [])));
+      setNewItem({});
+      setDirty(false);
+    }
+  }, [data, active]);
+
+  const edit = (fn) => { setGroups((g) => fn(JSON.parse(JSON.stringify(g)))); setDirty(true); };
+  const addItem = (gi) => {
+    const v = (newItem[gi] || "").trim();
+    if (!v) return;
+    if (groups.some((g) => g.options.some((o) => o.toLowerCase() === v.toLowerCase()))) { setStatus(`"${v}" is already in this list`); return; }
+    edit((g) => { g[gi].options.push(v); return g; });
+    setNewItem((n) => ({ ...n, [gi]: "" }));
+  };
+  const save = async () => {
+    setSaving(true);
+    try {
+      const r = await apiFetch(`/api/admin/option-lists/${active}`, { method: "PUT", body: JSON.stringify({ groups }) });
+      setData((d) => ({ ...d, lists: r.lists }));
+      setStatus("List saved — students see it on their next page load");
+    } catch (err) { setStatus(err.message); } finally { setSaving(false); }
+  };
+  const switchTo = (key) => {
+    if (dirty && !window.confirm("Discard unsaved changes to this list?")) return;
+    setActive(key);
+  };
+
+  return (
+    <div className="card">
+      <h2 className="section-title" style={{ fontSize: "1.35rem", marginBottom: "0.25rem" }}>Dropdown lists</h2>
+      <p className="muted" style={{ fontSize: "0.88rem", marginBottom: "1.25rem" }}>
+        Add or remove the options students pick from on their Portfolio pages. Removing an option doesn't change what students have already saved.
+      </p>
+      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "1.25rem" }}>
+        {OPTION_LISTS.map((l) => (
+          <button
+            key={l.key}
+            type="button"
+            onClick={() => switchTo(l.key)}
+            className={active === l.key ? "button" : "button ghost"}
+            style={{ padding: "0.4rem 0.85rem", fontSize: "0.78rem" }}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+
+      {active === "universities" ? (
+        <div style={{ padding: "1rem 1.25rem", background: "var(--surface-warm)", borderRadius: "var(--r-md)" }}>
+          <p style={{ margin: "0 0 0.75rem", fontSize: "0.9rem" }}>
+            Intended Universities come from the university database. Add, edit or hide universities in the Universities tab — visible (not hidden) universities appear in the students' dropdowns.
+          </p>
+          <button type="button" className="button" onClick={onGoUniversities}>Open Universities →</button>
+        </div>
+      ) : !data ? (
+        <p className="muted">Loading…</p>
+      ) : (
+        <>
+          <div style={{ display: "grid", gap: "1rem" }}>
+            {groups.map((g, gi) => (
+              <div key={gi} style={{ border: "1px solid var(--rule)", borderRadius: "var(--r-md)", padding: "1rem" }}>
+                <div className="flex-between" style={{ gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.78rem", fontWeight: 600 }}>
+                    Group
+                    <input value={g.label} onChange={(e) => edit((x) => { x[gi].label = e.target.value; return x; })} style={{ padding: "0.3rem 0.5rem", fontSize: "0.85rem" }} />
+                  </label>
+                  <button
+                    type="button"
+                    className="button ghost"
+                    style={{ padding: "0.3rem 0.7rem", fontSize: "0.7rem", color: "var(--error)" }}
+                    onClick={() => { if (window.confirm(`Delete group "${g.label}" and its ${g.options.length} options?`)) edit((x) => x.filter((_, i) => i !== gi)); }}
+                  >
+                    Delete group
+                  </button>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.75rem" }}>
+                  {g.options.map((o, oi) => (
+                    <span key={o} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.4rem 0.25rem 0.7rem", border: "1px solid var(--rule)", borderRadius: "var(--r-full)", fontSize: "0.8rem", background: "var(--surface)" }}>
+                      {o}
+                      <button
+                        type="button"
+                        aria-label={`Remove ${o}`}
+                        onClick={() => edit((x) => { x[gi].options.splice(oi, 1); return x; })}
+                        style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--ink-muted)", fontSize: "0.9rem", lineHeight: 1, padding: "0 0.2rem" }}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {g.options.length === 0 && <span className="muted" style={{ fontSize: "0.8rem" }}>No options yet — empty groups are dropped on save.</span>}
+                </div>
+                <form onSubmit={(e) => { e.preventDefault(); addItem(gi); }} style={{ display: "flex", gap: "0.5rem" }}>
+                  <input value={newItem[gi] || ""} onChange={(e) => setNewItem((n) => ({ ...n, [gi]: e.target.value }))} placeholder="Add an option…" maxLength={120} style={{ flex: 1, padding: "0.4rem 0.6rem", fontSize: "0.85rem" }} />
+                  <button type="submit" className="button ghost" style={{ padding: "0.4rem 0.9rem", fontSize: "0.75rem" }}>Add</button>
+                </form>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "1rem" }}>
+            <button type="button" className="button ghost" onClick={() => edit((x) => [...x, { label: "New group", options: [] }])}>+ Add group</button>
+            <button
+              type="button"
+              className="button ghost"
+              onClick={() => { if (window.confirm("Reset this list to the built-in defaults? (Not saved until you click Save.)")) { setGroups(JSON.parse(JSON.stringify(data.defaults[active] || []))); setDirty(true); } }}
+            >
+              Reset to defaults
+            </button>
+            <button type="button" className="button" disabled={saving || !dirty} onClick={save} style={{ marginLeft: "auto" }}>
+              {saving ? "Saving…" : dirty ? "Save changes" : "Saved"}
+            </button>
+          </div>
         </>
       )}
     </div>

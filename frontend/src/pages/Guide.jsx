@@ -410,11 +410,11 @@ export default function Guide() {
                     {m.items.map((it, idx) => (
                       <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                         <div style={{ padding: "0.6rem 0.85rem", background: "var(--error-soft)", borderLeft: "2px solid var(--error)" }}>
-                          <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.65rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--error)", fontWeight: 700, marginRight: "0.5rem" }}>×</span>
+                          <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.65rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--error-deep)", fontWeight: 700, marginRight: "0.5rem" }}>×</span>
                           <span style={{ fontSize: "0.88rem", color: "var(--ink-soft)" }}>{it.dont}</span>
                         </div>
                         <div style={{ padding: "0.6rem 0.85rem", background: "var(--success-soft)", borderLeft: "2px solid var(--success)" }}>
-                          <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.65rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--success)", fontWeight: 700, marginRight: "0.5rem" }}>✓</span>
+                          <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.65rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--success-deep)", fontWeight: 700, marginRight: "0.5rem" }}>✓</span>
                           <span style={{ fontSize: "0.88rem", color: "var(--ink-soft)" }}>{it.do}</span>
                         </div>
                       </div>
@@ -554,7 +554,7 @@ function DoDont({ doDont }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
       <div style={{ padding: "0.85rem 1rem", background: "var(--success-soft)", borderLeft: "2px solid var(--success)" }}>
-        <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--success)", fontWeight: 700, marginBottom: "0.5rem" }}>Do</div>
+        <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--success-deep)", fontWeight: 700, marginBottom: "0.5rem" }}>Do</div>
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {doDont.do.map((d, i) => (
             <li key={i} style={{ fontSize: "0.88rem", color: "var(--ink-soft)", padding: "0.2rem 0" }}>{d}</li>
@@ -562,7 +562,7 @@ function DoDont({ doDont }) {
         </ul>
       </div>
       <div style={{ padding: "0.85rem 1rem", background: "var(--error-soft)", borderLeft: "2px solid var(--error)" }}>
-        <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--error)", fontWeight: 700, marginBottom: "0.5rem" }}>Don't</div>
+        <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--error-deep)", fontWeight: 700, marginBottom: "0.5rem" }}>Don't</div>
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {doDont.dont.map((d, i) => (
             <li key={i} style={{ fontSize: "0.88rem", color: "var(--ink-soft)", padding: "0.2rem 0" }}>{d}</li>

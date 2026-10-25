@@ -2,8 +2,19 @@ const express = require("express");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
 const { estimateAcceptanceProbability } = require("../services/aiClient");
+const { getPlanLimits, effectivePlan } = require("../services/plan");
 
 const router = express.Router();
+
+// Parent Dashboard is a Professional feature: unlocked when the linked student's plan
+// includes it (the student is the subscriber), or when the parent account itself has it.
+// studentRow / parent row: { plan, trial_ends_at } — the free trial counts as Professional
+async function parentDashboardAllowed(parentUserId, studentRow) {
+  const limits = await getPlanLimits();
+  if (limits[effectivePlan(studentRow)]?.parent_dashboard) return true;
+  const [[p]] = await pool.query("SELECT plan, trial_ends_at FROM users WHERE id = ?", [parentUserId]);
+  return !!limits[effectivePlan(p)]?.parent_dashboard;
+}
 
 async function getParentIdByUser(userId) {
   const [rows] = await pool.query("SELECT id FROM parents WHERE user_id = ?", [userId]);
@@ -15,7 +26,7 @@ router.get("/me/students", authRequired, async (req, res) => {
   const parentId = await getParentIdByUser(req.user.id);
   const [rows] = await pool.query(
     `SELECT s.id AS student_id, s.grade_level, s.school, s.target_countries, s.intended_major,
-            u.name, u.email,
+            u.name, u.email, u.plan, u.trial_ends_at,
             (SELECT COUNT(*) FROM academic_records ar WHERE ar.student_id = s.id) AS academics_count,
             (SELECT COUNT(*) FROM test_scores ts WHERE ts.student_id = s.id) AS tests_count,
             (SELECT COUNT(*) FROM activities ac WHERE ac.student_id = s.id) AS activities_count,
@@ -27,7 +38,10 @@ router.get("/me/students", authRequired, async (req, res) => {
      WHERE psl.parent_id = ?`,
     [parentId]
   );
-  const enriched = rows.map((student) => {
+  const limits = await getPlanLimits();
+  const [[me]] = await pool.query("SELECT plan, trial_ends_at FROM users WHERE id = ?", [req.user.id]);
+  const parentHas = !!limits[effectivePlan(me)]?.parent_dashboard;
+  const enriched = rows.map(({ plan, trial_ends_at, ...student }) => {
     const profileFields = ["grade_level", "school", "target_countries", "intended_major"];
     const filledProfile = profileFields.filter((field) => student[field]).length;
     const profileScore = filledProfile / profileFields.length;
@@ -38,7 +52,7 @@ router.get("/me/students", authRequired, async (req, res) => {
       Math.min(1, student.awards_count / 2) * 0.1 +
       Math.min(1, student.documents_count / 3) * 0.1;
     const completion = Math.round((profileScore * 0.4 + dataScore * 0.6) * 100);
-    return { ...student, completion };
+    return { ...student, completion, dashboard_unlocked: parentHas || !!limits[effectivePlan({ plan, trial_ends_at })]?.parent_dashboard };
   });
   return res.json(enriched);
 });
@@ -70,11 +84,20 @@ router.get("/me/students/:studentId", authRequired, async (req, res) => {
   if (links.length === 0) return res.status(403).json({ error: "Not linked to this student" });
 
   const [[student]] = await pool.query(
-    `SELECT s.*, u.name, u.email
+    `SELECT s.*, u.name, u.email, u.plan, u.trial_ends_at
      FROM students s JOIN users u ON s.user_id = u.id
      WHERE s.id = ?`,
     [studentId]
   );
+  if (!(await parentDashboardAllowed(req.user.id, student))) {
+    return res.status(403).json({
+      error: "The Parent Dashboard is included with the Professional plan.",
+      code: "PLAN_REQUIRED",
+      student_name: student?.name || ""
+    });
+  }
+  delete student.plan;
+  delete student.trial_ends_at;
 
   const [academics] = await pool.query("SELECT * FROM academic_records WHERE student_id = ? ORDER BY year DESC, course ASC", [studentId]);
   const [tests] = await pool.query("SELECT * FROM test_scores WHERE student_id = ? ORDER BY test_date DESC", [studentId]);

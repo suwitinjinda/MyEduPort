@@ -140,7 +140,7 @@ export const PORTFOLIO_GUIDE = {
   },
 
   spike: {
-    title: "Extracurricular Strategy (AdviAI)",
+    title: "Extracurricular Strategy (MEPAi)",
     summary:
       "Top universities don't reward students who are vaguely good at everything. Develop a spike — exceptional, demonstrated depth in a single area — alongside reasonable breadth.",
     bullets: [

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { fmtDate } from "../utils/date.js";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -60,7 +61,7 @@ export default function SharedPortfolio() {
         </p>
         {profile.share_expires_at && (
           <p className="text-muted" style={{ marginTop: "0.5rem" }}>
-            Link expires {new Date(profile.share_expires_at).toLocaleDateString()}
+            Link expires {fmtDate(profile.share_expires_at)}
           </p>
         )}
       </header>
@@ -100,7 +101,7 @@ export default function SharedPortfolio() {
         <div className="flex-between">
           <div>
             <strong style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>{t.test_type}</strong>
-            <p className="text-muted" style={{ marginTop: "0.15rem" }}>{t.test_date ? new Date(t.test_date).toLocaleDateString() : "—"}</p>
+            <p className="text-muted" style={{ marginTop: "0.15rem" }}>{t.test_date ? fmtDate(t.test_date) : "—"}</p>
           </div>
           <span style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--gold-deep)" }}>
             {t.superscore || t.score}

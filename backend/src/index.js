@@ -18,6 +18,18 @@ const uploadRoutes = require("./routes/uploads");
 const adminRoutes = require("./routes/admin");
 const personalityRoutes = require("./routes/personality");
 const careerRoutes = require("./routes/career");
+const optionRoutes = require("./routes/options");
+const emailAdminRoutes = require("./routes/emailAdmin");
+const knowledgeAdminRoutes = require("./routes/knowledgeAdmin");
+const billing = require("./routes/billing");
+const emailPublicRoutes = require("./routes/emailPublic");
+const testShare = require("./routes/testShare");
+const admissionResults = require("./routes/admissionResults");
+const myBackup = require("./routes/myBackup");
+const myRestore = require("./routes/myRestore");
+const backupAdmin = require("./routes/backupAdmin");
+const { readOnlyGuard } = require("./middleware/readOnly");
+const { startEmailWorker } = require("./services/emailMarketing");
 
 const app = express();
 
@@ -33,6 +45,8 @@ if (process.env.NODE_ENV === "production" && !process.env.ALLOW_HTTP) {
 }
 
 app.use(cors({ origin: true, credentials: true }));
+// Stripe webhook needs the raw body for signature verification — before express.json
+app.post("/api/billing/webhook", express.raw({ type: "application/json" }), billing.webhook);
 app.use(express.json({ limit: "2mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "..", process.env.UPLOAD_DIR || "uploads")));
 
@@ -57,7 +71,13 @@ async function healthHandler(req, res) {
 app.get("/api/health", healthHandler);
 app.get("/health", healthHandler);
 
+// Lapsed accounts (trial over / subscription cancelled) can read and export, not write
+app.use(readOnlyGuard);
+
 app.use("/api/auth", authRoutes);
+app.use("/api/students/me/backup", myBackup);
+app.use("/api/students/me/restore", myRestore);
+app.use("/api/students/me/admission-results", admissionResults);
 app.use("/api/students", studentRoutes);
 app.use("/api/parents", parentRoutes);
 app.use("/api/counselors", counselorRoutes);
@@ -67,6 +87,15 @@ app.use("/api/uploads", uploadRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/personality", personalityRoutes);
 app.use("/api/career", careerRoutes);
+app.use("/api/options", optionRoutes);
+app.use("/api/admin/email", emailAdminRoutes);
+app.use("/api/admin/ml", knowledgeAdminRoutes);
+app.use("/api/admin/backup", backupAdmin);
+app.use("/api/billing", billing.router);
+app.use("/api/email", emailPublicRoutes);
+app.use("/api/test-share", testShare.router);
+// Public, server-rendered share pages — plain HTML so Facebook/X previews work
+app.use("/api/share", testShare.publicRouter);
 
 // Central error handler — any error thrown/rejected in a route lands here and
 // returns a clean 500 instead of leaving the request hanging (504 at the proxy).
@@ -91,6 +120,7 @@ const port = Number(process.env.PORT || 4000);
 // deployment ever needs a different bind address.
 const host = process.env.HOST || "127.0.0.1";
 app.listen(port, host, () => {
+  startEmailWorker(); // scheduled / in-progress marketing email sends
   // eslint-disable-next-line no-console
   console.log(`MyEduPort API listening on ${host}:${port}`);
 });

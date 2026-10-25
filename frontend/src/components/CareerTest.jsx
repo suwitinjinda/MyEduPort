@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import { fmtDate } from "../utils/date.js";
+import ShareResult from "./ShareResult.jsx";
 
 // RIASEC types — plain-language framing (DevSpec §1)
 const TYPE_META = {
@@ -78,7 +80,7 @@ export default function CareerTest({ adviaiOn, gradeLevel, ready = true }) {
   if (!adviaiOn) {
     return (
       <div className="card compact" style={{ background: "var(--surface-warm)" }}>
-        <div className="subtitle" style={{ fontSize: "0.95rem" }}>Career Test <span className="badge" style={{ fontSize: "0.6rem", marginLeft: "0.3rem" }}>AdviAI</span></div>
+        <div className="subtitle" style={{ fontSize: "0.95rem" }}>Career Test <span className="badge" style={{ fontSize: "0.6rem", marginLeft: "0.3rem" }}>MEPAi</span></div>
         <p className="muted" style={{ fontSize: "0.82rem", margin: "0.4rem 0 0.75rem" }}>A 60-activity RIASEC (Holland Code) interest test that maps your interests to majors and careers.</p>
         <Link to="/pricing" className="button ghost" style={{ fontSize: "0.75rem", display: "inline-block" }}>Upgrade to unlock →</Link>
       </div>
@@ -97,7 +99,7 @@ export default function CareerTest({ adviaiOn, gradeLevel, ready = true }) {
             <div style={{ fontSize: "2.4rem", fontWeight: 800, letterSpacing: "0.06em", lineHeight: 1 }}>{report.holland_code}</div>
             <div style={{ fontSize: "0.85rem", opacity: 0.95 }}>{(report.ranking || []).slice(0, 3).map((t) => TYPE_META[t]?.name).join(" · ")}</div>
           </div>
-          <div style={{ fontSize: "0.78rem", opacity: 0.9, marginTop: "0.35rem" }}>{report.completed_at ? `Completed ${new Date(report.completed_at).toLocaleDateString()}` : ""} · O*NET® IP-SF · 60 activities</div>
+          <div style={{ fontSize: "0.78rem", opacity: 0.9, marginTop: "0.35rem" }}>{report.completed_at ? `Completed ${fmtDate(report.completed_at)}` : ""} · O*NET® IP-SF · 60 activities</div>
         </div>
         <div style={{ padding: "1.4rem 1.6rem 1.6rem" }}>
           <div style={{ display: "grid", gap: "0.7rem", marginBottom: "1.3rem" }}>
@@ -127,7 +129,7 @@ export default function CareerTest({ adviaiOn, gradeLevel, ready = true }) {
 
           {report.narrative && (
             <div style={{ border: "1px solid #d1fae5", background: "#f0fdf9", borderRadius: "var(--r-md)", padding: "1rem 1.15rem", marginBottom: "1.1rem" }}>
-              <div style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-deep)", fontWeight: 700, marginBottom: "0.5rem" }}>AdviAI — majors &amp; careers for you</div>
+              <div style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-deep)", fontWeight: 700, marginBottom: "0.5rem" }}>MEPAi — majors &amp; careers for you</div>
               {report.narrative.summary && <p style={{ margin: "0 0 0.75rem", fontSize: "0.88rem", lineHeight: 1.6, color: "var(--ink-soft)" }}>{report.narrative.summary}</p>}
               {Array.isArray(report.narrative.majors) && report.narrative.majors.length > 0 && (
                 <div style={{ marginBottom: "0.6rem" }}>
@@ -156,6 +158,8 @@ export default function CareerTest({ adviaiOn, gradeLevel, ready = true }) {
           <button className="button ghost" style={{ fontSize: "0.78rem" }} disabled={loading} onClick={() => (needsConsent && !consent ? setView("intro") : start())}>
             {loading ? "Loading…" : "Retake test"}
           </button>
+
+          <ShareResult kind="career" title="Holland Code" />
           {attribution}
         </div>
       </div>
@@ -215,9 +219,9 @@ export default function CareerTest({ adviaiOn, gradeLevel, ready = true }) {
   return (
     <div className="card" style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ background: GRAD, color: "#fff", padding: "1.4rem 1.6rem" }}>
-        <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, opacity: 0.92, marginBottom: "0.35rem" }}>Career Test · AdviAI</div>
+        <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, opacity: 0.92, marginBottom: "0.35rem" }}>Career Test · MEPAi</div>
         <div style={{ fontSize: "1.3rem", fontWeight: 800, letterSpacing: "-0.01em" }}>Find your Holland Code &amp; matching careers</div>
-        <div style={{ fontSize: "0.85rem", opacity: 0.95, marginTop: "0.3rem", maxWidth: "58ch" }}>A 60-activity interest checklist (O*NET® RIASEC) that ranks your six interest types — then AdviAI maps them to majors and careers.</div>
+        <div style={{ fontSize: "0.85rem", opacity: 0.95, marginTop: "0.3rem", maxWidth: "58ch" }}>A 60-activity interest checklist (O*NET® RIASEC) that ranks your six interest types — then MEPAi maps them to majors and careers.</div>
       </div>
       <div style={{ padding: "1.4rem 1.6rem 1.5rem" }}>
         <div style={{ borderLeft: "3px solid var(--teal)", background: "var(--surface-warm)", borderRadius: "0 var(--r-md) var(--r-md) 0", padding: "0.9rem 1.1rem", marginBottom: "1.1rem" }}>

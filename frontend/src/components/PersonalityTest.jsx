@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import { fmtDate } from "../utils/date.js";
+import ShareResult from "./ShareResult.jsx";
 
 // Big Five display order + plain-language framing (matches DevSpec §1)
 const FACTOR_META = [
@@ -82,7 +84,7 @@ export default function PersonalityTest({ adviaiOn, gradeLevel, ready = true }) 
   if (!adviaiOn) {
     return (
       <div className="card compact" style={{ background: "var(--surface-warm)" }}>
-        <div className="subtitle" style={{ fontSize: "0.95rem" }}>Personal Character Test <span className="badge" style={{ fontSize: "0.6rem", marginLeft: "0.3rem" }}>AdviAI</span></div>
+        <div className="subtitle" style={{ fontSize: "0.95rem" }}>Personal Character Test <span className="badge" style={{ fontSize: "0.6rem", marginLeft: "0.3rem" }}>MEPAi</span></div>
         <p className="muted" style={{ fontSize: "0.82rem", margin: "0.4rem 0 0.75rem" }}>
           A 50-question Big Five (IPIP-50) assessment that reveals the strengths shaping your application narrative.
         </p>
@@ -100,7 +102,7 @@ export default function PersonalityTest({ adviaiOn, gradeLevel, ready = true }) 
           <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, opacity: 0.92 }}>Personal Character Test · Your report</div>
           <div style={{ fontSize: "1.35rem", fontWeight: 800, letterSpacing: "-0.01em", marginTop: "0.25rem" }}>Your Big Five personality profile</div>
           <div style={{ fontSize: "0.78rem", opacity: 0.9, marginTop: "0.3rem" }}>
-            {report.completed_at ? `Completed ${new Date(report.completed_at).toLocaleDateString()}` : ""} · IPIP-50 · 50/50 answered
+            {report.completed_at ? `Completed ${fmtDate(report.completed_at)}` : ""} · IPIP-50 · 50/50 answered
           </div>
         </div>
         <div style={{ padding: "1.4rem 1.6rem 1.6rem" }}>
@@ -139,7 +141,7 @@ export default function PersonalityTest({ adviaiOn, gradeLevel, ready = true }) 
               <div style={{ padding: "0.6rem 0.9rem", background: "var(--surface-warm)", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 700 }}>
                 Progress over time · {history.length} attempts
               </div>
-              <div style={{ overflowX: "auto" }}>
+              <div className="table-scroll" style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", fontSize: "0.78rem", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ color: "var(--ink-muted)" }}>
@@ -150,7 +152,7 @@ export default function PersonalityTest({ adviaiOn, gradeLevel, ready = true }) 
                   <tbody>
                     {history.slice().reverse().map((h, i) => (
                       <tr key={h.id} style={{ borderTop: "1px solid var(--rule-soft)", background: i === 0 ? "rgba(16,185,129,0.05)" : "transparent" }}>
-                        <td style={{ padding: "0.4rem 0.9rem", color: "var(--ink-soft)" }}>{new Date(h.completed_at).toLocaleDateString()}{i === 0 ? " · latest" : ""}</td>
+                        <td style={{ padding: "0.4rem 0.9rem", color: "var(--ink-soft)" }}>{fmtDate(h.completed_at)}{i === 0 ? " · latest" : ""}</td>
                         {FACTOR_META.map((f) => <td key={f.code} style={{ padding: "0.4rem 0.5rem", textAlign: "center", fontWeight: i === 0 ? 700 : 400, color: "var(--ink)" }}>{h.average?.[f.code] ?? "—"}</td>)}
                       </tr>
                     ))}
@@ -162,7 +164,7 @@ export default function PersonalityTest({ adviaiOn, gradeLevel, ready = true }) 
 
           {report.narrative && (
             <div style={{ border: "1px solid #d1fae5", background: "#f0fdf9", borderRadius: "var(--r-md)", padding: "1rem 1.15rem", marginBottom: "1.1rem" }}>
-              <div style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-deep)", fontWeight: 700, marginBottom: "0.5rem" }}>AdviAI — what this means for you</div>
+              <div style={{ fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal-deep)", fontWeight: 700, marginBottom: "0.5rem" }}>MEPAi — what this means for you</div>
               {report.narrative.summary && <p style={{ margin: "0 0 0.75rem", fontSize: "0.88rem", lineHeight: 1.6, color: "var(--ink-soft)" }}>{report.narrative.summary}</p>}
               {Array.isArray(report.narrative.strengths) && report.narrative.strengths.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginBottom: "0.6rem" }}>
@@ -180,6 +182,8 @@ export default function PersonalityTest({ adviaiOn, gradeLevel, ready = true }) 
               {loading ? "Loading…" : "Retake test"}
             </button>
           </div>
+
+          <ShareResult kind="personality" title="Big Five personality profile" />
           <div style={{ marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--rule-soft)", fontSize: "0.7rem", color: "var(--ink-faint)", lineHeight: 1.55 }}>
             A self-insight tool, not a clinical diagnosis — don't submit it as a formal assessment to universities. Bands are indicative, not a percentile. Source: items from the International Personality Item Pool (<a href="https://ipip.ori.org" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-deep)" }}>ipip.ori.org</a>) — public domain, source acknowledged.
           </div>
@@ -247,9 +251,9 @@ export default function PersonalityTest({ adviaiOn, gradeLevel, ready = true }) 
   return (
     <div className="card" style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ background: GRAD, color: "#fff", padding: "1.4rem 1.6rem" }}>
-        <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, opacity: 0.92, marginBottom: "0.35rem" }}>Personal Character Test · AdviAI</div>
+        <div style={{ fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700, opacity: 0.92, marginBottom: "0.35rem" }}>Personal Character Test · MEPAi</div>
         <div style={{ fontSize: "1.3rem", fontWeight: 800, letterSpacing: "-0.01em" }}>Discover your Big Five personality profile</div>
-        <div style={{ fontSize: "0.85rem", opacity: 0.95, marginTop: "0.3rem", maxWidth: "58ch" }}>A validated 50-question self-assessment (IPIP-50) that reveals the strengths shaping your application narrative — then AdviAI turns it into advice.</div>
+        <div style={{ fontSize: "0.85rem", opacity: 0.95, marginTop: "0.3rem", maxWidth: "58ch" }}>A validated 50-question self-assessment (IPIP-50) that reveals the strengths shaping your application narrative — then MEPAi turns it into advice.</div>
       </div>
       <div style={{ padding: "1.4rem 1.6rem 1.5rem" }}>
         <div style={{ borderLeft: "3px solid var(--teal)", background: "var(--surface-warm)", borderRadius: "0 var(--r-md) var(--r-md) 0", padding: "0.9rem 1.1rem", marginBottom: "1.1rem" }}>

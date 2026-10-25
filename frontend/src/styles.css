@@ -14,20 +14,21 @@
   --ink: #1f3461;
   --ink-soft: #2a4276;
   --ink-muted: #5b6b8a;
-  --ink-faint: #9aa3b8;
+  --ink-faint: #616c8a; /* passes 4.5:1 on white and on the warm/grey surfaces */
   --navy: #1f3461;
   --navy-deep: #152547;
   --navy-light: #3551a0;
 
   /* Emerald accents (matches brand arrow) */
   --teal: #10b981;
-  --teal-deep: #059669;
+  --teal-deep: #047857;
+  --teal-darker: #065f46;
   --teal-soft: rgba(16, 185, 129, 0.10);
   --teal-tint: rgba(16, 185, 129, 0.04);
   --green-bright: #22c55e;
 
   /* Brand gradient */
-  --grad: linear-gradient(135deg, #1f3461 0%, #10b981 100%);
+  --grad: linear-gradient(135deg, #1f3461 0%, #047857 100%); /* green end darkened: white text needs 4.5:1 */
   --grad-soft: linear-gradient(135deg, rgba(31, 52, 97, 0.06) 0%, rgba(16, 185, 129, 0.06) 100%);
 
   /* Surfaces */
@@ -41,11 +42,13 @@
   --rule-soft: #f1f5f9;
 
   --success: #22c55e;
+  --success-deep: #047857; /* readable on --success-soft tints */
   --success-soft: rgba(34, 197, 94, 0.10);
   --warn: #f59e0b;
   --warn-soft: rgba(245, 158, 11, 0.10);
   --error: #ef4444;
   --error-soft: rgba(239, 68, 68, 0.10);
+  --error-deep: #b91c1c; /* readable on --error-soft tints */
 
   /* Backwards-compat (existing classes reference these) */
   --primary: var(--navy);
@@ -253,11 +256,21 @@ h1, h2, h3, h4 {
 }
 
 .page-footer {
-  background: var(--surface);
+  background: var(--navy);
   border-top: 1px solid var(--rule);
-  padding: 2.5rem 2rem 2rem;
-  color: var(--ink-muted);
+  padding: 3rem 2rem 2rem;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  color: rgba(255, 255, 255, 0.72);
 }
+.page-footer .footer-link {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.page-footer .footer-link:hover,
+.page-footer .footer-link:focus-visible { color: #34d399; text-decoration: underline; }
+.page-footer .footer-link.active { color: #fff; font-weight: 600; }
 
 .bottom-menu {
   display: flex;
@@ -381,12 +394,13 @@ h1, h2, h3, h4 {
 }
 
 .button.gold {
-  background: var(--teal);
+  /* solid --teal gave white text only 2.5:1; --teal-deep is 5.5:1 */
+  background: var(--teal-deep);
   color: #fff;
 }
 
 .button.gold:hover {
-  background: var(--teal-deep);
+  background: var(--teal-darker);
 }
 
 .button.secondary {
@@ -510,6 +524,24 @@ h1, h2, h3, h4 {
   font-size: 0.85rem;
   color: var(--ink);
 }
+
+/* Grouped block inside a form (e.g. Target Countries / Universities / Majors on Personal) */
+.input.form-section {
+  margin: 1.5rem 0;
+  padding: 1.1rem 1.25rem 1.25rem;
+  background: var(--paper-warm);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--gold-deep);
+  border-radius: var(--r-md);
+  gap: 0.6rem;
+}
+.input.form-section > label {
+  font-size: 0.95rem;
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+.input.form-section + .input:not(.form-section) { margin-top: 0.5rem; }
 
 .input input,
 .input select,
@@ -714,12 +746,47 @@ h1, h2, h3, h4 {
   .pe-sidebar { position: static; top: auto; }
 }
 
+/* Grid children default to min-width:auto, so one wide child (a table, a long word) can
+   stretch its column past the screen. min-width:0 lets the column shrink and keeps the
+   wide child inside its own scroll container instead of pushing the page sideways. */
+.dash-layout > *,
+.profile-editor-layout > *,
+.layout-split > *,
+.parent-dashboard-layout > *,
+.acts-grid > *,
+.mepai-workspace > *,
+.export-studio > *,
+.footer-grid > * { min-width: 0; }
+
+.dash-layout { grid-template-columns: 240px minmax(0, 1fr); }
+.profile-editor-layout { grid-template-columns: 240px minmax(0, 1fr); }
+.layout-split { grid-template-columns: minmax(0, 1fr) 300px; }
+
+@media (max-width: 900px) {
+  .dash-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 1024px) {
+  .layout-split,
+  .profile-editor-layout,
+  .parent-dashboard-layout { grid-template-columns: minmax(0, 1fr) !important; }
+}
+
+/* Form controls must be able to shrink: a <select> otherwise sizes to its longest option
+   (e.g. a full university name) and pushes the whole page sideways on a phone. */
+select, input, textarea, .input select, .input input, .input textarea {
+  max-width: 100%;
+  min-width: 0;
+}
+
 /* =====================  Chat  ===================== */
 .chat-layout {
   display: grid;
-  grid-template-columns: 260px 1fr 260px;
+  grid-template-columns: 260px minmax(0, 1fr) 260px;
+  grid-template-rows: minmax(0, 1fr);
   gap: 1.5rem;
-  height: 640px;
+  /* Never taller than the window, so the composer stays reachable on a laptop screen */
+  height: min(640px, calc(100vh - 17rem));
+  min-height: 24rem;
 }
 
 .chat-history,
@@ -754,11 +821,15 @@ h1, h2, h3, h4 {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0; /* without this the column refuses to shrink and the list can't scroll */
+  min-width: 0;
 }
 
 .chat-messages {
   flex: 1;
+  min-height: 0; /* a flex item defaults to min-height:auto, which defeats overflow-y */
   overflow-y: auto;
+  overscroll-behavior: contain;
   margin-bottom: 1rem;
   padding-right: 0.5rem;
 }
@@ -836,7 +907,8 @@ h1, h2, h3, h4 {
 }
 
 @media (max-width: 1024px) {
-  .chat-layout { grid-template-columns: 1fr; height: auto; }
+  .chat-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; height: auto; min-height: 0; }
+  .chat-messages { max-height: 70vh; }
   .chat-history, .chat-quick-prompts { display: none; }
 }
 
@@ -1117,10 +1189,26 @@ table tbody tr:hover { background: var(--paper-warm); }
   .grid.four,
   .recommendations-grid,
   .stats-grid,
-  .footer-grid { grid-template-columns: 1fr !important; gap: 1rem; }
+  .footer-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 1rem; }
+
+  /* stack the two-pane editors */
+  .essay-grid,
+  .acts-grid,
+  .mepai-workspace,
+  .export-studio { grid-template-columns: minmax(0, 1fr) !important; }
 
   .card > table,
   table { display: block; overflow-x: auto; white-space: nowrap; }
+
+  /* A table that already sits in its own scroll box keeps real table layout and its
+     min-width — the box scrolls. Turning such a table into a block makes that
+     min-width unshrinkable, which pushes the whole page sideways on a phone. */
+  .table-scroll { max-width: 100%; overflow-x: auto; }
+  .table-scroll > table { display: table; overflow-x: visible; }
+
+  /* A long button label (e.g. a landing-page CTA) must wrap rather than push the
+     page sideways — .button is nowrap by default, which a phone can't absorb. */
+  .button { white-space: normal; max-width: 100%; }
 
   .user-profile-button span:not(.user-avatar) { display: none; }
   .advisory { padding: 1.25rem; }
@@ -1151,3 +1239,72 @@ table tbody tr:hover { background: var(--paper-warm); }
 .gap-1 { gap: 0.5rem; }
 .gap-2 { gap: 1rem; }
 .gap-3 { gap: 1.5rem; }
+
+/* Dashboard ring gauges: gentle pulse while a score is loading */
+@keyframes ringPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.ring-pulse { animation: ringPulse 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .ring-pulse { animation: none; } }
+
+/* MEPAi Essay workspace: editor left, guidance right; stacks on narrow screens */
+.mepai-workspace { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 1rem; align-items: stretch; }
+@media (max-width: 900px) { .mepai-workspace { grid-template-columns: 1fr; } }
+
+/* Export Portfolio design studio: options left, sticky live preview right */
+.export-studio { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 2rem; align-items: start; }
+.export-preview { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 96px); }
+@media (max-width: 900px) {
+  .export-studio { grid-template-columns: 1fr; }
+  .export-preview { position: static; max-width: 300px; margin: 0 auto; }
+}
+
+/* ===================== Landing Page (Modern SaaS) ===================== */
+.landing-hero {
+  padding: 0 !important;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: stretch;
+  overflow: hidden;
+  min-height: 480px;
+  border-radius: var(--r-xl);
+}
+.landing-hero-content {
+  padding: 3.5rem 3rem;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.landing-hero-visual {
+  background-image: url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1400&q=80');
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  min-height: 360px;
+}
+@media (max-width: 900px) {
+  .landing-hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+  .landing-hero-content {
+    padding: 2.25rem 1.5rem;
+  }
+  .landing-hero-visual {
+    min-height: 240px;
+  }
+}
+
+.landing-split-box {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 2.5rem;
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .landing-split-box {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+}
+

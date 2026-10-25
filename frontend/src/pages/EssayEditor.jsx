@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { apiFetch, getUserRole } from "../api/client";
+import { loadSaved, apiFetch, getUserRole } from "../api/client";
 import AdvisoryNote, { PORTFOLIO_GUIDE } from "../components/AdvisoryNote.jsx";
+import { fmtDate, fmtDateTime, fmtTime } from "../utils/date.js";
 
 const COMMON_APP_PROMPTS = PORTFOLIO_GUIDE.essays.prompts;
 
@@ -39,7 +40,16 @@ export default function EssayEditor() {
   const [plan, setPlan] = useState("free");
   const [adviAi, setAdviAi] = useState(null);
   const [adviLoading, setAdviLoading] = useState(false);
-  const isPro = plan === "essential" || plan === "professional";
+  const isPro = plan !== "free"; // Essential, Professional, Elite (and the free trial)
+  // Autosave: edits are saved ~2s after typing stops
+  const [saveState, setSaveState] = useState(""); // "" | "unsaved" | "saving" | "saved" | "error"
+  const [savedAt, setSavedAt] = useState(null);
+  const [saveError, setSaveError] = useState("");
+  const dirtyRef = useRef(false);
+  const autosaveTimer = useRef(null);
+  const savingRef = useRef(false);
+  const essayRef = useRef(null);      // latest essay state for the autosave timer
+  const saveEssayRef = useRef(null);  // latest saveEssay for the autosave timer
 
   useEffect(() => {
     apiFetch("/api/auth/me").then((u) => setPlan(u?.plan || "free")).catch(() => {});
@@ -48,15 +58,33 @@ export default function EssayEditor() {
   const generateAdviAi = async () => {
     setAdviLoading(true);
     try {
-      const data = await apiFetch("/api/ai/essay-advisory", { method: "POST", body: JSON.stringify({ essay: editorRef.current?.innerHTML || "" }) });
+      const data = await apiFetch("/api/ai/essay-advisory", { method: "POST", body: JSON.stringify({ essay: editorRef.current?.innerHTML || "", scope: essayId || "" }) });
       setAdviAi(data);
-    } catch (err) { alert(err.message || "Could not generate AdviAI"); }
+    } catch (err) { alert(err.message || "Could not generate MEPAi"); }
     finally { setAdviLoading(false); }
   };
 
   useEffect(() => {
+    const warn = (e) => { if (dirtyRef.current) { e.preventDefault(); e.returnValue = ""; } };
+    window.addEventListener("beforeunload", warn);
+    return () => { window.removeEventListener("beforeunload", warn); clearTimeout(autosaveTimer.current); };
+  }, []);
+
+  useEffect(() => {
+    // The URL just got the id of an essay autosave created a moment ago — the editor already
+    // holds that content, so don't reload it (that would move the cursor while typing)
+    if (essayId && essayRef.current?.id && String(essayRef.current.id) === String(essayId)) return;
+    dirtyRef.current = false;
+    setSaveState("");
     loadEssays();
-    if (essayId) loadEssay(essayId);
+    if (essayId) {
+      loadEssay(essayId);
+      // last MEPAi feedback / advice for this essay
+      loadSaved(["essay_feedback", "essay_advisory"]).then((sv) => {
+        setFeedback(sv.essay_feedback?.[essayId] || null);
+        setAdviAi(sv.essay_advisory?.[essayId] || null);
+      });
+    }
     else setEssay({ id: null, title: "Common App Personal Statement", topic: "", content: "", word_count: 0, status: "draft", ai_score: null });
   }, [essayId]);
 
@@ -152,13 +180,33 @@ export default function EssayEditor() {
   // read on save/feedback. Writing content to state re-renders the
   // dangerouslySetInnerHTML div and resets the caret to the start, which made
   // typing appear reversed (".tset a si sihT"). We only track word count here.
+  essayRef.current = essay;
+  saveEssayRef.current = (o) => saveEssay(o);
+  const scheduleAutosave = () => {
+    dirtyRef.current = true;
+    setSaveState("unsaved");
+    clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => saveEssayRef.current?.({ silent: true }), 2000);
+  };
   const handleContentChange = () => {
     updateWordCount();
+    scheduleAutosave();
   };
 
-  const saveEssay = async () => {
-    if (!editorRef.current) return;
+  const saveEssay = async (opts) => {
+    const silent = opts?.silent === true;
+    const essay = essayRef.current; // always the latest title/topic/id, even from an older timer
+    if (!editorRef.current || savingRef.current) return;
+    // A brand-new essay is created automatically only once it has real content (30+ words),
+    // so stray empty essays don't use up the 5-essay limit. The Save button always saves.
+    if (silent && !essay.id) {
+      const words = (editorRef.current.innerText || "").trim().split(/\s+/).filter(Boolean).length;
+      if (words < 30) { setSaveState("unsaved"); return; }
+    }
+    clearTimeout(autosaveTimer.current);
+    savingRef.current = true;
     setSaving(true);
+    setSaveState("saving");
     try {
       const content = editorRef.current.innerHTML;
       const title = essay.title || "Untitled Essay";
@@ -168,14 +216,22 @@ export default function EssayEditor() {
         await apiFetch(`/api/students/me/essays/${essay.id}`, { method: "PUT", body: JSON.stringify({ title, topic, content, summary, status: essay.status }) });
       } else {
         const result = await apiFetch("/api/students/me/essays", { method: "POST", body: JSON.stringify({ title, topic, content, summary }) });
+        essayRef.current = { ...essayRef.current, id: result.id };
         setEssay((prev) => ({ ...prev, id: result.id }));
         navigate(`/essay?id=${result.id}`, { replace: true });
       }
+      dirtyRef.current = false;
+      setSaveState("saved");
+      setSavedAt(new Date());
+      setSaveError("");
       await loadEssays();
     } catch (err) {
       console.error(err);
-      alert(err.message || "Save failed");
+      setSaveState("error");
+      setSaveError(err.message || "Save failed");
+      if (!silent) alert(err.message || "Save failed");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -203,14 +259,14 @@ export default function EssayEditor() {
         handleContentChange();
         await setStatus("revise");
       }
-    } catch (err) { console.error(err); } finally { setApplying(false); }
+    } catch (err) { alert(err.message || "Could not revise essay"); } finally { setApplying(false); }
   };
 
   const getFeedback = async () => {
     if (!editorRef.current) return;
     setLoading(true);
     try {
-      const data = await apiFetch("/api/ai/essay-feedback", { method: "POST", body: JSON.stringify({ essay: editorRef.current.innerHTML }) });
+      const data = await apiFetch("/api/ai/essay-feedback", { method: "POST", body: JSON.stringify({ essay: editorRef.current.innerHTML, scope: essayId || "" }) });
       setFeedback(data);
       const aiScore = data?.overall?.score;
       if (aiScore != null) {
@@ -240,7 +296,7 @@ export default function EssayEditor() {
   return (
     <div>
       <header style={{ borderBottom: "1px solid var(--rule)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
-        <div className="eyebrow">EssAI · The 650-Word Personal Statement</div>
+        <div className="eyebrow">MEPAi · The 650-Word Personal Statement</div>
         <div className="flex-between" style={{ alignItems: "start", flexWrap: "wrap", gap: "1rem" }}>
           <div>
             <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", color: "var(--ink)", letterSpacing: "-0.02em" }}>
@@ -307,7 +363,7 @@ export default function EssayEditor() {
                     </span>
                   ) : null}
                   <p style={{ margin: "0.35rem 0 0", fontSize: "0.72rem", opacity: 0.7 }}>
-                    {e.word_count} words · {e.status || "draft"}{e.ai_score != null ? ` · AI ${e.ai_score}/100` : ""} · {new Date(e.last_edited_at).toLocaleDateString()}
+                    {e.word_count} words · {e.status || "draft"}{e.ai_score != null ? ` · AI ${e.ai_score}/100` : ""} · {fmtDate(e.last_edited_at)}
                   </p>
                 </button>
               ))
@@ -324,7 +380,7 @@ export default function EssayEditor() {
             <input
               type="text"
               value={essay.title}
-              onChange={(e) => setEssay((prev) => ({ ...prev, title: e.target.value }))}
+              onChange={(e) => { setEssay((prev) => ({ ...prev, title: e.target.value })); scheduleAutosave(); }}
               placeholder="Essay title"
               style={{
                 width: "100%",
@@ -342,7 +398,7 @@ export default function EssayEditor() {
             <input
               type="text"
               value={essay.topic || ""}
-              onChange={(e) => setEssay((prev) => ({ ...prev, topic: e.target.value }))}
+              onChange={(e) => { setEssay((prev) => ({ ...prev, topic: e.target.value })); scheduleAutosave(); }}
               placeholder="Topic — e.g. Overcoming self-doubt through debate"
               style={{ width: "100%", padding: "0.35rem 0", fontSize: "0.9rem", border: "none", borderBottom: "1px solid var(--rule-soft)", outline: "none", color: "var(--ink-soft)", background: "transparent", fontStyle: "italic" }}
             />
@@ -388,7 +444,7 @@ export default function EssayEditor() {
                   <button
                     type="button"
                     onClick={() => openDraft(d)}
-                    title={`${d.word_count} words · ${new Date(d.created_at).toLocaleString()}`}
+                    title={`${d.word_count} words · ${fmtDateTime(d.created_at)}`}
                     className={activeDraftNo === d.draft_no ? "badge primary" : "badge"}
                     style={{
                       cursor: "pointer", padding: "0.3rem 0.7rem", fontSize: "0.72rem",
@@ -467,7 +523,7 @@ export default function EssayEditor() {
           </div>
 
           {/* Toolbar */}
-          <div style={{ display: "flex", gap: "0.25rem", padding: "0.5rem 1.75rem", borderBottom: "1px solid var(--rule-soft)", background: "var(--paper)" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", padding: "0.5rem 1.75rem", borderBottom: "1px solid var(--rule-soft)", background: "var(--paper)" }}>
             {[
               ["undo", "↶"], ["redo", "↷"], ["sep"],
               ["bold", "B"], ["italic", "I"], ["underline", "U"], ["sep"],
@@ -522,7 +578,13 @@ export default function EssayEditor() {
 
           {/* Footer */}
           <div style={{ padding: "1rem 1.75rem", borderTop: "1px solid var(--rule-soft)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--paper)" }}>
-            <span className="text-muted">Drafts autosave to your account.</span>
+            <span className="text-muted" style={{ color: saveState === "error" ? "var(--error)" : saveState === "unsaved" ? "var(--warn)" : undefined }}>
+              {saveState === "saving" ? "Saving…"
+                : saveState === "saved" ? `All changes saved${savedAt ? ` · ${fmtTime(savedAt)}` : ""}`
+                : saveState === "unsaved" ? (essay.id ? "Unsaved changes — saving shortly…" : "Not saved yet — saves automatically after 30 words, or press Save")
+                : saveState === "error" ? `Not saved: ${saveError}`
+                : "Changes save automatically."}
+            </span>
             <button className="button" onClick={saveEssay} disabled={saving} style={{ padding: "0.5rem 1.25rem", fontSize: "0.75rem" }}>
               {saving ? "Saving…" : "Save"}
             </button>
@@ -532,10 +594,10 @@ export default function EssayEditor() {
         {/* Feedback panel */}
         <aside style={{ display: "grid", gap: "1.25rem", alignContent: "start" }}>
           {isPro ? (
-            /* PRO — AdviAI generates advice personalized to THIS draft */
+            /* PRO — MEPAi generates advice personalized to THIS draft */
             <aside className="advisory">
               <div className="advisory-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>AdviAI</span>
+                <span>MEPAi</span>
                 <span className="badge primary" style={{ fontSize: "0.6rem" }}>PRO</span>
               </div>
               <h4>{adviAi ? "Personalized advice for this draft" : PORTFOLIO_GUIDE.essays.title}</h4>
@@ -543,7 +605,7 @@ export default function EssayEditor() {
                 <>
                   <p style={{ fontSize: "0.9rem" }}>Get AI advice tailored to your actual draft — not generic tips.</p>
                   <button className="button gold" onClick={generateAdviAi} disabled={adviLoading || !essay.word_count} style={{ width: "100%", marginTop: "0.5rem" }}>
-                    {adviLoading ? "Thinking…" : "Generate AdviAI advice"}
+                    {adviLoading ? "Thinking…" : "Generate MEPAi advice"}
                   </button>
                 </>
               ) : (
@@ -573,17 +635,17 @@ export default function EssayEditor() {
             </aside>
           ) : (
             /* FREE — static Excellent Portfolio Guide advisory */
-            <AdvisoryNote label="AdviAI" title={PORTFOLIO_GUIDE.essays.title} doDont={PORTFOLIO_GUIDE.essays.doDont}>
+            <AdvisoryNote label="MEPAi" title={PORTFOLIO_GUIDE.essays.title} doDont={PORTFOLIO_GUIDE.essays.doDont}>
               <p>{PORTFOLIO_GUIDE.essays.summary}</p>
               <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
-                Upgrade to a paid plan to get AdviAI advice personalized to your own draft.
+                Upgrade to a paid plan to get MEPAi advice personalized to your own draft.
               </p>
             </AdvisoryNote>
           )}
 
           <div className="card">
             <div className="flex-between" style={{ marginBottom: "1rem" }}>
-              <h3 className="subtitle">EssAI Feedback</h3>
+              <h3 className="subtitle">MEPAi Feedback</h3>
               {feedback?.overall && (
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: "1.6rem", fontWeight: 700, color: "var(--ink)", letterSpacing: "-0.01em" }}>
@@ -595,7 +657,7 @@ export default function EssayEditor() {
 
             {!feedback && (
               <button className="button gold" onClick={getFeedback} disabled={loading || !essay.word_count} style={{ width: "100%" }}>
-                {loading ? "Analyzing…" : "Request EssAI Feedback"}
+                {loading ? "Analyzing…" : "Request MEPAi Feedback"}
               </button>
             )}
 
@@ -787,7 +849,7 @@ export default function EssayEditor() {
 
       <style>{`
         @media (max-width: 1024px) {
-          .essay-grid { grid-template-columns: 1fr !important; }
+          .essay-grid { grid-template-columns: minmax(0, 1fr) !important; }
         }
       `}</style>
     </div>

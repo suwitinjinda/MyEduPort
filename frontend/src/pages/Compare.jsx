@@ -22,6 +22,7 @@ export default function Compare() {
   const [addOpen, setAddOpen] = useState(false);
   const [selectedToAdd, setSelectedToAdd] = useState({ id: "", bucket: "target", application_round: "", deadline: "" });
   const [status, setStatus] = useState("");
+  const [outcomes, setOutcomes] = useState({}); // { [university_id]: result } — application results the student reported
 
   const load = async () => {
     try {
@@ -31,12 +32,24 @@ export default function Compare() {
       ]);
       setSaved(list || []);
       setAllUnis(unis || []);
+      const oc = await apiFetch("/api/students/me/outcomes").catch(() => []);
+      setOutcomes(Object.fromEntries((oc || []).map((o) => [o.university_id, o.result])));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => { load(); }, []);
+
+  // Record the decision a university sent (helps MEPAi advise future students — saved with a profile snapshot)
+  const setOutcome = async (row, result) => {
+    setOutcomes((o) => ({ ...o, [row.university_id]: result }));
+    try {
+      await apiFetch("/api/students/me/outcomes", { method: "PUT", body: JSON.stringify({ university_id: row.university_id, result, application_round: row.application_round || "" }) });
+      setStatus(result ? "Result saved — thank you, it helps MEPAi advise future students." : "Result cleared.");
+      setTimeout(() => setStatus(""), 3000);
+    } catch (err) { setStatus(err.message); }
+  };
 
   const addUni = async (e) => {
     e.preventDefault();
@@ -157,7 +170,7 @@ export default function Compare() {
           action={<Link to="/recommendations" className="button">Browse recommended universities →</Link>}
         />
       ) : (
-        <div style={{ overflowX: "auto" }}>
+        <div className="table-scroll" style={{ overflowX: "auto" }}>
           <table style={{ minWidth: "900px" }}>
             <thead>
               <tr>
@@ -168,6 +181,7 @@ export default function Compare() {
                 <th>Round</th>
                 <th>Deadline</th>
                 <th>Days</th>
+                <th>Result</th>
                 <th></th>
               </tr>
             </thead>
@@ -227,6 +241,22 @@ export default function Compare() {
                         {daysUntil(s.deadline) >= 0 ? `${daysUntil(s.deadline)}d` : `${Math.abs(daysUntil(s.deadline))}d ago`}
                       </span>
                     ) : "—"}
+                  </td>
+                  <td>
+                    <select
+                      value={outcomes[s.university_id] || ""}
+                      onChange={(e) => setOutcome(s, e.target.value)}
+                      title="The decision you received from this university"
+                      style={{ padding: "0.3rem 0.5rem", border: "1px solid var(--rule)", fontFamily: "inherit", fontSize: "0.8rem", fontWeight: 600,
+                        background: { admitted: "var(--success-soft)", enrolled: "var(--success-soft)", waitlisted: "var(--warn-soft)", deferred: "var(--warn-soft)", rejected: "var(--error-soft)" }[outcomes[s.university_id]] || "var(--surface)" }}
+                    >
+                      <option value="">Not yet</option>
+                      <option value="admitted">Admitted</option>
+                      <option value="waitlisted">Waitlisted</option>
+                      <option value="deferred">Deferred</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="enrolled">Enrolled</option>
+                    </select>
                   </td>
                   <td>
                     <button className="button ghost" style={{ padding: "0.3rem 0.5rem", fontSize: "0.7rem", color: "var(--error)", borderColor: "var(--error)" }} onClick={() => removeRow(s.id)}>

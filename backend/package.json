@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.72.1",
+    "archiver": "^7.0.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.6.0",
@@ -19,7 +20,12 @@
     "express-async-errors": "^3.1.1",
     "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.13.0",
     "multer": "^1.4.5-lts.1",
-    "mysql2": "^3.14.1"
+    "mysql2": "^3.14.1",
+    "nodemailer": "^6.10.1",
+    "pdf-parse": "^1.1.1",
+    "stripe": "^17.7.0",
+    "yauzl": "^3.4.0"
   }
 }

@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
+const { TRIAL_DAYS, getPlanStatus } = require("../services/plan");
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -16,6 +17,13 @@ function buildToken(user) {
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
+}
+
+// New accounts start a free trial (see services/plan.js)
+async function startTrial(userId) {
+  try {
+    await pool.query("UPDATE users SET trial_ends_at = ? WHERE id = ?", [new Date(Date.now() + TRIAL_DAYS * 86400000), userId]);
+  } catch (err) { /* trial_ends_at missing → run alter_phase14_free_trial.sql */ }
 }
 
 router.post("/register", async (req, res) => {
@@ -63,6 +71,7 @@ router.post("/register", async (req, res) => {
     );
   }
   const userId = result.insertId;
+  await startTrial(userId);
   if (role === "student") {
     await pool.query("INSERT INTO students (user_id, grade_level) VALUES (?, ?)", [userId, ""]);
   } else if (role === "parent") {
@@ -161,6 +170,7 @@ router.post("/google", async (req, res) => {
       );
     }
     const userId = result.insertId;
+    await startTrial(userId);
     if (role === "student") {
       await pool.query("INSERT INTO students (user_id, grade_level) VALUES (?, ?)", [userId, ""]);
     } else if (role === "parent") {
@@ -240,7 +250,8 @@ router.get("/me", authRequired, async (req, res) => {
   const user = rows[0];
   const { password_hash, google_id, ...rest } = user;
   const authProvider = (user.google_id && !user.password_hash) ? "google" : "password";
-  return res.json({ ...rest, plan: user.plan || "free", auth_provider: authProvider });
+  const status = await getPlanStatus(user.id);
+  return res.json({ ...rest, plan: status.plan, base_plan: status.basePlan, trial: status.trial, auth_provider: authProvider });
 });
 
 // Reset password

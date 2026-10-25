@@ -2,7 +2,7 @@
 //   1. Explicit VITE_API_URL wins (e.g. local dev pointing elsewhere)
 //   2. Production HTTPS uses same-origin → nginx proxies /api/* → backend :4000
 //   3. Local HTTP dev falls back to :4000 on the same host (Vite dev convenience)
-const API_URL = (() => {
+export const API_URL = (() => {
   const explicit = import.meta.env.VITE_API_URL;
   if (explicit) return explicit;
   if (typeof window !== "undefined") {
@@ -11,6 +11,16 @@ const API_URL = (() => {
   }
   return "http://localhost:4000";
 })();
+
+// Absolute URL for a stored file path like "/uploads/abc.pdf" (same resolution as the API)
+export function fileUrl(path) {
+  return `${API_URL}${path || ""}`;
+}
+
+// Latest saved MEPAi results → { [kind]: { [scope]: { ...payload, saved_at } } }
+export async function loadSaved(kinds) {
+  try { return await apiFetch(`/api/ai/saved?kinds=${encodeURIComponent(kinds.join(","))}`); } catch { return {}; }
+}
 
 export function setToken(token) {
   localStorage.setItem("myeduport_token", token);

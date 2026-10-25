@@ -1,8 +1,11 @@
 const express = require("express");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+const multer = require("multer");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
-const { getUserPlan, getPlanLimits, getUsage, periodFor, isFeatureAllowed } = require("../services/plan");
+const { getUserPlan, getPlanLimits, getUsage, periodFor, isFeatureAllowed, getPlanStatus } = require("../services/plan");
 
 const router = express.Router();
 
@@ -35,29 +38,149 @@ router.put("/me", authRequired, async (req, res) => {
     class_rank,
     bio
   } = req.body || {};
-  await pool.query(
-    "UPDATE students SET grade_level = ?, school = ?, target_countries = ?, intended_major = ?, intended_universities = ?, class_rank = ?, bio = ? WHERE user_id = ?",
-    [grade_level || "", school || "", target_countries || "", intended_major || "", intended_universities || "", class_rank || "", bio || "", req.user.id]
-  );
+  // bio (personal statement) is only touched when sent — the Personal page autosaves the
+  // other fields without it; the statement has its own Save (/me/statement)
+  const sets = ["grade_level = ?", "school = ?", "target_countries = ?", "intended_major = ?", "intended_universities = ?", "class_rank = ?"];
+  const vals = [grade_level || "", school || "", target_countries || "", intended_major || "", intended_universities || "", class_rank || ""];
+  if (bio !== undefined) { sets.push("bio = ?"); vals.push(bio || ""); }
+  await pool.query(`UPDATE students SET ${sets.join(", ")} WHERE user_id = ?`, [...vals, req.user.id]);
   return res.json({ status: "ok" });
+});
+
+// MEPAi Essay workspace — save just the personal statement (students.bio)
+router.put("/me/statement", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  const bio = String(req.body?.bio ?? "");
+  if (bio.trim().split(/\s+/).filter(Boolean).length > 650) return res.status(400).json({ error: "Statement is too long." });
+  await pool.query("UPDATE students SET bio = ? WHERE id = ?", [bio, studentId]);
+  return res.json({ status: "saved", saved_at: new Date().toISOString() });
 });
 
 // Current student's plan, feature flags, and remaining monthly/lifetime quota
 router.get("/me/plan", authRequired, async (req, res) => {
-  const plan = await getUserPlan(req.user.id);
+  const status = await getPlanStatus(req.user.id);
+  const plan = status.plan;
   const limits = await getPlanLimits();
   const my = limits[plan] || {};
   const period = periodFor(plan);
   const edubotUsed = await getUsage(req.user.id, "edubot", period);
   const feedbackUsed = await getUsage(req.user.id, "essay_feedback", period);
+  const reviseUsed = await getUsage(req.user.id, "essay_revise", period);
+  const studentId = await getStudentIdByUser(req.user.id);
+  const advisorUsed = studentId ? await countAdvisorSessions(studentId, monthKey()) : 0;
+  const advisorLimit = status.trial.active ? 0 : (my.advisor || 0); // not part of the free trial
   return res.json({
     plan,
-    features: { adviai: !!my.adviai, export: !!my.export, gap: !!my.gap, predictions: my.predictions },
+    base_plan: status.basePlan,
+    trial: status.trial,
+    features: {
+      adviai: !!my.adviai,
+      export: !!my.export,
+      gap: !!my.gap,
+      prediction: my.prediction || "none",
+      match: my.match,
+      parent_dashboard: !!my.parent_dashboard,
+      advisor: advisorLimit
+    },
     quota: {
       edubot: { limit: my.edubot, used: edubotUsed, period },
-      essay_feedback: { limit: my.essay_feedback, used: feedbackUsed, period }
+      essay_feedback: { limit: my.essay_feedback, used: feedbackUsed, period },
+      essay_revise: { limit: my.essay_feedback, used: reviseUsed, period },
+      advisor: { limit: advisorLimit, used: advisorUsed, period: monthKey() }
     }
   });
+});
+
+// ---- Human Advisor Session (Professional: 1 per month) ----
+function monthKey() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+// Cancelled requests don't use up the month's session.
+async function countAdvisorSessions(studentId, period) {
+  try {
+    const [[r]] = await pool.query(
+      "SELECT COUNT(*) AS n FROM advisor_sessions WHERE student_id = ? AND period = ? AND status <> 'cancelled'",
+      [studentId, period]
+    );
+    return r.n;
+  } catch (err) { return 0; } // table missing → alter_phase10_pricing_table.sql not run
+}
+
+// Advisor sessions per month for this user's plan — 0 during the free trial
+async function advisorLimitFor(userId) {
+  const status = await getPlanStatus(userId);
+  const limits = await getPlanLimits();
+  return { plan: status.plan, trial: status.trial.active, limit: status.trial.active ? 0 : (limits[status.plan]?.advisor || 0) };
+}
+
+router.get("/me/advisor-sessions", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  const { plan, limit } = await advisorLimitFor(req.user.id);
+  let sessions = [];
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, period, topic, details, preferred_times, status, scheduled_at, meeting_link, admin_note, created_at
+       FROM advisor_sessions WHERE student_id = ? ORDER BY created_at DESC LIMIT 24`,
+      [studentId]
+    );
+    sessions = rows;
+  } catch (err) { /* migration not run yet */ }
+  const used = await countAdvisorSessions(studentId, monthKey());
+  return res.json({ plan, sessions, quota: { limit, used, remaining: Math.max(0, limit - used), period: monthKey() } });
+});
+
+router.post("/me/advisor-sessions", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  const { limit, trial } = await advisorLimitFor(req.user.id);
+  if (limit <= 0) {
+    return res.status(403).json({
+      error: trial
+        ? "Human advisor sessions start once you subscribe to Professional — they aren't part of the free trial."
+        : "Human advisor sessions are included with the Professional plan."
+    });
+  }
+  const period = monthKey();
+  if ((await countAdvisorSessions(studentId, period)) >= limit) {
+    return res.status(429).json({ error: `You've used your ${limit} advisor session${limit === 1 ? "" : "s"} for this month. It resets on the 1st.` });
+  }
+  const topic = String(req.body?.topic || "").trim().slice(0, 200);
+  const details = String(req.body?.details || "").trim().slice(0, 4000);
+  const preferred = String(req.body?.preferred_times || "").trim().slice(0, 255);
+  if (!topic) return res.status(400).json({ error: "Please tell us what you'd like to discuss." });
+  try {
+    // Guarded insert: the quota check and the insert are one statement, so a double-click
+    // or two tabs can't both get through
+    const [r] = await pool.query(
+      `INSERT INTO advisor_sessions (student_id, period, topic, details, preferred_times)
+       SELECT ?, ?, ?, ?, ? FROM DUAL
+       WHERE (SELECT COUNT(*) FROM advisor_sessions WHERE student_id = ? AND period = ? AND status <> 'cancelled') < ?`,
+      [studentId, period, topic, details || null, preferred || null, studentId, period, limit]
+    );
+    if (!r.affectedRows) {
+      return res.status(429).json({ error: `You've used your ${limit} advisor session${limit === 1 ? "" : "s"} for this month. It resets on the 1st.` });
+    }
+    return res.json({ status: "requested", id: r.insertId });
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE") return res.status(500).json({ error: "Database migration required. Run alter_phase10_pricing_table.sql" });
+    throw err;
+  }
+});
+
+// Student can withdraw a request that hasn't been scheduled yet (gives the month's session back)
+router.post("/me/advisor-sessions/:id/cancel", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  const [r] = await pool.query(
+    "UPDATE advisor_sessions SET status = 'cancelled' WHERE id = ? AND student_id = ? AND status = 'requested'",
+    [req.params.id, studentId]
+  );
+  if (!r.affectedRows) return res.status(400).json({ error: "Only pending requests can be cancelled." });
+  return res.json({ status: "cancelled" });
 });
 
 // Full personal-data export (privacy right) — everything we hold on this student, incl. personality
@@ -186,6 +309,34 @@ router.post("/me/academics", authRequired, async (req, res) => {
   return res.json({ id: result.insertId });
 });
 
+// Edit one subject row (Academics → Section I)
+router.put("/me/academics/:id", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  const { course, grade } = req.body || {};
+  if (!String(course || "").trim()) return res.status(400).json({ error: "Subject is required" });
+  const [r] = await pool.query(
+    "UPDATE academic_records SET course = ?, grade = ? WHERE id = ? AND student_id = ?",
+    [String(course).trim().slice(0, 120), String(grade || "").trim().slice(0, 50), req.params.id, studentId]
+  );
+  if (!r.affectedRows) return res.status(404).json({ error: "Not found" });
+  return res.json({ status: "ok" });
+});
+
+// Student's curriculum (IB / A-Level / AP …) — one choice for all years
+router.put("/me/curriculum", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  const curriculum = String(req.body?.curriculum || "").trim().slice(0, 80);
+  try {
+    await pool.query("UPDATE students SET curriculum = ? WHERE id = ?", [curriculum, studentId]);
+  } catch (err) {
+    if (err.code === "ER_BAD_FIELD_ERROR") return res.status(500).json({ error: "Database migration required. Run alter_phase11_curriculum.sql" });
+    throw err;
+  }
+  return res.json({ status: "ok", curriculum });
+});
+
 router.delete("/me/academics/:id", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
@@ -224,7 +375,66 @@ router.get("/me/activities", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
   const [rows] = await pool.query("SELECT * FROM activities WHERE student_id = ? ORDER BY start_date DESC", [studentId]);
-  return res.json(rows);
+  // attach photos & videos
+  let media = [];
+  try {
+    [media] = await pool.query(
+      `SELECT m.activity_id, m.media_type, d.id AS document_id, d.file_path, d.original_name
+       FROM activity_media m JOIN documents d ON d.id = m.document_id
+       WHERE d.student_id = ? ORDER BY m.created_at`,
+      [studentId]
+    );
+  } catch (err) { /* migration not run yet */ }
+  return res.json(rows.map((a) => ({ ...a, media: media.filter((m) => m.activity_id === a.id) })));
+});
+
+// ---- Activity photos & videos (stored as documents, category 'activities') ----
+const mediaUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(__dirname, "..", "..", process.env.UPLOAD_DIR || "uploads");
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => cb(null, `act-${Date.now()}-${crypto.randomBytes(4).toString("hex")}${path.extname(file.originalname).toLowerCase().replace(/[^.a-z0-9]/g, "")}`)
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 }, // videos — matches nginx client_max_body_size
+  fileFilter: (req, file, cb) => cb(null, /^(image\/(png|jpe?g|gif|webp)|video\/(mp4|quicktime|webm))$/.test(file.mimetype))
+});
+
+router.post("/me/activities/:id/media", authRequired, (req, res, next) => {
+  mediaUpload.single("file")(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.code === "LIMIT_FILE_SIZE" ? "File is larger than 50MB." : err.message });
+    next();
+  });
+}, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  if (!req.file) return res.status(400).json({ error: "Upload a photo (PNG, JPG, GIF, WebP) or video (MP4, MOV, WebM)." });
+  const [[act]] = await pool.query("SELECT id FROM activities WHERE id = ? AND student_id = ?", [req.params.id, studentId]);
+  if (!act) { fs.unlink(req.file.path, () => {}); return res.status(404).json({ error: "Activity not found" }); }
+  const filePath = `/uploads/${req.file.filename}`;
+  const [doc] = await pool.query(
+    "INSERT INTO documents (student_id, file_path, category, original_name) VALUES (?, ?, 'activities', ?)",
+    [studentId, filePath, req.file.originalname]
+  );
+  const mediaType = req.file.mimetype.startsWith("video/") ? "video" : "image";
+  await pool.query("INSERT INTO activity_media (activity_id, document_id, media_type) VALUES (?, ?, ?)", [act.id, doc.insertId, mediaType]);
+  return res.json({ document_id: doc.insertId, file_path: filePath, media_type: mediaType, original_name: req.file.originalname });
+});
+
+router.delete("/me/activities/:id/media/:docId", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  const [[doc]] = await pool.query(
+    `SELECT d.id, d.file_path FROM activity_media m JOIN documents d ON d.id = m.document_id
+     WHERE m.activity_id = ? AND d.id = ? AND d.student_id = ?`,
+    [req.params.id, req.params.docId, studentId]
+  );
+  if (!doc) return res.status(404).json({ error: "Not found" });
+  await pool.query("DELETE FROM documents WHERE id = ?", [doc.id]); // cascades the link
+  fs.unlink(path.join(__dirname, "..", "..", process.env.UPLOAD_DIR || "uploads", path.basename(doc.file_path)), () => {});
+  return res.json({ status: "deleted" });
 });
 
 router.post("/me/activities", authRequired, async (req, res) => {
@@ -261,17 +471,29 @@ router.delete("/me/activities/:id", authRequired, async (req, res) => {
 router.get("/me/awards", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
-  const [rows] = await pool.query("SELECT * FROM awards WHERE student_id = ? ORDER BY award_date DESC", [studentId]);
+  const [rows] = await pool.query(
+    `SELECT a.*, d.file_path AS attachment_path, d.original_name AS attachment_name
+     FROM awards a LEFT JOIN documents d ON a.document_id = d.id
+     WHERE a.student_id = ? ORDER BY a.award_date DESC`,
+    [studentId]
+  );
   return res.json(rows);
 });
 
 router.post("/me/awards", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
-  const { title, description, award_date } = req.body || {};
+  const { title, description, award_date, document_id } = req.body || {};
+  // Attachment must be one of this student's own uploaded documents
+  let docId = null;
+  if (document_id) {
+    const [[doc]] = await pool.query("SELECT id FROM documents WHERE id = ? AND student_id = ?", [document_id, studentId]);
+    if (!doc) return res.status(400).json({ error: "Attachment not found" });
+    docId = doc.id;
+  }
   const [result] = await pool.query(
-    "INSERT INTO awards (student_id, title, description, award_date) VALUES (?, ?, ?, ?)",
-    [studentId, title || "", description || "", award_date || null]
+    "INSERT INTO awards (student_id, title, description, award_date, document_id) VALUES (?, ?, ?, ?, ?)",
+    [studentId, title || "", description || "", award_date || null, docId]
   );
   return res.json({ id: result.insertId });
 });
@@ -494,6 +716,43 @@ router.delete("/me/tasks/:id", authRequired, async (req, res) => {
 });
 
 // =====================================================
+// ---- Application results (feed Admin → Machine Learning / MEPAi "students like you") ----
+const OUTCOME_RESULTS = ["admitted", "waitlisted", "rejected", "deferred", "enrolled"];
+router.get("/me/outcomes", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  try {
+    const [rows] = await pool.query("SELECT id, university_id, university_name, cycle_year, application_round, major, result, notes, updated_at FROM admission_outcomes WHERE student_id = ?", [studentId]);
+    return res.json(rows);
+  } catch (err) { return res.json([]); }
+});
+
+// Record / update the result for one university on the college list (snapshot of the profile is kept)
+router.put("/me/outcomes", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  const { university_id, result, cycle_year, application_round, major, notes } = req.body || {};
+  const [[uni]] = await pool.query("SELECT id, name, country FROM universities WHERE id = ?", [university_id]);
+  if (!uni) return res.status(404).json({ error: "University not found" });
+  const year = Number(cycle_year) || new Date().getFullYear();
+  if (!result) {
+    await pool.query("DELETE FROM admission_outcomes WHERE student_id = ? AND university_id = ? AND cycle_year = ?", [studentId, uni.id, year]);
+    return res.json({ status: "cleared" });
+  }
+  if (!OUTCOME_RESULTS.includes(result)) return res.status(400).json({ error: "Invalid result" });
+  const { profileSnapshot } = require("../services/knowledge");
+  const snapshot = await profileSnapshot(studentId);
+  await pool.query(
+    `INSERT INTO admission_outcomes (student_id, university_id, university_name, country, cycle_year, application_round, major, result, profile_snapshot, notes, source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'student')
+     ON DUPLICATE KEY UPDATE result = VALUES(result), application_round = VALUES(application_round), major = VALUES(major),
+       profile_snapshot = VALUES(profile_snapshot), notes = VALUES(notes)`,
+    [studentId, uni.id, uni.name, uni.country || "", year, String(application_round || "").slice(0, 40),
+      String(major || snapshot.intended_major || "").split(",")[0].trim().slice(0, 150), result, JSON.stringify(snapshot), String(notes || "").slice(0, 2000) || null]
+  );
+  return res.json({ status: "saved" });
+});
+
 // Saved universities (the student's college list)
 // =====================================================
 router.get("/me/saved-universities", authRequired, async (req, res) => {

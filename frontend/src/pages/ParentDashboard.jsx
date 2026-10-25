@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import { fmtDate } from "../utils/date.js";
 
 export default function ParentDashboard() {
   const navigate = useNavigate();
@@ -146,7 +147,7 @@ export default function ParentDashboard() {
                     </div>
                   </div>
                   <div style={{ marginTop: "1rem", fontSize: "0.8rem", color: "var(--gold-deep)", fontWeight: 600 }}>
-                    View portfolio →
+                    {s.dashboard_unlocked === false ? "🔒 Full portfolio view needs Professional →" : "View portfolio →"}
                   </div>
                 </article>
               ))}
@@ -181,7 +182,7 @@ export default function ParentDashboard() {
                   <p style={{ fontSize: "0.88rem", fontFamily: "var(--font-serif)", color: "var(--ink-soft)", marginBottom: "0.2rem", lineHeight: 1.5 }}>
                     {n.text}
                   </p>
-                  <p className="text-muted">{n.date.toLocaleDateString()}</p>
+                  <p className="text-muted">{fmtDate(n.date)}</p>
                 </div>
               ))
             ) : (

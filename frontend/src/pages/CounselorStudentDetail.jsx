@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../api/client";
 import Skeleton from "../components/Skeleton.jsx";
+import { fmtDate, fmtDayMonth } from "../utils/date.js";
 
 const FLAG = { US: "🇺🇸", UK: "🇬🇧", China: "🇨🇳" };
 
@@ -207,7 +208,7 @@ export default function CounselorStudentDetail() {
               <div>
                 <div className="subtitle" style={{ fontSize: "1rem" }}>{t.test_type}</div>
                 <p className="text-muted" style={{ marginTop: "0.25rem" }}>
-                  {t.test_date ? new Date(t.test_date).toLocaleDateString() : "—"}
+                  {t.test_date ? fmtDate(t.test_date) : "—"}
                   {t.superscore ? ` · super ${t.superscore}` : ""}
                 </p>
               </div>
@@ -268,7 +269,7 @@ export default function CounselorStudentDetail() {
                 <div className="subtitle" style={{ fontSize: "1rem" }}>{e.title || "Untitled Essay"}</div>
                 <p className="text-muted" style={{ marginTop: "0.25rem" }}>
                   {e.word_count || 0} words
-                  {e.last_edited_at && ` · Last edited ${new Date(e.last_edited_at).toLocaleDateString()}`}
+                  {e.last_edited_at && ` · Last edited ${fmtDate(e.last_edited_at)}`}
                 </p>
               </div>
               <div style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", fontWeight: 700, color: e.word_count > 650 ? "var(--error)" : e.word_count >= 500 ? "var(--success)" : "var(--ink-muted)" }}>
@@ -307,7 +308,7 @@ export default function CounselorStudentDetail() {
                             {s.application_round || "—"}
                           </div>
                           <div className="mono" style={{ fontSize: "0.85rem", color: "var(--ink)", fontWeight: 600 }}>
-                            {s.deadline ? new Date(s.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+                            {s.deadline ? fmtDayMonth(s.deadline) : "—"}
                           </div>
                         </div>
                       ))}
@@ -362,7 +363,7 @@ export default function CounselorStudentDetail() {
                     <span className="badge">{t.category || "general"}</span>
                     {t.due_date && (
                       <span style={{ fontSize: "0.75rem", color: isOverdue ? "var(--error)" : "var(--ink-muted)", fontWeight: 600 }}>
-                        Due {new Date(t.due_date).toLocaleDateString()}
+                        Due {fmtDate(t.due_date)}
                         {isOverdue && " — overdue"}
                       </span>
                     )}
@@ -384,7 +385,7 @@ export default function CounselorStudentDetail() {
             <div key={d.id} className="card compact">
               <strong>{d.original_name || d.filename || "Document"}</strong>
               <p className="text-muted" style={{ marginTop: "0.2rem" }}>
-                {d.category} · {d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString() : "—"}
+                {d.category} · {d.uploaded_at ? fmtDate(d.uploaded_at) : "—"}
               </p>
             </div>
           ))}

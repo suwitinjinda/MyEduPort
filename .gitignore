@@ -49,6 +49,7 @@ frontend/dist-ssr/
 # Backend Specific
 # ============================================
 backend/uploads/
+backend/kb_files/
 backend/logs/
 backend/*.log
 backend/temp/
@@ -111,6 +112,7 @@ coverage/
 test-results/
 playwright-report/
 playwright/.cache/
+frontend/tests/report/
 
 # ============================================
 # Logs
@@ -223,9 +225,10 @@ deploy/ssl/
 *.key.pem
 *.pem
 
-# Local DB backups (data only; schema in database/*.sql)
-backups/data/
-backups/backup.log
+# Local backups — these hold the whole database and every uploaded file.
+# Nothing under backups/ ever belongs in the repository.
+backups/
+!backups/.gitkeep
 
 # generated design-canvas payload (regenerate from *.dc.html)
 doc/personalTest/design/ipip50-personality-test.html

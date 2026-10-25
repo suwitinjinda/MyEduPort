@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, NavLink, Link } from "react-router-dom";
-import { apiFetch, getUserRole } from "../api/client";
+import { apiFetch, getUserRole, loadSaved } from "../api/client";
 import Skeleton, { SkeletonStats } from "../components/Skeleton.jsx";
+import { fmtDate, fmtDateTime } from "../utils/date.js";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -23,7 +24,8 @@ export default function Dashboard() {
   const [awards, setAwards] = useState([]);
   const [essays, setEssays] = useState([]);
   const [gap, setGap] = useState([]);
-  const [features, setFeatures] = useState(null); // { gap, predictions, ... } from plan
+  const [features, setFeatures] = useState(null); // { gap, prediction, match, advisor, ... } from plan
+  const [trial, setTrial] = useState(null); // { active, days_left, ends_at, expired } — 14-day free trial
   const [tasks, setTasks] = useState([]);
   const [acceptance, setAcceptance] = useState(null);
   const [score, setScore] = useState(null);
@@ -36,7 +38,6 @@ export default function Dashboard() {
   useEffect(() => {
     loadFastData();
     loadAiData();
-    apiFetch("/api/students/me/plan").then((p) => setFeatures(p?.features || null)).catch(() => {});
   }, []);
 
   const loadFastData = async () => {
@@ -87,20 +88,43 @@ export default function Dashboard() {
     "Other": "Check each target university's own admissions page for deadlines, required tests, and the application portal."
   };
   const selectedCountries = (profile?.target_countries || "").split(",").map((s) => s.trim()).filter(Boolean);
+  // Next Steps + Acceptance open from the last saved result (no AI call on every visit);
+  // they're generated only when nothing is saved yet, the plan's tier changed, or on Rethink.
+  const [gapSavedAt, setGapSavedAt] = useState(null);
+  const [gapStale, setGapStale] = useState(false); // portfolio changed since Next Steps were generated
+  const [accSavedAt, setAccSavedAt] = useState(null);
+  const [refreshing, setRefreshing] = useState("");
   const loadAiData = async () => {
     setAiLoading(true);
     try {
-      const [g, ap, sc] = await Promise.all([
-        apiFetch("/api/ai/gap-analysis").catch(() => []),
-        apiFetch("/api/ai/acceptance-probability").catch(() => null),
+      const [plan, sv, sc] = await Promise.all([
+        apiFetch("/api/students/me/plan").catch(() => null),
+        loadSaved(["gap_analysis", "acceptance"]),
         apiFetch("/api/ai/score").catch(() => null)
       ]);
-      setGap(g || []);
-      setAcceptance(ap || null);
+      const f = plan?.features || null;
+      setFeatures(f);
+      setTrial(plan?.trial || null);
       setScore(sc || null);
+      const savedGap = sv.gap_analysis?.[""];
+      if (f && f.gap === false) setGap([]);
+      else if (savedGap?.items?.length) { setGap(savedGap.items); setGapSavedAt(savedGap.saved_at); setGapStale(!!savedGap.stale); }
+      else { setGap((await apiFetch("/api/ai/gap-analysis").catch(() => [])) || []); setGapSavedAt(new Date().toISOString()); }
+      const savedAcc = sv.acceptance?.[""];
+      if (!f || f.prediction === "none") setAcceptance(null);
+      else if (savedAcc && savedAcc.tier === f.prediction) { setAcceptance(savedAcc); setAccSavedAt(savedAcc.saved_at); }
+      else { setAcceptance((await apiFetch("/api/ai/acceptance-probability").catch(() => null)) || null); setAccSavedAt(new Date().toISOString()); }
     } finally {
       setAiLoading(false);
     }
+  };
+  const refreshGap = async () => {
+    setRefreshing("gap");
+    try { setGap((await apiFetch("/api/ai/gap-analysis")) || []); setGapSavedAt(new Date().toISOString()); setGapStale(false); } catch (e) { /* keep the saved one */ } finally { setRefreshing(""); }
+  };
+  const refreshAcceptance = async () => {
+    setRefreshing("acc");
+    try { setAcceptance(await apiFetch("/api/ai/acceptance-probability")); setAccSavedAt(new Date().toISOString()); } catch (e) { /* keep the saved one */ } finally { setRefreshing(""); }
   };
 
   const calculateGPA = () => {
@@ -119,10 +143,11 @@ export default function Dashboard() {
   const userName = user?.name?.split(" ")[0] || "Student";
   const completion = summary?.completion || 0;
   const overdueTasks = tasks.filter((t) => t.status !== "done" && t.due_date && new Date(t.due_date) < new Date());
+  const predLocked = !!features && features.prediction === "none";
 
   if (loading) {
     return (
-      <div style={{ display: "grid", gap: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "1.5rem" }}>
         <Skeleton lines={2} />
         <SkeletonStats count={3} />
       </div>
@@ -165,7 +190,7 @@ export default function Dashboard() {
       </aside>
 
       {/* ───────── Main ───────── */}
-      <div style={{ display: "grid", gap: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "1.5rem" }}>
         {/* Welcome banner */}
         <div
           style={{
@@ -192,7 +217,7 @@ export default function Dashboard() {
                   Acceptance Prediction: <strong>{acceptance.average}%</strong>
                 </span>
               )}
-              {!acceptance && !aiLoading && features && features.predictions === 0 && (
+              {!acceptance && !aiLoading && predLocked && (
                 <Link to="/pricing" style={{ fontSize: "0.85rem", opacity: 0.95, color: "#fff", textDecoration: "underline" }}>
                   Acceptance Prediction: Upgrade to unlock →
                 </Link>
@@ -228,7 +253,7 @@ export default function Dashboard() {
                     </span>
                   ))}
                 </div>
-                <div style={{ display: "grid", gap: "0.4rem", marginTop: "0.75rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "0.4rem", marginTop: "0.75rem" }}>
                   {selectedCountries.map((c) => (
                     COUNTRY_ADVICE[c] ? (
                       <div key={c} style={{ fontSize: "0.8rem", lineHeight: 1.5, opacity: 0.94 }}>
@@ -242,17 +267,49 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Free trial status */}
+        {trial?.active && (
+          <div style={{ padding: "0.85rem 1.25rem", background: "var(--success-soft)", borderLeft: "3px solid var(--success)", borderRadius: "var(--r-md)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+            <div style={{ fontSize: "0.92rem", color: "var(--ink)" }}>
+              🎉 <strong>Professional free trial</strong> — {trial.days_left} day{trial.days_left === 1 ? "" : "s"} left
+              <span className="muted"> (until {fmtDate(trial.ends_at)}). Every MEPAi feature is unlocked; human advisor sessions start once you subscribe.</span>
+            </div>
+            <Link to="/pricing" className="button" style={{ padding: "0.5rem 1.1rem", fontSize: "0.85rem" }}>Keep Professional →</Link>
+          </div>
+        )}
+        {trial?.expired && (
+          <div style={{ padding: "0.85rem 1.25rem", background: "var(--surface-warm)", borderLeft: "3px solid var(--gold)", borderRadius: "var(--r-md)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+            <div style={{ fontSize: "0.92rem", color: "var(--ink)" }}>
+              Your 14-day free trial has ended — you're on the <strong>Free</strong> plan now. Upgrade to get MEPAi features back.
+            </div>
+            <Link to="/pricing" className="button gold" style={{ padding: "0.5rem 1.1rem", fontSize: "0.85rem" }}>View plans →</Link>
+          </div>
+        )}
+
         {/* Metric cards: Profile strength · Universities matched · Avg. acceptance */}
         <div className="grid three">
-          <MetricStat label="Profile Strength" value={score ? `${score.overall}` : (loading || aiLoading ? "…" : `${completion}`)} unit="/ 100" hint="Overall portfolio score" />
-          <MetricStat label="Universities Matched" value={savedUnis.length} unit={savedUnis.length === 1 ? "school" : "schools"} hint="Saved to your college list" link="/recommendations" linkText="Find matches →" />
+          <MetricStat
+            label="Profile Strength"
+            ring={{ value: score ? score.overall : (aiLoading ? null : completion), loading: !score && aiLoading, center: score ? `${score.overall}` : (aiLoading ? undefined : `${completion}`), sub: "/ 100" }}
+            hint="Overall portfolio score"
+          />
+          <MetricStat
+            label="Universities Matched"
+            // ring is full at 12 saved schools (the guide recommends 8–12)
+            ring={{ value: Math.min(100, Math.round((savedUnis.length / 12) * 100)), center: `${savedUnis.length}`, sub: savedUnis.length === 1 ? "school" : "schools" }}
+            hint="Saved to your college list · aim for 8–12"
+            link="/recommendations"
+            linkText="Find matches →"
+          />
           <MetricStat
             label="Avg. Acceptance Rate"
-            value={acceptance ? `${acceptance.average}` : (features && features.predictions === 0 ? "🔒" : (aiLoading ? "…" : "—"))}
-            unit={acceptance ? "%" : ""}
-            hint={features && features.predictions === 0 ? "Upgrade to unlock" : "Across your saved universities"}
-            link={features && features.predictions === 0 ? "/pricing" : undefined}
-            linkText={features && features.predictions === 0 ? "Upgrade →" : undefined}
+            ring={predLocked && !acceptance
+              ? { value: null, center: "🔒" }
+              : { value: acceptance ? acceptance.average : null, loading: aiLoading, center: acceptance ? `${acceptance.average}%` : undefined }}
+            hint={predLocked ? "Upgrade to unlock" : `Across your saved universities${accSavedAt ? ` · updated ${fmtDate(accSavedAt)}` : ""}`}
+            link={predLocked ? "/pricing" : undefined}
+            linkText={predLocked ? "Upgrade →" : undefined}
+            action={!predLocked && acceptance ? { label: refreshing === "acc" ? "Thinking…" : "Rethink", onClick: refreshAcceptance } : undefined}
           />
         </div>
 
@@ -289,8 +346,8 @@ export default function Dashboard() {
         <div className="grid three">
           <KpiCard
             title="Academic Score"
-            value={score ? score.categories.academic : "—"}
-            unit="/ 100"
+            value={score ? score.categories.academic : null}
+            loading={aiLoading}
             details={
               academics.length > 0 ? (
                 <div className="list" style={{ marginTop: "0.85rem" }}>
@@ -322,8 +379,8 @@ export default function Dashboard() {
 
           <KpiCard
             title="Extracurricular Score"
-            value={score ? score.categories.extracurricular : "—"}
-            unit="/ 100"
+            value={score ? score.categories.extracurricular : null}
+            loading={aiLoading}
             details={
               <>
                 <p className="muted" style={{ fontSize: "0.82rem", marginTop: "0.85rem" }}>
@@ -338,8 +395,8 @@ export default function Dashboard() {
 
           <KpiCard
             title="Documents Score"
-            value={score ? score.categories.essays : "—"}
-            unit="/ 100"
+            value={score ? score.categories.essays : null}
+            loading={aiLoading}
             details={
               <>
                 <p className="muted" style={{ fontSize: "0.82rem", marginTop: "0.85rem" }}>
@@ -353,70 +410,79 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Next Steps */}
+        {/* Acceptance Prediction — Advanced (Professional): per university */}
+        {acceptance?.tier === "advanced" && acceptance.per_university?.length > 0 && (
+          <div className="card">
+            <h2 className="section-title" style={{ marginBottom: "0.25rem" }}>Acceptance Prediction <span className="badge primary" style={{ fontSize: "0.65rem", verticalAlign: "middle" }}>Advanced</span></h2>
+            {acceptance.note && <p className="muted" style={{ marginBottom: "1rem", fontSize: "0.88rem" }}>{acceptance.note}</p>}
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "0.5rem" }}>
+              {acceptance.per_university.map((u) => (
+                <div key={u.university_id || u.name} style={{ display: "flex", gap: "1rem", alignItems: "center", padding: "0.6rem 0.85rem", background: "var(--paper-warm)", borderRadius: "var(--r-md)" }}>
+                  <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--navy)", minWidth: "3.5rem", textAlign: "right" }}>{u.probability}%</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, color: "var(--ink)" }}>
+                      {u.name} <span className="muted" style={{ fontSize: "0.75rem", fontWeight: 500, textTransform: "capitalize" }}>· {u.country} · {u.bucket}</span>
+                    </div>
+                    {u.note && <div className="muted" style={{ fontSize: "0.82rem" }}>{u.note}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {acceptance.factors?.length > 0 && (
+              <>
+                <div style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 600, margin: "1.25rem 0 0.5rem" }}>
+                  What would raise these chances
+                </div>
+                <ul className="list">
+                  {acceptance.factors.map((f, i) => <li key={i} style={{ fontSize: "0.88rem" }}>{f}</li>)}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+        {acceptance?.tier === "basic" && (
+          <p className="muted" style={{ fontSize: "0.85rem", margin: 0 }}>
+            Basic prediction shows averages across your list. <Link to="/pricing" style={{ color: "var(--teal-deep)", fontWeight: 600 }}>Professional</Link> adds a prediction for each university and what to improve.
+          </p>
+        )}
+
+        {/* Next Steps Timeline */}
         <div className="card">
-          <div className="flex-between" style={{ marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
-            <h2 className="section-title" style={{ marginBottom: 0 }}>Next Steps</h2>
+          <div className="flex-between" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
+            <h2 className="section-title" style={{ marginBottom: "0.25rem" }}>Next Steps Timeline</h2>
+            {gap.length > 0 && !aiLoading && (
+              <span className="muted" style={{ fontSize: "0.78rem" }}>
+                {gapStale && <span style={{ color: "var(--warn)" }}>Your portfolio changed since these steps were made · </span>}
+                {gapSavedAt && `Updated ${fmtDate(gapSavedAt)} · `}
+                <button type="button" onClick={refreshGap} disabled={refreshing === "gap"} style={{ background: "none", border: "none", padding: 0, color: "var(--teal-deep)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
+                  {refreshing === "gap" ? "Thinking…" : "Rethink"}
+                </button>
+              </span>
+            )}
           </div>
           <p className="muted" style={{ marginBottom: "1.25rem" }}>
-            Prioritized actions to focus on next:
+            Prioritized actions to build your university portfolio — starting now.
           </p>
 
           {aiLoading ? (
             <div>
               <Skeleton lines={5} />
               <p className="muted" style={{ marginTop: "1rem", fontSize: "0.85rem", fontStyle: "italic" }}>
-                Claude is analyzing your portfolio… (~5–10 seconds)
+                Claude is building your timeline… (~5–10 seconds)
               </p>
             </div>
           ) : gap.length > 0 ? (
-            <div style={{ display: "grid", gap: "0.5rem" }}>
-              {gap.map((item, idx) => {
-                const dotColor =
-                  item.priority === "High" ? "var(--error)" :
-                  item.priority === "Medium" ? "var(--warn)" : "var(--teal-deep)";
-                return (
-                  <div
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      gap: "0.75rem",
-                      alignItems: "flex-start",
-                      padding: "0.6rem 0.85rem",
-                      background: "var(--paper-warm)",
-                      borderRadius: "var(--r-md)"
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: "10px",
-                        height: "10px",
-                        borderRadius: "50%",
-                        background: dotColor,
-                        flexShrink: 0,
-                        marginTop: "0.45rem"
-                      }}
-                    />
-                    <div>
-                      <strong style={{ color: "var(--ink)", fontWeight: 600 }}>
-                        {item.priority || "Suggested"}:
-                      </strong>{" "}
-                      <span style={{ color: "var(--ink-soft)" }}>{item.action}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <NextStepsTimeline steps={gap} gradeLevel={profile?.grade_level} />
           ) : features && features.gap === false ? (
             <UpgradeCard
-              title="AI Next Steps is a paid feature"
-              body="Upgrade to Essential or Professional to get AI-prioritized next steps and gap analysis for your portfolio."
+              title="Next Steps Timeline is a paid feature"
+              body="Upgrade to Essential or Professional to get an AI-prioritized, phase-by-phase timeline for your portfolio."
             />
           ) : (
             <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
               <button
                 className="button"
-                onClick={() => { setAiLoading(true); apiFetch("/api/ai/gap-analysis").then(setGap).catch(() => {}).finally(() => setAiLoading(false)); }}
+                onClick={refreshGap}
               >
                 Generate next steps →
               </button>
@@ -457,6 +523,278 @@ function NavItem({ to, icon, label, active, badge }) {
   );
 }
 
+// Human Advisor Session — Professional: 1 request per month, handled from the Admin queue
+function AdvisorSessionCard({ advisorLimit }) {
+  const [data, setData] = useState(null);
+  const [form, setForm] = useState({ topic: "", details: "", preferred_times: "" });
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const load = () => apiFetch("/api/students/me/advisor-sessions").then(setData).catch(() => {});
+  useEffect(() => { if (advisorLimit > 0) load(); }, [advisorLimit]);
+
+  if (advisorLimit == null) return null;
+  if (advisorLimit <= 0) {
+    return (
+      <div className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+        <div>
+          <h2 className="section-title" style={{ marginBottom: "0.25rem", fontSize: "1.2rem" }}>Human Advisor Session 🔒</h2>
+          <p className="muted" style={{ margin: 0, fontSize: "0.88rem" }}>Talk 1-on-1 with an admissions advisor every month on the Professional plan.</p>
+        </div>
+        <Link to="/pricing" className="button gold" style={{ padding: "0.55rem 1.1rem", fontSize: "0.85rem" }}>Upgrade →</Link>
+      </div>
+    );
+  }
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true); setMsg("");
+    try {
+      await apiFetch("/api/students/me/advisor-sessions", { method: "POST", body: JSON.stringify(form) });
+      setForm({ topic: "", details: "", preferred_times: "" });
+      setOpen(false);
+      setMsg("Request sent — we'll confirm a time with you by email.");
+      load();
+    } catch (err) { setMsg(err.message); } finally { setBusy(false); }
+  };
+  const cancel = async (id) => {
+    try { await apiFetch(`/api/students/me/advisor-sessions/${id}/cancel`, { method: "POST" }); load(); } catch (err) { setMsg(err.message); }
+  };
+
+  const quota = data?.quota;
+  const remaining = quota ? quota.remaining : 0;
+  const STATUS = { requested: "Pending", scheduled: "Scheduled", completed: "Completed", cancelled: "Cancelled" };
+
+  return (
+    <div className="card">
+      <div className="flex-between" style={{ flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <h2 className="section-title" style={{ marginBottom: 0 }}>Human Advisor Session</h2>
+        {quota && <span className="badge">{remaining} of {quota.limit} left this month</span>}
+      </div>
+      <p className="muted" style={{ fontSize: "0.88rem", marginBottom: "1rem" }}>
+        Book a 1-on-1 session with an admissions advisor. Tell us what you want to cover and when you're free.
+      </p>
+
+      {remaining > 0 && !open && (
+        <button className="button" onClick={() => setOpen(true)}>Request a session →</button>
+      )}
+      {open && (
+        <form onSubmit={submit} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "0.75rem" }}>
+          <div className="input" style={{ marginBottom: 0 }}>
+            <label>What would you like to discuss?</label>
+            <input value={form.topic} maxLength={200} required onChange={(e) => setForm({ ...form, topic: e.target.value })} placeholder="e.g. Reviewing my college list and essay plan" />
+          </div>
+          <div className="input" style={{ marginBottom: 0 }}>
+            <label>Details (optional)</label>
+            <textarea rows={3} value={form.details} onChange={(e) => setForm({ ...form, details: e.target.value })} />
+          </div>
+          <div className="input" style={{ marginBottom: 0 }}>
+            <label>Preferred days / times (optional)</label>
+            <input value={form.preferred_times} maxLength={255} onChange={(e) => setForm({ ...form, preferred_times: e.target.value })} placeholder="e.g. Weekday evenings after 6pm (Bangkok time)" />
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button className="button" type="submit" disabled={busy}>{busy ? "Sending…" : "Send request"}</button>
+            <button className="button ghost" type="button" onClick={() => setOpen(false)}>Cancel</button>
+          </div>
+        </form>
+      )}
+      {remaining <= 0 && quota && (
+        <p className="muted" style={{ fontSize: "0.85rem", margin: 0 }}>You've used this month's session. It resets on the 1st.</p>
+      )}
+      {msg && <p style={{ fontSize: "0.85rem", marginTop: "0.75rem", color: "var(--ink-soft)" }}>{msg}</p>}
+
+      {data?.sessions?.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "0.5rem", marginTop: "1.25rem" }}>
+          {data.sessions.map((s) => (
+            <div key={s.id} style={{ padding: "0.6rem 0.85rem", background: "var(--paper-warm)", borderRadius: "var(--r-md)", fontSize: "0.88rem" }}>
+              <div className="flex-between" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
+                <strong style={{ color: "var(--ink)" }}>{s.topic}</strong>
+                <span className="badge">{STATUS[s.status] || s.status}</span>
+              </div>
+              {s.status === "scheduled" && s.scheduled_at && (
+                <div style={{ marginTop: "0.25rem" }}>📅 {fmtDateTime(s.scheduled_at)}</div>
+              )}
+              {s.meeting_link && (s.status === "scheduled") && (
+                <div style={{ marginTop: "0.25rem" }}>
+                  <a href={s.meeting_link} target="_blank" rel="noreferrer" style={{ color: "var(--teal-deep)", fontWeight: 600 }}>Join meeting →</a>
+                </div>
+              )}
+              {s.admin_note && <div className="muted" style={{ marginTop: "0.25rem" }}>{s.admin_note}</div>}
+              {s.status === "requested" && (
+                <button className="button ghost" style={{ marginTop: "0.5rem", padding: "0.3rem 0.8rem", fontSize: "0.78rem" }} onClick={() => cancel(s.id)}>
+                  Withdraw request
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Next Steps Timeline (phased steps + at-a-glance chart) ----
+const PRIORITY_STYLE = {
+  High: { color: "var(--error)", soft: "var(--error-soft)", label: "High", short: "High" },
+  Medium: { color: "var(--warn)", soft: "var(--warn-soft, #fef3c7)", label: "Medium", short: "Med" },
+  Low: { color: "var(--success)", soft: "var(--success-soft, #dcfce7)", label: "Low", short: "Low" }
+};
+
+// "Grade 7 / Year 8" → 7
+function parseGrade(gradeLevel) {
+  const m = String(gradeLevel || "").match(/grade\s*(\d{1,2})/i) || String(gradeLevel || "").match(/(\d{1,2})/);
+  return m ? Number(m[1]) : null;
+}
+const gradeLabel = (g) => (g == null ? null : g > 12 ? "After Grade 12" : `Grade ${g}`);
+
+// Render "**key phrase**" as bold without using innerHTML
+function RichText({ text }) {
+  return String(text || "").split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**")
+      ? <strong key={i} style={{ color: "var(--ink)" }}>{part.slice(2, -2)}</strong>
+      : <React.Fragment key={i}>{part}</React.Fragment>
+  );
+}
+
+function NextStepsTimeline({ steps, gradeLevel }) {
+  const [filter, setFilter] = useState("All");
+  const grade = parseGrade(gradeLevel);
+  const phaseTitle = {
+    1: `Phase 1 — Do now${grade ? ` (${gradeLabel(grade)})` : ""}`,
+    2: `Phase 2 — This year${grade ? ` (${gradeLabel(grade + 1)})` : ""}`,
+    3: "Phase 3 — Plan ahead"
+  };
+  const columns = [0, 1, 2].map((i) => (grade ? gradeLabel(grade + i) : ["This year", "Next year", "Year after"][i]));
+  const shown = steps.filter((st) => filter === "All" || st.priority === filter);
+  const phases = [1, 2, 3].filter((ph) => shown.some((st) => (st.phase || 1) === ph));
+
+  return (
+    <div>
+      {/* Priority filter */}
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
+        {["All", "High", "Medium", "Low"].map((f) => {
+          const active = filter === f;
+          const dot = f === "All" ? "var(--navy)" : PRIORITY_STYLE[f].color;
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "0.45rem",
+                padding: "0.45rem 1rem", borderRadius: "var(--r-full)", cursor: "pointer",
+                fontFamily: "inherit", fontSize: "0.85rem", fontWeight: 600,
+                border: `1px solid ${active ? "var(--navy)" : "var(--rule)"}`,
+                background: active ? "var(--navy)" : "var(--surface)",
+                color: active ? "#fff" : "var(--ink-soft)"
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: active ? "#fff" : dot }} />
+              {f === "All" ? "All Steps" : `${f} Priority`}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Phased vertical timeline */}
+      <div style={{ position: "relative", paddingLeft: "2.25rem" }}>
+        <div style={{ position: "absolute", left: "0.7rem", top: "0.5rem", bottom: "0.5rem", width: 2, background: "var(--rule)" }} />
+        {phases.map((ph) => (
+          <div key={ph} style={{ marginBottom: "1.25rem" }}>
+            <div style={{ position: "relative", marginBottom: "0.85rem" }}>
+              <span style={{ position: "absolute", left: "-2.05rem", top: "0.1rem", width: 14, height: 14, borderRadius: "50%", border: "2px solid var(--navy)", background: "var(--surface)" }} />
+              <span style={{ fontSize: "0.72rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 700 }}>
+                {phaseTitle[ph]}
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "0.85rem" }}>
+              {shown.filter((st) => (st.phase || 1) === ph).map((st, i) => {
+                const ps = PRIORITY_STYLE[st.priority] || PRIORITY_STYLE.Medium;
+                return (
+                  <div key={i} style={{ position: "relative" }}>
+                    <span style={{
+                      position: "absolute", left: "-2.2rem", top: "1.1rem", width: 18, height: 18, borderRadius: "50%",
+                      background: ps.soft, border: `3px solid ${ps.color}`, boxShadow: "0 0 0 3px var(--surface)"
+                    }} />
+                    <div style={{ border: "1px solid var(--rule)", borderLeft: `4px solid ${ps.color}`, borderRadius: "var(--r-md)", padding: "0.9rem 1.1rem", background: "var(--surface)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap", marginBottom: "0.45rem" }}>
+                        <span style={{ fontSize: "0.68rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: ps.color, background: ps.soft, border: `1px solid ${ps.color}`, borderRadius: "var(--r-full)", padding: "0.12rem 0.55rem" }}>
+                          {ps.label}
+                        </span>
+                        <span style={{ fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 600 }}>{st.category}</span>
+                      </div>
+                      <div style={{ color: "var(--ink-soft)", fontSize: "0.95rem", lineHeight: 1.55 }}><RichText text={st.action} /></div>
+                      {st.tags?.length > 0 && (
+                        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.6rem" }}>
+                          {st.tags.map((t) => (
+                            <span key={t} style={{ fontSize: "0.75rem", padding: "0.2rem 0.6rem", border: "1px solid var(--rule)", borderRadius: "var(--r-full)", color: "var(--ink-soft)", background: "var(--paper-warm)" }}>{t}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Estimated timeline at a glance */}
+      <div style={{ marginTop: "1.5rem" }}>
+        <div style={{ fontSize: "0.75rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 700, marginBottom: "0.75rem" }}>
+          Estimated timeline at a glance
+        </div>
+        <div className="table-scroll" style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", minWidth: "560px", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)" }}>
+                <th style={{ textAlign: "left", padding: "0.5rem 0.5rem 0.5rem 0", width: "34%" }}>Action</th>
+                <th style={{ textAlign: "left", padding: "0.5rem", width: "12%" }}>Priority</th>
+                <th style={{ padding: "0.5rem 0" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", textAlign: "left" }}>
+                    {columns.map((c) => <span key={c}>{c}</span>)}
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((st, i) => {
+                const ps = PRIORITY_STYLE[st.priority] || PRIORITY_STYLE.Medium;
+                const start = Math.max(0, Math.min(3, Number(st.start ?? 0)));
+                const end = Math.max(start, Math.min(3, Number(st.end ?? 3)));
+                return (
+                  <tr key={i} style={{ borderTop: "1px solid var(--rule-soft)" }}>
+                    <td style={{ padding: "0.65rem 0.5rem 0.65rem 0", fontWeight: 600, color: "var(--ink)", fontSize: "0.9rem" }}>{st.title}</td>
+                    <td style={{ padding: "0.65rem 0.5rem" }}>
+                      <span style={{ fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: ps.color, background: ps.soft, border: `1px solid ${ps.color}`, borderRadius: "var(--r-full)", padding: "0.1rem 0.5rem" }}>
+                        {ps.short}
+                      </span>
+                    </td>
+                    <td style={{ padding: "0.65rem 0" }}>
+                      <div style={{ position: "relative", height: 8, borderRadius: 4, background: "var(--rule)" }}>
+                        <div style={{ position: "absolute", top: 0, bottom: 0, left: `${(start / 3) * 100}%`, width: `${((end - start) / 3) * 100}%`, borderRadius: 4, background: ps.color }} />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ display: "flex", gap: "1.25rem", flexWrap: "wrap", marginTop: "0.75rem", fontSize: "0.8rem", color: "var(--ink-muted)" }}>
+          {["High", "Medium", "Low"].map((p) => (
+            <span key={p} style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: PRIORITY_STYLE[p].color }} />
+              {p} Priority
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UpgradeCard({ title, body }) {
   return (
     <div
@@ -480,41 +818,118 @@ function UpgradeCard({ title, body }) {
   );
 }
 
-function MetricStat({ label, value, unit, hint, link, linkText }) {
+// Circular gauge (0–100): the ring fills counter-clockwise from the bottom and its color
+// follows the position on the circle — red → orange → yellow → green — so a fuller ring
+// ends greener. value=null shows an empty grey track (loading / no data / locked).
+const RING_STOPS = [[0, [239, 68, 68]], [14, [249, 115, 22]], [32, [250, 204, 21]], [55, [163, 230, 53]], [72, [34, 197, 94]], [100, [22, 163, 74]]];
+// Color at a position (0–100) along the ring
+function ringColorAt(p) {
+  for (let i = 1; i < RING_STOPS.length; i++) {
+    const [p1, c1] = RING_STOPS[i];
+    const [p0, c0] = RING_STOPS[i - 1];
+    if (p <= p1) {
+      const k = (p - p0) / (p1 - p0 || 1);
+      return `rgb(${c0.map((v, j) => Math.round(v + (c1[j] - v) * k)).join(",")})`;
+    }
+  }
+  return "rgb(22,163,74)";
+}
+// Conic gradient that is colored up to p% and transparent after (single layer, no mask compositing)
+function ringFill(p) {
+  const stops = RING_STOPS.filter(([q]) => q < p).map(([q, c]) => `rgb(${c.join(",")}) ${q}%`);
+  return `conic-gradient(from 180deg, ${[...stops, `${ringColorAt(p)} ${p}%`, `transparent ${p}%`].join(", ")})`;
+}
+
+function RingGauge({ value, size = 96, stroke = 10, center, sub, label, loading }) {
+  const pct = value == null ? 0 : Math.max(0, Math.min(100, Number(value) || 0));
+  const [shown, setShown] = useState(0);
+  // Animate from the current value to the new one (ease-out, ~0.9s); instant if reduced motion
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) { setShown(pct); return undefined; }
+    let raf;
+    const from = shown;
+    const t0 = performance.now();
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / 900);
+      setShown(from + (pct - from) * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [pct]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Ring-shaped mask over the conic fill; the track sits underneath
+  const ring = `radial-gradient(farthest-side, transparent calc(100% - ${stroke}px), #000 calc(100% - ${stroke - 0.5}px))`;
+  const centerText = center ?? (loading ? "…" : value == null ? "—" : `${Math.round(pct)}`);
   return (
-    <div className="card" style={{ padding: "1.25rem 1.5rem" }}>
-      <div style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 600, marginBottom: "0.5rem" }}>
-        {label}
+    <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: "0.45rem", minWidth: size }}>
+      <div
+        role="img"
+        aria-label={`${label || "Score"}: ${value == null ? "not available" : `${Math.round(pct)} out of 100`}`}
+        style={{ position: "relative", width: size, height: size, flexShrink: 0 }}
+      >
+        <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "#e5e7eb", WebkitMask: ring, mask: ring }} />
+        {value != null && shown > 0.2 && (
+          // Conic runs clockwise from the bottom; mirrored so it fills bottom → right → top → left
+          <div style={{ position: "absolute", inset: 0, transform: "scaleX(-1)" }}>
+            <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: ringFill(shown), WebkitMask: ring, mask: ring }} />
+            {/* round caps at both ends of the arc */}
+            {[0, shown].map((p, i) => {
+              const a = ((180 + 3.6 * p) * Math.PI) / 180;
+              const rr = size / 2 - stroke / 2;
+              return (
+                <span
+                  key={i}
+                  style={{
+                    position: "absolute", width: stroke, height: stroke, borderRadius: "50%", background: ringColorAt(p),
+                    left: size / 2 + rr * Math.sin(a) - stroke / 2, top: size / 2 - rr * Math.cos(a) - stroke / 2
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--ink)", lineHeight: 1 }}>
+          <span className={loading ? "ring-pulse" : undefined} style={{ fontSize: size >= 110 ? "1.6rem" : "1.3rem", fontWeight: 800, letterSpacing: "-0.02em" }}>{centerText}</span>
+          {sub && value != null && <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--ink-muted)", marginTop: "0.2rem" }}>{sub}</span>}
+        </div>
       </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: "0.35rem" }}>
-        <span style={{ fontSize: "2rem", fontWeight: 800, color: "var(--navy)", lineHeight: 1, letterSpacing: "-0.02em" }}>{value}</span>
-        {unit && <span style={{ fontSize: "0.9rem", color: "var(--ink-muted)", fontWeight: 600 }}>{unit}</span>}
-      </div>
-      <div className="flex-between" style={{ marginTop: "0.6rem", alignItems: "center" }}>
-        <span className="muted" style={{ fontSize: "0.78rem" }}>{hint}</span>
-        {link && <Link to={link} style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--teal-deep)" }}>{linkText}</Link>}
-      </div>
+      {label && <span style={{ fontSize: "0.78rem", fontWeight: 600, textAlign: "center", maxWidth: size + 40, color: "var(--ink-soft)" }}>{label}</span>}
     </div>
   );
 }
 
-function KpiCard({ title, value, unit, details }) {
+// Number stat card; pass `ring` to show a RingGauge instead (used for Avg. Acceptance Rate)
+function MetricStat({ label, value, unit, hint, link, linkText, ring, action }) {
+  return (
+    <div className="card" style={{ padding: "1.25rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 600, marginBottom: "0.5rem" }}>
+          {label}
+        </div>
+        {!ring && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.35rem" }}>
+            <span style={{ fontSize: "2rem", fontWeight: 800, color: "var(--navy)", lineHeight: 1, letterSpacing: "-0.02em" }}>{value}</span>
+            {unit && <span style={{ fontSize: "0.9rem", color: "var(--ink-muted)", fontWeight: 600 }}>{unit}</span>}
+          </div>
+        )}
+        <div className="flex-between" style={{ marginTop: ring ? 0 : "0.6rem", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+          <span className="muted" style={{ fontSize: "0.78rem" }}>{hint}</span>
+          {link && <Link to={link} style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--teal-deep)" }}>{linkText}</Link>}
+          {action && <button type="button" onClick={action.onClick} style={{ background: "none", border: "none", padding: 0, fontSize: "0.75rem", fontWeight: 600, color: "var(--teal-deep)", cursor: "pointer", fontFamily: "inherit" }}>{action.label}</button>}
+        </div>
+      </div>
+      {ring && <RingGauge size={96} stroke={11} {...ring} />}
+    </div>
+  );
+}
+
+function KpiCard({ title, value, loading, details }) {
   return (
     <div className="card">
       <div className="subtitle" style={{ fontSize: "1.05rem", marginBottom: "0.85rem" }}>{title}</div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-        <span
-          style={{
-            fontSize: "2.5rem",
-            fontWeight: 800,
-            color: "var(--navy)",
-            lineHeight: 1,
-            letterSpacing: "-0.02em"
-          }}
-        >
-          {value}
-        </span>
-        <span style={{ fontSize: "1rem", color: "var(--ink-muted)", fontWeight: 600 }}>{unit}</span>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <RingGauge size={128} stroke={13} value={value} loading={loading && value == null} sub="/ 100" />
       </div>
       {details}
     </div>

@@ -1,7 +1,8 @@
 const express = require("express");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
-const { getPlanLimits, setPlanLimits, DEFAULT_LIMITS } = require("../services/plan");
+const { getPlanLimits, setPlanLimits, DEFAULT_LIMITS, PREDICTION_TIERS, PLAN_TIERS, DEFAULT_DISPLAY, getPlanDisplay, setPlanDisplay } = require("../services/plan");
+const { OPTION_LIST_KEYS, DEFAULT_OPTION_LISTS, getOptionLists, cleanGroups, setOptionList } = require("../services/options");
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.get("/users", authRequired, async (req, res) => {
   let rows;
   try {
     [rows] = await pool.query(
-      `SELECT id, email, role, name, plan, data_consent, is_disabled, deleted_at, created_at
+      `SELECT id, email, role, name, plan, trial_ends_at, data_consent, is_disabled, deleted_at, created_at
        FROM users
        WHERE deleted_at IS NULL
        ORDER BY created_at DESC LIMIT 100`
@@ -249,8 +250,8 @@ router.put("/users/:id/plan", authRequired, async (req, res) => {
   if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
   const { id } = req.params;
   const { plan } = req.body || {};
-  if (!["free", "essential", "professional"].includes(plan)) {
-    return res.status(400).json({ error: "plan must be free, essential, or professional" });
+  if (!PLAN_TIERS.includes(plan)) {
+    return res.status(400).json({ error: `plan must be one of: ${PLAN_TIERS.join(", ")}` });
   }
   try {
     await pool.query("UPDATE users SET plan = ? WHERE id = ?", [plan, id]);
@@ -267,7 +268,7 @@ router.put("/users/:id/plan", authRequired, async (req, res) => {
 router.get("/settings/plan-limits", authRequired, async (req, res) => {
   if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
   const limits = await getPlanLimits();
-  return res.json({ limits, defaults: DEFAULT_LIMITS });
+  return res.json({ limits, defaults: DEFAULT_LIMITS, display: await getPlanDisplay(), tiers: PLAN_TIERS });
 });
 
 router.put("/settings/plan-limits", authRequired, async (req, res) => {
@@ -275,24 +276,102 @@ router.put("/settings/plan-limits", authRequired, async (req, res) => {
   const { limits } = req.body || {};
   if (!limits || typeof limits !== "object") return res.status(400).json({ error: "limits object required" });
   const clean = {};
-  for (const tier of ["free", "essential", "professional"]) {
+  for (const tier of PLAN_TIERS) {
     const src = limits[tier] || {};
+    const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
     clean[tier] = {
       adviai: Boolean(src.adviai),
       export: Boolean(src.export),
       gap: Boolean(src.gap),
-      predictions: Number.isFinite(Number(src.predictions)) ? Number(src.predictions) : 0,
+      parent_dashboard: Boolean(src.parent_dashboard),
+      prediction: PREDICTION_TIERS.includes(src.prediction) ? src.prediction : "none",
+      // blank/invalid falls back to the tier default (0 would hide every university match)
+      match: Number.isFinite(Number(src.match)) && String(src.match).trim() !== "" ? Number(src.match) : DEFAULT_LIMITS[tier].match,
+      advisor: num(src.advisor),
       edubot: Number.isFinite(Number(src.edubot)) ? Number(src.edubot) : 0,
       essay_feedback: Number.isFinite(Number(src.essay_feedback)) ? Number(src.essay_feedback) : 0
     };
   }
+  // Pricing-page display: visibility + prices (Free stays $0)
+  const display = {};
+  const srcDisplay = req.body?.display || {};
+  const cur = await getPlanDisplay();
+  for (const tier of PLAN_TIERS) {
+    const d = srcDisplay[tier] || cur[tier];
+    const price = (v, fb) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Math.round(Number(v) * 100) / 100 : fb);
+    display[tier] = {
+      visible: tier === "free" ? true : Boolean(d.visible),
+      name: DEFAULT_DISPLAY[tier].name,
+      monthly: tier === "free" ? 0 : price(d.monthly, cur[tier].monthly),
+      annual: tier === "free" ? 0 : price(d.annual, cur[tier].annual)
+    };
+  }
   try {
     await setPlanLimits(clean);
-    return res.json({ status: "ok", limits: clean });
+    await setPlanDisplay(display);
+    return res.json({ status: "ok", limits: clean, display });
   } catch (err) {
     if (err.code === "ER_NO_SUCH_TABLE") return res.status(400).json({ error: "Run alter_phase4_plan_settings.sql" });
     throw err;
   }
+});
+
+// ---- Admin: dropdown lists (Intended Majors, Curriculums, Subjects, Tests) ----
+router.get("/option-lists", authRequired, async (req, res) => {
+  if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
+  return res.json({ lists: await getOptionLists(), defaults: DEFAULT_OPTION_LISTS });
+});
+
+router.put("/option-lists/:key", authRequired, async (req, res) => {
+  if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
+  const { key } = req.params;
+  if (!OPTION_LIST_KEYS.includes(key)) return res.status(400).json({ error: "Unknown list" });
+  const groups = cleanGroups(req.body?.groups);
+  if (!groups) return res.status(400).json({ error: "groups array required" });
+  if (!groups.length) return res.status(400).json({ error: "A list needs at least one option" });
+  try {
+    const lists = await setOptionList(key, groups);
+    return res.json({ status: "ok", lists });
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE") return res.status(400).json({ error: "Run alter_phase4_plan_settings.sql" });
+    throw err;
+  }
+});
+
+// ---- Admin: Human Advisor Session queue ----
+router.get("/advisor-sessions", authRequired, async (req, res) => {
+  if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
+  try {
+    const [rows] = await pool.query(
+      `SELECT a.*, u.name AS student_name, u.email AS student_email, u.plan AS student_plan
+       FROM advisor_sessions a
+       JOIN students s ON a.student_id = s.id
+       JOIN users u ON s.user_id = u.id
+       ORDER BY FIELD(a.status, 'requested', 'scheduled', 'completed', 'cancelled'), a.created_at DESC
+       LIMIT 200`
+    );
+    return res.json(rows);
+  } catch (err) {
+    if (err.code === "ER_NO_SUCH_TABLE") return res.json([]);
+    throw err;
+  }
+});
+
+router.put("/advisor-sessions/:id", authRequired, async (req, res) => {
+  if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
+  const { status, scheduled_at, meeting_link, admin_note } = req.body || {};
+  if (!["requested", "scheduled", "completed", "cancelled"].includes(status)) {
+    return res.status(400).json({ error: "status must be requested, scheduled, completed, or cancelled" });
+  }
+  if (meeting_link && !/^https?:\/\//i.test(meeting_link)) return res.status(400).json({ error: "Meeting link must start with http:// or https://" });
+  const when = scheduled_at ? new Date(scheduled_at) : null;
+  if (when && Number.isNaN(when.getTime())) return res.status(400).json({ error: "Invalid scheduled_at" });
+  const [r] = await pool.query(
+    "UPDATE advisor_sessions SET status = ?, scheduled_at = ?, meeting_link = ?, admin_note = ? WHERE id = ?",
+    [status, when, (meeting_link || "").slice(0, 500) || null, admin_note || null, req.params.id]
+  );
+  if (!r.affectedRows) return res.status(404).json({ error: "Session not found" });
+  return res.json({ status: "ok" });
 });
 
 module.exports = router;

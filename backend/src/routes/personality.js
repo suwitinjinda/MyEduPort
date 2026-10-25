@@ -65,7 +65,7 @@ router.get("/items", authRequired, async (req, res) => {
   });
 });
 
-// Submit all 50 responses -> score, AdviAI narrative, save (append-only), return report
+// Submit all 50 responses -> score, MEPAi narrative, save (append-only), return report
 router.post("/submit", authRequired, async (req, res) => {
   if (req.user.role !== "student") return res.status(403).json({ error: "Student only" });
   if (!(await isFeatureAllowed(req.user.id, "adviai"))) {
