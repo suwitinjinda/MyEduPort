@@ -23,6 +23,8 @@ const ALWAYS_ALLOWED = [
   /^\/api\/billing\//,                   // subscribing again is the way out of this state
   /^\/api\/email\//,                     // unsubscribe links
   /^\/api\/share\//,                     // public share pages
+  /^\/api\/campaigns\//,                 // campaign landing pages (wording + visit count)
+  /^\/api\/ref\//,                       // referral-link visits — just counting, nothing of theirs changes
   /^\/api\/ai\/saved\/export_prefs$/,    // the export studio remembering layout choices
   // Admin tools run under the ADMIN_EMAIL account, which carries the student role here.
   // Without this, an admin whose own plan lapsed could not take a backup or restore one.

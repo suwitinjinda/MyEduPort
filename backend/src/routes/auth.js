@@ -6,6 +6,7 @@ const { OAuth2Client } = require("google-auth-library");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
 const { TRIAL_DAYS, getPlanStatus } = require("../services/plan");
+const { attachAtSignup } = require("../services/referrals");
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -27,12 +28,21 @@ async function startTrial(userId) {
 }
 
 router.post("/register", async (req, res) => {
-  const { email, password, role, name, data_consent } = req.body || {};
+  const { email, password, role, name, data_consent, ref } = req.body || {};
   if (!email || !password || !role || !name) {
     return res.status(400).json({ error: "Missing required fields" });
   }
-  if (!["student", "parent", "counselor"].includes(role)) {
+  // `affiliate` is a partner applying through /partners; they start pending until an
+  // admin approves them and sets their terms.
+  if (!["student", "parent", "counselor", "affiliate"].includes(role)) {
     return res.status(400).json({ error: "Role must be student, parent, or counselor" });
+  }
+  if (role === "affiliate" && String(password).length < 8) {
+    return res.status(400).json({ error: "Use at least 8 characters for your password." });
+  }
+  // Partners are paid, so they must be adults — our students are 14–18
+  if (role === "affiliate" && req.body?.is_adult !== true) {
+    return res.status(400).json({ error: "Partners must be 18 or older." });
   }
   // Check if data_consent column exists
   let hasConsentColumn = false;
@@ -71,6 +81,16 @@ router.post("/register", async (req, res) => {
     );
   }
   const userId = result.insertId;
+  if (role === "affiliate") {
+    const b = req.body || {};
+    const clip = (v, n) => (v == null ? null : String(v).trim().slice(0, n) || null);
+    await pool.query(
+      "INSERT INTO affiliates (user_id, organisation, phone, website, audience) VALUES (?, ?, ?, ?, ?)",
+      [userId, clip(b.organisation, 150), clip(b.phone, 40), clip(b.website, 255), clip(b.audience, 2000)]
+    );
+    const token = buildToken({ id: userId, role, email });
+    return res.json({ token });
+  }
   await startTrial(userId);
   if (role === "student") {
     await pool.query("INSERT INTO students (user_id, grade_level) VALUES (?, ?)", [userId, ""]);
@@ -79,6 +99,7 @@ router.post("/register", async (req, res) => {
   } else if (role === "counselor") {
     await pool.query("INSERT INTO counselors (user_id) VALUES (?)", [userId]);
   }
+  await attachAtSignup(userId, role, ref);
   const token = buildToken({ id: userId, role, email });
   return res.json({ token });
 });
@@ -105,7 +126,7 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/google", async (req, res) => {
-  const { credential, role: requestedRole } = req.body || {};
+  const { credential, role: requestedRole, ref } = req.body || {};
   if (!credential) {
     return res.status(400).json({ error: "Missing Google credential" });
   }
@@ -178,6 +199,7 @@ router.post("/google", async (req, res) => {
     } else if (role === "counselor") {
       await pool.query("INSERT INTO counselors (user_id) VALUES (?)", [userId]);
     }
+    await attachAtSignup(userId, role, ref);
     const token = buildToken({ id: userId, role, email });
     return res.json({ token });
   } catch (err) {

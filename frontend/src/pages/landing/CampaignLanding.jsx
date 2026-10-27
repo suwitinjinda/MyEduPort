@@ -1,20 +1,48 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useParams } from "react-router-dom";
-import { getToken, getUserRole } from "../../api/client";
+import { apiFetch, getToken, getUserRole } from "../../api/client";
 import { getCampaign } from "./campaigns.jsx";
 
-// One template behind every /lp/<campaign> page. The wording comes from
-// campaigns.jsx, so launching a campaign means adding an entry there.
+// One template behind every /lp/<campaign> page. Campaigns are created in
+// Admin → Campaigns; whatever wording a campaign leaves blank comes from BASE in
+// campaigns.jsx (which can also still hold campaigns defined in code).
 //
 // Unlike the marketing home page this does NOT bounce signed-in visitors to their
 // dashboard: you need to be able to open your own ad link and check how it looks.
 // The call-to-action still sends a signed-in visitor somewhere useful.
+
+// Admin-written text is plain; **double stars** make a phrase bold, nothing else.
+function withBold(text) {
+  if (typeof text !== "string") return text;
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    /^\*\*[^*]+\*\*$/.test(part) ? <strong key={i}>{part.slice(2, -2)}</strong> : part
+  );
+}
+
 export default function CampaignLanding() {
   const { campaign: slug } = useParams();
-  const c = getCampaign(slug);
+  // undefined = still asking the server, null = not an admin-made campaign
+  const [fromAdmin, setFromAdmin] = useState(slug ? undefined : null);
+
+  useEffect(() => {
+    if (!slug) { setFromAdmin(null); return; }
+    let live = true;
+    setFromAdmin(undefined);
+    apiFetch(`/api/campaigns/${encodeURIComponent(slug)}`)
+      .then((d) => {
+        if (!live) return;
+        setFromAdmin(d?.content || null);
+        if (d?.content) apiFetch(`/api/campaigns/${encodeURIComponent(slug)}/visit`, { method: "POST" }).catch(() => {});
+      })
+      .catch(() => live && setFromAdmin(null));
+    return () => { live = false; };
+  }, [slug]);
+
+  const c = { ...getCampaign(slug), ...(fromAdmin || {}) };
 
   // Each campaign gets its own tab title and description for search and link previews.
   useEffect(() => {
+    if (fromAdmin === undefined) return;
     const prevTitle = document.title;
     const tag = document.querySelector('meta[name="description"]');
     const prevDesc = tag?.getAttribute("content");
@@ -24,7 +52,7 @@ export default function CampaignLanding() {
       document.title = prevTitle;
       if (tag && prevDesc != null) tag.setAttribute("content", prevDesc);
     };
-  }, [c.title, c.description]);
+  }, [c.title, c.description, fromAdmin]);
 
   // Signed-in visitors go to their dashboard instead of the sign-in form.
   const role = getUserRole();
@@ -33,6 +61,10 @@ export default function CampaignLanding() {
     : role === "parent" ? "/parent" : role === "counselor" ? "/counselor" : "/dashboard";
 
   const [activeVideo, setActiveVideo] = useState(null);
+
+  // Hold the page for the moment it takes to fetch the wording, so visitors never see the
+  // base headline flash and then change.
+  if (fromAdmin === undefined) return <div style={{ minHeight: "70vh" }} />;
 
   return (
     <div className="grid" style={{ gap: "3.5rem", paddingBottom: "2rem" }}>
@@ -81,7 +113,7 @@ export default function CampaignLanding() {
               marginBottom: "1.25rem"
             }}
           >
-            {c.subheadline}
+            {withBold(c.subheadline)}
           </p>
 
           {/* 14-Day Free Trial Notice */}

@@ -39,10 +39,15 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 // Marketing campaign landing pages — /lp/<campaign>, one template, see pages/landing/campaigns.jsx
 const CampaignLanding = lazy(() => import("./pages/landing/CampaignLanding.jsx"));
 const AdmissionResults = lazy(() => import("./pages/AdmissionResults.jsx"));
+// Affiliate and referral programs — doc/affiliate-referral-design.md
+const Partners = lazy(() => import("./pages/Partners.jsx"));
+const AffiliateDashboard = lazy(() => import("./pages/AffiliateDashboard.jsx"));
+const Rewards = lazy(() => import("./pages/Rewards.jsx"));
 
 import { clearToken, getToken, getUserRole, apiFetch } from "./api/client.js";
+import { captureReferral } from "./utils/referral.js";
 
-const roleHome = (r) => (r === "parent" ? "/parent" : r === "counselor" ? "/counselor" : "/dashboard");
+const roleHome = (r) => (r === "parent" ? "/parent" : r === "counselor" ? "/counselor" : r === "affiliate" ? "/affiliate" : "/dashboard");
 
 // Defined at module level so its identity is stable: when it lived inside App, every App
 // re-render (any navigation, auth sync) created a new component type and React remounted the
@@ -81,6 +86,9 @@ export default function App() {
     }
     window.scrollTo(0, 0);
   }, [location.pathname, location.hash]);
+  useEffect(() => {
+    if (location.search.includes("ref=")) captureReferral(location.search, location.pathname);
+  }, [location.search, location.pathname]);
   const [isSignedIn, setIsSignedIn] = useState(Boolean(getToken()));
   const [userRole, setUserRole] = useState(getUserRole());
   const [isAdmin, setIsAdmin] = useState(false);
@@ -139,7 +147,9 @@ export default function App() {
         <nav>
           {/* Home is redundant with Dashboard once signed in (the logo still links home). */}
           {!isSignedIn && <NavLink to="/" end>Home</NavLink>}
-          {userRole === "parent" ? (
+          {userRole === "affiliate" ? (
+            <NavLink to="/affiliate">Partner dashboard</NavLink>
+          ) : userRole === "parent" ? (
             <NavLink to="/parent">Parent</NavLink>
           ) : userRole === "counselor" ? (
             <NavLink to="/counselor">Counselor</NavLink>
@@ -192,6 +202,9 @@ export default function App() {
           <Route path="/billing/success" element={<ProtectedRoute><BillingSuccess /></ProtectedRoute>} />
           <Route path="/export" element={<ProtectedRoute role="student"><ExportPortfolio /></ProtectedRoute>} />
           <Route path="/admission-results" element={<ProtectedRoute role="student"><AdmissionResults /></ProtectedRoute>} />
+          <Route path="/rewards" element={<ProtectedRoute role={["student", "parent"]}><Rewards /></ProtectedRoute>} />
+          <Route path="/partners" element={<Partners />} />
+          <Route path="/affiliate" element={<ProtectedRoute role="affiliate"><AffiliateDashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch, getToken } from "../api/client";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { storedReferral } from "../utils/referral.js";
 
 // Plans, prices and limits come from Admin → Plan Settings (GET /api/options/plans), so the
 // cards and the comparison table always match what the app actually allows.
@@ -91,6 +92,17 @@ export default function Pricing() {
   const [busyPlan, setBusyPlan] = useState("");
   const [payMsg, setPayMsg] = useState(new URLSearchParams(location.search).get("checkout") === "cancelled" ? "Checkout cancelled — you haven't been charged." : "");
   useEffect(() => { if (loggedIn) apiFetch("/api/billing/status").then(setBilling).catch(() => {}); }, [loggedIn]);
+  const [refDiscount, setRefDiscount] = useState(null); // { percent, from }
+  useEffect(() => {
+    if (loggedIn) {
+      apiFetch("/api/ref/mine").then((r) => {
+        if (r?.discount_available) setRefDiscount({ percent: r.discount_percent, from: r.from, duration: r.discount_duration, months: r.discount_months });
+      }).catch(() => {});
+    } else {
+      const s = storedReferral();
+      if (s?.discount_percent > 0) setRefDiscount({ percent: s.discount_percent, from: s.from, duration: s.discount_duration, months: s.discount_months });
+    }
+  }, [loggedIn]);
   // after signing in, show the plan they were about to buy
   useEffect(() => {
     if (!loggedIn) return;
@@ -137,6 +149,13 @@ export default function Pricing() {
         <div style={{ display: "inline-block", marginTop: "1rem", padding: "0.5rem 1rem", background: "var(--success-soft)", borderRadius: "var(--r-full)", fontSize: "0.9rem", fontWeight: 600, color: "var(--ink)" }}>
           🎉 Every new account starts with a 14-day free trial of Professional
         </div>
+        {refDiscount && (
+          <div style={{ marginTop: "0.75rem", padding: "0.5rem 1rem", background: "var(--success-soft)", borderRadius: "var(--r-md)", fontSize: "0.9rem", color: "var(--success-deep)", display: "inline-block" }}>
+            You have {refDiscount.percent}% off{refDiscount.from ? ` from ${refDiscount.from}` : ""}
+            {refDiscount.duration === "forever" ? " on every bill" : refDiscount.duration === "repeating" ? ` for your first ${refDiscount.months} months` : " your first bill"}
+            {" "}— {loggedIn ? "applied automatically at checkout." : "sign up to use it."}
+          </div>
+        )}
         {billing?.test_mode && (
           <div style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "var(--warn)", fontWeight: 600 }}>
             Stripe TEST MODE — use card 4242 4242 4242 4242, any future date, any CVC. No real charges.

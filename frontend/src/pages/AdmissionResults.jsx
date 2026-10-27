@@ -33,7 +33,7 @@ export default function AdmissionResults() {
   useEffect(() => {
     load();
     apiFetch("/api/students/me/admission-results/options").then(setOptions).catch(() => {});
-    apiFetch("/api/options/universities").then((d) => setUnis(Array.isArray(d) ? d : d?.universities || [])).catch(() => {});
+    apiFetch("/api/universities").then((d) => setUnis(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });

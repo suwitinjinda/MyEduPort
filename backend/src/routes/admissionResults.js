@@ -1,5 +1,6 @@
 const express = require("express");
 const pool = require("../db");
+const { awardCoins } = require("../services/referrals");
 const { authRequired } = require("../middleware/auth");
 const { profileSnapshot } = require("../services/knowledge");
 
@@ -89,6 +90,7 @@ router.post("/", authRequired, async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'student')`,
       [studentId, v.universityId, v.universityName, v.country, v.cycleYear, v.round, v.major, v.result, snapshot, v.notes]
     );
+    awardCoins(req.user.id, "admission_result", `admission_result:${r.insertId}`);
     res.status(201).json({ id: r.insertId });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {

@@ -2,6 +2,7 @@ const express = require("express");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
 const { getPlanDisplay, PLAN_TIERS } = require("../services/plan");
+const referrals = require("../services/referrals");
 
 // Stripe subscriptions (Checkout + Billing Portal + webhook).
 // Configure in backend/.env:
@@ -77,6 +78,13 @@ router.post("/checkout", authRequired, async (req, res) => {
     const portal = await s.billingPortal.sessions.create({ customer: u.stripe_customer_id, return_url: `${origin}/settings` });
     return res.json({ url: portal.url, portal: true });
   }
+  // A referred student gets their discount applied automatically. Stripe won't take a
+  // coupon and the promo-code box in the same session, so one or the other — which also
+  // keeps discounts from stacking.
+  let referral = null;
+  try { referral = await referrals.checkoutCoupon(u.id, s); }
+  catch (e) { console.error("[stripe] referral coupon:", e.message); /* charge full price rather than fail */ }
+
   try {
     const session = await s.checkout.sessions.create({
       mode: "subscription",
@@ -93,11 +101,11 @@ router.post("/checkout", authRequired, async (req, res) => {
       }],
       subscription_data: { metadata: { user_id: String(u.id), plan, cycle } },
       metadata: { user_id: String(u.id), plan, cycle },
-      allow_promotion_codes: true,
+      ...(referral ? { discounts: [{ coupon: referral.couponId }] } : { allow_promotion_codes: true }),
       success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/pricing?checkout=cancelled`
     });
-    res.json({ url: session.url });
+    res.json({ url: session.url, discount: referral ? { percent: referral.percent, from: referral.from } : null });
   } catch (err) {
     console.error("[stripe] checkout:", err.message);
     res.status(502).json({ error: `Stripe: ${err.message}` });
@@ -157,6 +165,13 @@ async function webhook(req, res) {
         userId = u?.id || null;
       }
       if (userId) await applySubscription(userId, event.type === "customer.subscription.deleted" ? { ...obj, status: "canceled" } : obj);
+    } else if (event.type === "invoice.paid") {
+      // Affiliate commission and referral coins. Idempotent, so Stripe retries are safe.
+      const r = await referrals.onInvoicePaid(obj);
+      if (r.commission || r.referral) console.log(`[stripe] invoice ${obj.id}:`, JSON.stringify(r));
+    } else if (event.type === "charge.refunded") {
+      const r = await referrals.onChargeRefunded(obj);
+      if (r.reversed || r.flagged) console.log(`[stripe] refund ${obj.id}:`, JSON.stringify(r));
     }
     res.json({ received: true });
   } catch (err) {

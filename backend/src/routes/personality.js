@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const pool = require("../db");
+const { awardCoins } = require("../services/referrals");
 const { authRequired } = require("../middleware/auth");
 const { isFeatureAllowed } = require("../services/plan");
 const { buildPersonalityNarrative } = require("../services/aiClient");
@@ -101,6 +102,7 @@ router.post("/submit", authRequired, async (req, res) => {
       "INSERT INTO personality_assessments (student_id, instrument, instrument_version, responses, scores, bands, narrative, started_at, parental_consent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [studentId, "IPIP-50", "1.0", JSON.stringify(responses), JSON.stringify({ raw, average }), JSON.stringify(bands), JSON.stringify(narrative), startedAt, Boolean(parental_consent)]
     );
+    awardCoins(req.user.id, "personality_test", `personality:${result.insertId}`);
     res.json({ id: result.insertId, scores: { raw, average }, bands, narrative, factors: FACTOR_NAMES, completed_at: new Date().toISOString() });
   } catch (err) {
     console.error("personality submit error:", err.message);

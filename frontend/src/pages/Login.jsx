@@ -1,9 +1,19 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { apiFetch, setToken, getUserRole } from "../api/client";
 import GoogleSignIn from "../components/GoogleSignIn";
+import { storedReferral, clearReferral } from "../utils/referral.js";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+// The discount line follows whatever the admin set for that code
+const discountText = (r) => {
+  const pct = `${Number(r.discount_percent)}% off`;
+  if (!(Number(r.discount_percent) > 0)) return "welcome to MyEduPort";
+  if (r.discount_duration === "forever") return `${pct} every bill`;
+  if (r.discount_duration === "repeating") return `${pct} for your first ${r.discount_months} months`;
+  return `${pct} your first bill`;
+};
+const homeFor = (role) => (role === "parent" ? "/parent" : role === "counselor" ? "/counselor" : role === "affiliate" ? "/affiliate" : "/dashboard");
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,8 +26,18 @@ export default function Login() {
     email: "",
     password: "",
     role: "student",
-    data_consent: false
+    data_consent: false,
+    ref: storedReferral()?.code || ""
   });
+  const [refInfo, setRefInfo] = useState(null); // { valid, from, discount_percent }
+  useEffect(() => {
+    const code = form.ref.trim();
+    if (code.length < 3) { setRefInfo(null); return; }
+    const t = setTimeout(() => {
+      apiFetch(`/api/ref/check/${encodeURIComponent(code)}`).then(setRefInfo).catch(() => setRefInfo(null));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [form.ref]);
   const [status, setStatus] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -36,15 +56,17 @@ export default function Login() {
       if (registering) {
         body.role = formRef.current.role;
         body.data_consent = formRef.current.data_consent;
+        body.ref = formRef.current.ref || undefined;
       }
       const result = await apiFetch("/api/auth/google", {
         method: "POST",
         body: JSON.stringify(body)
       });
       setToken(result.token);
+      if (registering) clearReferral();
       window.dispatchEvent(new Event("auth-change"));
       const role = getUserRole();
-      const redirectPath = backTo || (role === "parent" ? "/parent" : role === "counselor" ? "/counselor" : "/dashboard");
+      const redirectPath = backTo || homeFor(role);
       setStatus("Signed in. Redirecting…");
       setTimeout(() => navigate(redirectPath), 400);
     } catch (err) {
@@ -65,9 +87,10 @@ export default function Login() {
         body: JSON.stringify(payload)
       });
       setToken(result.token);
+      if (mode === "register") clearReferral();
       window.dispatchEvent(new Event("auth-change"));
       const role = getUserRole();
-      const redirectPath = backTo || (role === "parent" ? "/parent" : role === "counselor" ? "/counselor" : "/dashboard");
+      const redirectPath = backTo || homeFor(role);
       setStatus("Signed in. Redirecting…");
       setTimeout(() => navigate(redirectPath), 400);
     } catch (err) {
@@ -160,6 +183,22 @@ export default function Login() {
                   <option value="counselor">School Counselor</option>
                 </select>
               </div>
+              {form.role !== "counselor" && (
+                <div className="input">
+                  <label>Referral code <span className="text-muted" style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
+                  <input value={form.ref} onChange={updateField("ref")} placeholder="From a friend or partner" autoComplete="off" />
+                  {refInfo?.valid && (
+                    <span style={{ fontSize: "0.8rem", color: "var(--success-deep)", marginTop: "0.3rem", display: "block" }}>
+                      ✓ From {refInfo.from} — {discountText(refInfo)}
+                    </span>
+                  )}
+                  {refInfo && !refInfo.valid && form.ref.trim().length >= 3 && (
+                    <span style={{ fontSize: "0.8rem", color: "var(--error-deep)", marginTop: "0.3rem", display: "block" }}>
+                      We don't recognise that code.
+                    </span>
+                  )}
+                </div>
+              )}
             </>
           )}
           <div className="input">

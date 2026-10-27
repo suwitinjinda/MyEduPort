@@ -1,15 +1,16 @@
 import React from "react";
 
 // Campaign landing pages live at /lp/<campaign> and all share one template
-// (CampaignLanding.jsx). To launch a new campaign, add an entry to CAMPAIGNS below —
-// no new component and no new route. Anything a campaign leaves out falls back to
+// (CampaignLanding.jsx). Campaigns are normally created in Admin → Campaigns (stored in
+// the database); CAMPAIGNS below is for ones kept in code. Either way, no new component
+// and no new route. Anything a campaign leaves out falls back to
 // BASE, so an entry can be as small as a headline.
 //
 //   /lp/facebook-oct   →  CAMPAIGNS["facebook-oct"]
 //   /lp                →  BASE
 //   /lp/<unknown>      →  BASE (a mistyped ad link still converts)
 
-const BASE = {
+export const BASE = {
   // Browser tab + what search engines and link previews show
   title: "MyEduPort.ai — AI Trained for University Admissions",
   description:

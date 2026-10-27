@@ -3,6 +3,9 @@ import { apiFetch } from "../api/client";
 import EmailMarketing from "./EmailMarketing.jsx";
 import MachineLearningAdmin from "./MachineLearningAdmin.jsx";
 import BackupAdmin from "./BackupAdmin.jsx";
+import AffiliateAdmin from "./AffiliateAdmin.jsx";
+import CoinsAdmin from "./CoinsAdmin.jsx";
+import CampaignsAdmin from "./CampaignsAdmin.jsx";
 import { fmtDateTime } from "../utils/date.js";
 
 export default function Admin() {
@@ -120,9 +123,12 @@ export default function Admin() {
     { id: "universities", label: "Universities" },
     { id: "ml", label: "Machine Learning" },
     { id: "email", label: "Email Marketing" },
+    { id: "campaigns", label: "Campaigns" },
     { id: "lists", label: "Dropdown Lists" },
     { id: "advisor", label: "Advisor Sessions" },
     { id: "settings", label: "Plan Settings" },
+    { id: "affiliates", label: "Affiliates" },
+    { id: "coins", label: "Coins" },
     { id: "backup", label: "Backups" }
   ];
 
@@ -135,13 +141,15 @@ export default function Admin() {
         </h1>
       </header>
 
-      <nav style={{ display: "flex", gap: "0", borderBottom: "1px solid var(--rule)", marginBottom: "2rem" }}>
+      {/* Twelve tabs no longer fit one row at desktop width — wrap instead of pushing the page sideways */}
+      <nav style={{ display: "flex", flexWrap: "wrap", gap: "0", borderBottom: "1px solid var(--rule)", marginBottom: "2rem" }}>
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
             style={{
-              padding: "0.85rem 1.5rem",
+              padding: "0.85rem 1rem",
+              whiteSpace: "nowrap",
               background: "transparent",
               border: "none",
               borderBottom: activeTab === t.id ? "2px solid var(--gold)" : "2px solid transparent",
@@ -403,6 +411,9 @@ export default function Admin() {
 
           {activeTab === "ml" && <MachineLearningAdmin />}
 
+          {activeTab === "affiliates" && <AffiliateAdmin />}
+          {activeTab === "coins" && <CoinsAdmin />}
+          {activeTab === "campaigns" && <CampaignsAdmin />}
           {activeTab === "backup" && <BackupAdmin />}
 
           {activeTab === "email" && <EmailMarketing />}
