@@ -57,3 +57,10 @@ test("header fits at in-between widths", async ({ page }, info) => {
     }
   }
 });
+
+// The Google button only renders when VITE_GOOGLE_CLIENT_ID was present at build time, so a
+// build made without it silently drops Google sign-in for everyone. Catch that here.
+test("sign-in page shows the Google button", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.locator("iframe[src*='accounts.google.com']").first()).toBeVisible({ timeout: 15000 });
+});
