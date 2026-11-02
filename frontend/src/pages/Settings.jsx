@@ -3,6 +3,38 @@ import { useNavigate, Link } from "react-router-dom";
 import { apiFetch, clearToken, getUserRole, getToken, API_URL } from "../api/client";
 import { fmtDate, fmtDateTime } from "../utils/date.js";
 
+// A code the student gives a parent so the parent's account can follow their portfolio.
+// (In the classic menu it also sits in the Portfolio sidebar.)
+function ParentInviteSection() {
+  const [code, setCode] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [err, setErr] = useState("");
+  const load = async () => {
+    setErr("");
+    try { setCode((await apiFetch("/api/students/me/invite")).invite_code); } catch (e) { setErr(e.message); }
+  };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* select manually */ }
+  };
+  return (
+    <section className="card" style={{ marginBottom: "1.5rem", padding: "2rem" }}>
+      <h2 className="section-title" style={{ fontSize: "1.35rem" }}>Parent invite code</h2>
+      <p className="muted" style={{ fontSize: "0.92rem" }}>
+        Give this code to a parent or guardian. When they sign up as a parent and enter it, they can follow your portfolio.
+      </p>
+      {code ? (
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap", marginTop: "0.75rem" }}>
+          <span className="mono" style={{ padding: "0.55rem 1rem", border: "1px solid var(--rule)", borderRadius: "var(--r-md)", background: "var(--surface-warm, #f8fafc)", fontWeight: 700, letterSpacing: "0.18em", color: "var(--ink)" }}>{code}</span>
+          <button type="button" className="button ghost" onClick={copy}>{copied ? "Copied" : "Copy code"}</button>
+        </div>
+      ) : (
+        <button type="button" className="button" style={{ marginTop: "0.75rem" }} onClick={load}>Show my code</button>
+      )}
+      {err && <p style={{ color: "var(--error-deep)", fontSize: "0.85rem", marginTop: "0.5rem" }}>{err}</p>}
+    </section>
+  );
+}
+
 // The optional choices from the sign-up consent form, changeable any time. Each change is
 // recorded (with the date) rather than overwriting the earlier answer.
 function ConsentChoices() {
@@ -205,8 +237,8 @@ function ShareSection() {
 
       <div className="grid two" style={{ alignItems: "end" }}>
         <div className="input" style={{ marginBottom: 0 }}>
-          <label>Expires after (days)</label>
-          <select value={days} onChange={(e) => setDays(e.target.value)}>
+          <label htmlFor="share-expiry">Expires after (days)</label>
+          <select id="share-expiry" value={days} onChange={(e) => setDays(e.target.value)}>
             <option value="7">7 days</option>
             <option value="30">30 days</option>
             <option value="90">90 days</option>
@@ -403,6 +435,7 @@ export default function Settings() {
       </section>
 
       {getUserRole() === "student" && <ShareSection />}
+      {getUserRole() === "student" && <ParentInviteSection />}
 
       {/* Password */}
       <section className="card" style={{ marginBottom: "1.5rem", padding: "2rem" }}>
@@ -491,7 +524,7 @@ export default function Settings() {
           <button
             className="button"
             onClick={() => setShowDeleteConfirm(true)}
-            style={{ background: "var(--error)", borderColor: "var(--error)" }}
+            style={{ background: "var(--error-deep)", borderColor: "var(--error-deep)" }}
           >
             Delete my account
           </button>
@@ -523,7 +556,7 @@ export default function Settings() {
                 className="button"
                 onClick={handleDeleteAccount}
                 disabled={deleteConfirm !== "DELETE"}
-                style={{ background: "var(--error)", borderColor: "var(--error)" }}
+                style={{ background: "var(--error-deep)", borderColor: "var(--error-deep)" }}
               >
                 Permanently delete
               </button>

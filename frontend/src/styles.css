@@ -693,7 +693,7 @@ label.input > span:first-child {
 /* Dashboard sidebar specific */
 .dash-layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 240px minmax(0, 1fr); /* minmax: wide content shrinks instead of pushing the page sideways */
   gap: 1.5rem;
   align-items: start;
 }
@@ -739,7 +739,7 @@ label.input > span:first-child {
 }
 
 @media (max-width: 900px) {
-  .dash-layout { grid-template-columns: 1fr; }
+  .dash-layout { grid-template-columns: minmax(0, 1fr); }
   .dash-sidebar { position: static; }
 }
 
@@ -1397,3 +1397,34 @@ table tbody tr:hover { background: var(--paper-warm); }
 }
 .back-button:hover { color: var(--ink); border-color: var(--ink-muted); background: var(--paper-warm); }
 .back-button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+/* =====================  Student side menus  ===================== */
+/* Icons in either menu, wherever it sits (the Portfolio sidebar too) */
+.quick-menu .nav-link svg, .student-nav .nav-link svg { width: 18px; height: 18px; flex-shrink: 0; }
+.pe-sidebar .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.55rem 0.85rem; border-radius: var(--r-md); color: var(--ink-muted); font-size: 0.88rem; text-decoration: none; }
+.pe-sidebar .nav-link:hover { background: var(--paper-warm); color: var(--ink); }
+.pe-sidebar .nav-link.active { background: var(--teal-soft); color: var(--teal-deep); font-weight: 600; }
+
+/* Unified menu */
+.student-nav nav .nav-link { margin-bottom: 0.15rem; }
+.student-nav-toggle { display: none; width: 100%; align-items: center; gap: 0.5rem; padding: 0.55rem 0.75rem; border: 1px solid var(--rule); border-radius: var(--r-md); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
+.student-nav-sub { margin: 0.1rem 0 0.4rem 1.1rem; border-left: 1px solid var(--rule); }
+.student-nav-sub a { display: block; padding: 0.38rem 0.75rem; font-size: 0.84rem; color: var(--ink-muted); text-decoration: none; border-left: 2px solid transparent; margin-left: -1px; }
+.student-nav-sub a:hover { color: var(--ink); }
+.student-nav-sub a.active { color: var(--teal-deep); font-weight: 600; border-left-color: var(--teal); }
+.student-nav-sub .num { font-family: var(--font-display); font-size: 0.72rem; color: var(--gold-deep); margin-right: 0.25rem; }
+.student-nav-group { font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-muted); font-weight: 700; margin: 1rem 0.85rem 0.3rem; }
+.student-nav-rule { border-top: 1px solid var(--rule-soft, var(--rule)); margin: 0.75rem 0 0.4rem; }
+.nav-layout-switch { display: block; width: 100%; margin-top: 0.85rem; padding: 0.45rem 0.6rem; border: 1px dashed var(--rule); border-radius: var(--r-md); background: transparent; color: var(--teal-deep); font: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; text-align: center; }
+.nav-layout-switch:hover { background: var(--teal-soft); border-style: solid; }
+@media (max-width: 900px) {
+  .student-nav-toggle { display: flex; }
+  .student-nav nav { margin-top: 0.5rem; }
+}
+/* Portfolio item in the unified menu: arrow shows (and toggles) its sections */
+.student-nav-parent { position: relative; }
+.student-nav-parent .nav-link { padding-right: 2.4rem; }
+.student-nav-caret { position: absolute; right: 0.35rem; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: none; border-radius: var(--r-md); background: transparent; color: var(--ink-muted); cursor: pointer; }
+.student-nav-caret:hover { background: var(--paper-warm); color: var(--ink); }
+.student-nav-caret svg { transition: transform 0.15s ease; }
+.student-nav-caret.open svg { transform: rotate(90deg); }

@@ -9,7 +9,8 @@ import { fmtDate, fmtTime } from "../utils/date.js";
 import { STUDY_COUNTRIES, uniCountryOf } from "../utils/countries.js";
 import ActivitiesEditor from "./ActivitiesEditor.jsx";
 import EssayEditor from "./EssayEditor.jsx";
-import { QuickMenu } from "../components/StudentMenu.jsx";
+import { QuickMenu, StudentSidebar, NavLayoutSwitch } from "../components/StudentMenu.jsx";
+import { useNavLayout } from "../utils/navLayout.js";
 
 // Subject dropdown for Academics → Section I (moved from the Standardized tests list)
 const SUBJECT_GROUPS = [
@@ -96,6 +97,7 @@ export default function ProfileEditor() {
   const activeSection = SECTION_IDS.includes(searchParams.get("section")) ? searchParams.get("section") : "personal";
   const openEssay = searchParams.get("essay"); // essay id, "new", or null = the Documents overview
   const setActiveSection = (id) => setSearchParams({ section: id });
+  const unifiedNav = useNavLayout() === "unified";
   const showEssay = (id) => setSearchParams({ section: "documents", essay: id ? String(id) : "new" });
   const closeEssay = () => setSearchParams({ section: "documents" });
   const [profile, setProfile] = useState({
@@ -456,8 +458,11 @@ export default function ProfileEditor() {
         </p>
       </header>
 
-      <div className="profile-editor-layout">
-        {/* Sidebar */}
+      <div className={unifiedNav ? "dash-layout" : "profile-editor-layout"}>
+        {/* Sidebar: the unified student menu (sections nested inside), or the classic one */}
+        {unifiedNav ? (
+          <aside className="dash-sidebar"><StudentSidebar /></aside>
+        ) : (
         <aside className="pe-sidebar">
           <div style={{ marginBottom: "1.25rem", paddingBottom: "0.75rem", borderBottom: "1px solid var(--rule-soft)" }}>
             <QuickMenu defaultOpen={false} />
@@ -568,7 +573,9 @@ export default function ProfileEditor() {
               </button>
             )}
           </div>
+          <NavLayoutSwitch />
         </aside>
+        )}
 
         {/* Main content */}
         <div>
@@ -833,7 +840,7 @@ export default function ProfileEditor() {
               </div>
 
               <form onSubmit={addTest} style={{ marginBottom: "1.5rem" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: "0.75rem", alignItems: "end" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr)) auto", gap: "0.75rem", alignItems: "end" }}>
                   <div className="input" style={{ marginBottom: 0 }}>
                     <label>Test</label>
                     <select value={testForm.test_type} onChange={(e) => setTestForm({ ...testForm, test_type: e.target.value })}>

@@ -3,7 +3,7 @@ import { useNavigate, NavLink, Link } from "react-router-dom";
 import { apiFetch, getUserRole, loadSaved } from "../api/client";
 import Skeleton, { SkeletonStats } from "../components/Skeleton.jsx";
 import { fmtDate, fmtDateTime } from "../utils/date.js";
-import { QuickMenu } from "../components/StudentMenu.jsx";
+import { StudentSidebar } from "../components/StudentMenu.jsx";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -163,7 +163,7 @@ export default function Dashboard() {
     <div className="dash-layout">
       {/* ───────── Sidebar ───────── */}
       <aside className="dash-sidebar">
-        <QuickMenu overdue={overdueTasks.length} />
+        <StudentSidebar overdue={overdueTasks.length} />
       </aside>
 
       {/* ───────── Main ───────── */}

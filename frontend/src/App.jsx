@@ -7,6 +7,7 @@ import Login from "./pages/Login.jsx";
 import UserProfileDropdown from "./components/UserProfileDropdown.jsx";
 import Skeleton from "./components/Skeleton.jsx";
 import { StudentShell } from "./components/StudentMenu.jsx";
+import { useNavLayout } from "./utils/navLayout.js";
 
 // Lazy-loaded — splits the bundle so the landing page loads fast.
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
@@ -93,6 +94,9 @@ function BackButton() {
   );
 }
 
+// Pages inside the student app (they carry the student side menu)
+const STUDENT_APP = /^\/(dashboard|profile|recommendations|compare|tasks|chat|export|settings)(\/|$)/;
+
 // Old essay links (/essay, /essay?id=12) open the essay inside Portfolio → Documents
 function EssayRedirect() {
   const id = new URLSearchParams(useLocation().search).get("id");
@@ -150,6 +154,7 @@ export default function App() {
   // /lp and /lp/<campaign> are marketing landing pages — no site nav, one button to the app.
   const isLanding = location.pathname === "/lp" || location.pathname.startsWith("/lp/");
   const appHref = isSignedIn ? roleHome(userRole) : "/login";
+  const navLayout = useNavLayout();
 
   const handleAuthClick = () => {
     if (isSignedIn) {
@@ -178,6 +183,13 @@ export default function App() {
             <NavLink to="/parent">Parent</NavLink>
           ) : userRole === "counselor" ? (
             <NavLink to="/counselor">Counselor</NavLink>
+          ) : isSignedIn && userRole === "student" && navLayout === "unified" ? (
+            <>
+              {/* The unified side menu already lists Dashboard, Portfolio and Compare */}
+              <NavLink to="/dashboard" className={() => (STUDENT_APP.test(location.pathname) ? "active" : "")}>My Portfolio</NavLink>
+              <NavLink to="/admission-resources">Admissions</NavLink>
+              <NavLink to="/career-resources">Career</NavLink>
+            </>
           ) : (
             <>
               <NavLink to="/dashboard">Dashboard</NavLink>
