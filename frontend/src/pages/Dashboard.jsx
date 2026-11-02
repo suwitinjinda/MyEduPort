@@ -3,6 +3,7 @@ import { useNavigate, NavLink, Link } from "react-router-dom";
 import { apiFetch, getUserRole, loadSaved } from "../api/client";
 import Skeleton, { SkeletonStats } from "../components/Skeleton.jsx";
 import { fmtDate, fmtDateTime } from "../utils/date.js";
+import { QuickMenu } from "../components/StudentMenu.jsx";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -31,7 +32,6 @@ export default function Dashboard() {
   const [score, setScore] = useState(null);
   const [savedUnis, setSavedUnis] = useState([]);
   const [profile, setProfile] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(true); // collapsible "Quick menu" side nav
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(true);
 
@@ -85,6 +85,10 @@ export default function Dashboard() {
     "Netherlands": "Apply through Studielink. Many English-taught bachelors; selective 'numerus fixus' courses add tests — deadline often Jan 15.",
     "Germany": "Apply via uni-assist or directly. Low/no tuition at public universities; needs a recognized qualification (sometimes Studienkolleg) + language proof.",
     "Switzerland": "Apply directly to each university. Qualification-based; some programs need an entrance exam and language proof (German/French/English).",
+    "France": "Apply via Campus France / Études en France (or Parcoursup for some first-year programs). Many English-taught programs at Grandes Écoles; low public tuition. Deadlines ~Dec–Mar.",
+    "Thailand": "Apply directly to each university's international program (or TCAS for Thai-track programs). Usually needs IELTS/TOEFL and sometimes SAT; several intake rounds a year.",
+    "New Zealand": "Apply directly to each university. Grade-based entry with set requirements per program; main intake in February, some in July.",
+    "Taiwan": "Apply directly or via the overseas admissions portal. Many English-taught programs; scholarships are common. Deadlines ~Jan–Mar for September entry.",
     "Other": "Check each target university's own admissions page for deadlines, required tests, and the application portal."
   };
   const selectedCountries = (profile?.target_countries || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -112,7 +116,8 @@ export default function Dashboard() {
       else { setGap((await apiFetch("/api/ai/gap-analysis").catch(() => [])) || []); setGapSavedAt(new Date().toISOString()); }
       const savedAcc = sv.acceptance?.[""];
       if (!f || f.prediction === "none") setAcceptance(null);
-      else if (savedAcc && savedAcc.tier === f.prediction) { setAcceptance(savedAcc); setAccSavedAt(savedAcc.saved_at); }
+      // Reuse the saved prediction unless the plan tier or the portfolio itself has changed
+      else if (savedAcc && savedAcc.tier === f.prediction && !savedAcc.stale) { setAcceptance(savedAcc); setAccSavedAt(savedAcc.saved_at); }
       else { setAcceptance((await apiFetch("/api/ai/acceptance-probability").catch(() => null)) || null); setAccSavedAt(new Date().toISOString()); }
     } finally {
       setAiLoading(false);
@@ -158,35 +163,7 @@ export default function Dashboard() {
     <div className="dash-layout">
       {/* ───────── Sidebar ───────── */}
       <aside className="dash-sidebar">
-        {/* "Quick menu" is a heading, not a link — click to collapse/expand the nav. */}
-        <button
-          type="button"
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-expanded={menuOpen}
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            width: "100%", background: "transparent", border: "none", cursor: "pointer",
-            padding: "0.5rem 0.75rem", marginBottom: "0.35rem", fontFamily: "inherit",
-            fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em",
-            textTransform: "uppercase", color: "var(--ink-muted)"
-          }}
-        >
-          <span>Quick menu</span>
-          <span aria-hidden style={{ display: "inline-block", transition: "transform 0.2s", transform: menuOpen ? "rotate(90deg)" : "rotate(0deg)" }}>›</span>
-        </button>
-        {menuOpen && (
-          <>
-            <NavItem to="/profile" icon={<ProfileIcon />} label="Personal" />
-            <NavItem to="/profile" icon={<PortfolioIcon />} label="Portfolio" />
-            <NavItem to="/recommendations" icon={<UniversityIcon />} label="Universities" />
-            <NavItem to="/compare" icon={<CompareIcon />} label="Compare" />
-            <NavItem to="/tasks" icon={<TaskIcon />} label="Tasks" badge={overdueTasks.length} />
-            <NavItem to="/chat" icon={<ChatIcon />} label="EduBot Chat" />
-            <NavItem to="/essay" icon={<EssayIcon />} label="Essays" />
-            <NavItem to="/export" icon={<ExportIcon />} label="Portfolio Report" />
-            <NavItem to="/settings" icon={<SettingsIcon />} label="Settings" />
-          </>
-        )}
+        <QuickMenu overdue={overdueTasks.length} />
       </aside>
 
       {/* ───────── Main ───────── */}
@@ -291,7 +268,7 @@ export default function Dashboard() {
           <MetricStat
             label="Profile Strength"
             ring={{ value: score ? score.overall : (aiLoading ? null : completion), loading: !score && aiLoading, center: score ? `${score.overall}` : (aiLoading ? undefined : `${completion}`), sub: "/ 100" }}
-            hint="Overall portfolio score"
+            hint={score?.source === "mepai" ? "MEPAi portfolio score · updates when your portfolio changes" : "Overall portfolio score"}
           />
           <MetricStat
             label="Universities Matched"
@@ -312,6 +289,28 @@ export default function Dashboard() {
             action={!predLocked && acceptance ? { label: refreshing === "acc" ? "Thinking…" : "Rethink", onClick: refreshAcceptance } : undefined}
           />
         </div>
+
+        {/* Why the score is what it is — MEPAi's reading of the actual portfolio */}
+        {score?.source === "mepai" && (score.summary || score.strengths?.length || score.weaknesses?.length) && (
+          <div className="card" style={{ padding: "1.25rem 1.5rem" }}>
+            <div className="eyebrow" style={{ marginBottom: "0.4rem" }}>MEPAi portfolio score · {score.overall}/100</div>
+            {score.summary && <p style={{ margin: "0 0 0.75rem", fontSize: "0.92rem", color: "var(--ink-soft)", lineHeight: 1.55 }}>{score.summary}</p>}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
+              {score.strengths?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--success-deep)", marginBottom: "0.3rem" }}>What's working</div>
+                  <ul className="list">{score.strengths.map((x, i) => <li key={i} style={{ fontSize: "0.85rem" }}>{x}</li>)}</ul>
+                </div>
+              )}
+              {score.weaknesses?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#b45309", marginBottom: "0.3rem" }}>Biggest score boosts</div>
+                  <ul className="list">{score.weaknesses.map((x, i) => <li key={i} style={{ fontSize: "0.85rem" }}>{x}</li>)}</ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Overdue task banner */}
         {overdueTasks.length > 0 && (
@@ -386,7 +385,7 @@ export default function Dashboard() {
                 <p className="muted" style={{ fontSize: "0.82rem", marginTop: "0.85rem" }}>
                   {activities.length} activit{activities.length === 1 ? "y" : "ies"} recorded
                 </p>
-                <Link to="/activities" className="button" style={{ width: "100%", marginTop: "0.5rem" }}>
+                <Link to="/profile?section=extracurriculars" className="button" style={{ width: "100%", marginTop: "0.5rem" }}>
                   Add New
                 </Link>
               </>
@@ -494,34 +493,6 @@ export default function Dashboard() {
   );
 }
 
-function NavItem({ to, icon, label, active, badge }) {
-  return (
-    <NavLink
-      to={to}
-      className={({ isActive }) => `nav-link ${isActive || active ? "active" : ""}`}
-      end
-    >
-      {icon}
-      <span style={{ flex: 1 }}>{label}</span>
-      {badge ? (
-        <span
-          style={{
-            fontSize: "0.7rem",
-            fontWeight: 700,
-            padding: "0.15rem 0.5rem",
-            borderRadius: "var(--r-full)",
-            background: "var(--error)",
-            color: "#fff",
-            minWidth: "20px",
-            textAlign: "center"
-          }}
-        >
-          {badge}
-        </span>
-      ) : null}
-    </NavLink>
-  );
-}
 
 // Human Advisor Session — Professional: 1 request per month, handled from the Admin queue
 function AdvisorSessionCard({ advisorLimit }) {
@@ -933,83 +904,5 @@ function KpiCard({ title, value, loading, details }) {
       </div>
       {details}
     </div>
-  );
-}
-
-/* === Sidebar SVG icons === */
-function ProfileIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function PortfolioIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-    </svg>
-  );
-}
-
-function UniversityIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/>
-    </svg>
-  );
-}
-
-function CompareIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3v18M5 8l3-3 3 3M19 16l-3 3-3-3"/>
-    </svg>
-  );
-}
-
-function TaskIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 11l3 3L22 4"/>
-      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-    </svg>
-  );
-}
-
-function ChatIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
-  );
-}
-
-function EssayIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-      <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-    </svg>
-  );
-}
-
-function ExportIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>
   );
 }

@@ -15,6 +15,7 @@ const counselorRoutes = require("./routes/counselors");
 const aiRoutes = require("./routes/ai");
 const universityRoutes = require("./routes/universities");
 const uploadRoutes = require("./routes/uploads");
+const fileRoutes = require("./routes/files");
 const adminRoutes = require("./routes/admin");
 const personalityRoutes = require("./routes/personality");
 const careerRoutes = require("./routes/career");
@@ -32,6 +33,7 @@ const referralRoutes = require("./routes/referral");
 const affiliateRoutes = require("./routes/affiliate");
 const referralAdmin = require("./routes/referralAdmin");
 const campaigns = require("./routes/campaigns");
+const blog = require("./routes/blog");
 const { readOnlyGuard } = require("./middleware/readOnly");
 const { startEmailWorker } = require("./services/emailMarketing");
 
@@ -52,7 +54,13 @@ app.use(cors({ origin: true, credentials: true }));
 // Stripe webhook needs the raw body for signature verification — before express.json
 app.post("/api/billing/webhook", express.raw({ type: "application/json" }), billing.webhook);
 app.use(express.json({ limit: "2mb" }));
-app.use("/uploads", express.static(path.join(__dirname, "..", process.env.UPLOAD_DIR || "uploads")));
+// Only blog and email images are public (posts and sent emails embed them). Everything else
+// in uploads belongs to a student and is read through /api/files with a token.
+app.use("/uploads", (req, res, next) => {
+  const name = req.path.slice(1);
+  if (!fileRoutes.PUBLIC_FILE.test(name)) return res.status(404).json({ error: "Not found" });
+  next();
+}, express.static(path.join(__dirname, "..", process.env.UPLOAD_DIR || "uploads"), { index: false, dotfiles: "deny" }));
 
 async function healthHandler(req, res) {
   const checks = {
@@ -88,6 +96,7 @@ app.use("/api/counselors", counselorRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/universities", universityRoutes);
 app.use("/api/uploads", uploadRoutes);
+app.use("/api/files", fileRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/personality", personalityRoutes);
 app.use("/api/career", careerRoutes);
@@ -98,6 +107,8 @@ app.use("/api/admin/backup", backupAdmin);
 app.use("/api/admin/referrals", referralAdmin);
 app.use("/api/admin/campaigns", campaigns.adminRouter);
 app.use("/api/campaigns", campaigns.publicRouter);
+app.use("/api/admin/blog", blog.adminRouter);
+app.use("/api/blog", blog.publicRouter);
 app.use("/api/ref", referralRoutes);
 app.use("/api/affiliate", affiliateRoutes);
 app.use("/api/billing", billing.router);

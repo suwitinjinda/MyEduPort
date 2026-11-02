@@ -79,17 +79,18 @@ const DEFAULT_OPTION_LISTS = {
     {
       "label": "International",
       "options": [
-        "IB Diploma (IBDP)",
-        "IB Middle Years (MYP)",
+        "IB Diploma Programme (IBDP)",
+        "IB Middle Years Programme (MYP)",
         "Cambridge IGCSE",
-        "A-Level"
+        "A-Level / AS-Level"
       ]
     },
     {
       "label": "American",
       "options": [
-        "AP / US High School",
-        "US Honors"
+        "AP (Advanced Placement)",
+        "US High School Diploma",
+        "US Honors Program"
       ]
     },
     {
@@ -102,7 +103,7 @@ const DEFAULT_OPTION_LISTS = {
     {
       "label": "Other",
       "options": [
-        "Other"
+        "Other (please specify)"
       ]
     }
   ],
@@ -168,6 +169,12 @@ const DEFAULT_OPTION_LISTS = {
         "IELTS",
         "TOEFL",
         "Duolingo"
+      ]
+    },
+    {
+      "label": "Other",
+      "options": [
+        "Other (please specify)"
       ]
     }
   ]

@@ -87,13 +87,6 @@ export default function StudentDetail() {
     <div>
       {/* Header */}
       <header style={{ borderBottom: "1px solid var(--rule)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
-        <button
-          className="button ghost"
-          onClick={() => navigate("/parent")}
-          style={{ marginBottom: "1.25rem", padding: "0.5rem 1rem", fontSize: "0.7rem" }}
-        >
-          ← Parent Dashboard
-        </button>
         <div className="eyebrow">Student Portfolio · Parent View (read-only)</div>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2.25rem", color: "var(--ink)", letterSpacing: "-0.02em" }}>
           {profile.name}

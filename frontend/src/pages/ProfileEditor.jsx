@@ -1,11 +1,15 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { apiFetch, apiUpload, getUserRole, fileUrl, loadSaved } from "../api/client";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { apiFetch, apiUpload, getUserRole, openFile, loadSaved } from "../api/client";
 import AdvisoryNote, { PORTFOLIO_GUIDE } from "../components/AdvisoryNote.jsx";
 import PersonalityTest from "../components/PersonalityTest.jsx";
 import CareerTest from "../components/CareerTest.jsx";
 import MepaiWorkspace from "../components/MepaiWorkspace.jsx";
 import { fmtDate, fmtTime } from "../utils/date.js";
+import { STUDY_COUNTRIES, uniCountryOf } from "../utils/countries.js";
+import ActivitiesEditor from "./ActivitiesEditor.jsx";
+import EssayEditor from "./EssayEditor.jsx";
+import { QuickMenu } from "../components/StudentMenu.jsx";
 
 // Subject dropdown for Academics → Section I (moved from the Standardized tests list)
 const SUBJECT_GROUPS = [
@@ -16,11 +20,13 @@ const SUBJECT_GROUPS = [
 
 // Curriculum is chosen once for all years (Academics → Section I)
 const CURRICULUM_GROUPS = [
-  { label: "International", options: ["IB Diploma (IBDP)", "IB Middle Years (MYP)", "Cambridge IGCSE", "A-Level"] },
-  { label: "American", options: ["AP / US High School", "US Honors"] },
+  { label: "International", options: ["IB Diploma Programme (IBDP)", "IB Middle Years Programme (MYP)", "Cambridge IGCSE", "A-Level / AS-Level"] },
+  { label: "American", options: ["AP (Advanced Placement)", "US High School Diploma", "US Honors Program"] },
   { label: "Thai", options: ["Thai National Curriculum", "Thai English Program (EP)"] },
-  { label: "Other", options: ["Other"] }
+  { label: "Other", options: ["Other (please specify)"] }
 ];
+// Choosing this opens a box for the student's own curriculum name, which is what gets saved.
+const CURRICULUM_OTHER = "Other (please specify)";
 
 const GRADE_YEAR_OPTIONS = [
   "Grade 6 / Year 7",
@@ -32,11 +38,7 @@ const GRADE_YEAR_OPTIONS = [
   "Grade 12 / Year 13"
 ];
 
-const TARGET_COUNTRY_OPTIONS = [
-  "United States", "United Kingdom", "Canada", "Australia",
-  "China", "Hong Kong", "Singapore", "Japan",
-  "Netherlands", "Germany", "Switzerland", "Other"
-];
+const TARGET_COUNTRY_OPTIONS = [...STUDY_COUNTRIES.map((c) => c.label), "Other"];
 
 // Curated list of common undergraduate majors for the Intended Majors dropdowns.
 const MAJOR_OPTIONS = [
@@ -57,8 +59,11 @@ const MAJOR_OPTIONS = [
 
 const TEST_GROUPS = [
   { label: "Standardized", options: ["SAT", "ACT", "PSAT"] },
-  { label: "English Proficiency", options: ["IELTS", "TOEFL", "Duolingo"] }
+  { label: "English Proficiency", options: ["IELTS", "TOEFL", "Duolingo"] },
+  { label: "Other", options: ["Other (please specify)"] }
 ];
+// Choosing this opens a box for the test's name, which is what gets saved.
+const TEST_OTHER = "Other (please specify)";
 
 // Options for a grouped list: plain <option>s for a single group, <optgroup>s otherwise
 function GroupedOptions({ groups }) {
@@ -84,7 +89,15 @@ export default function ProfileEditor() {
 
   if (role === "parent") return null;
 
-  const [activeSection, setActiveSection] = useState("personal");
+  // The open section (and an open essay) live in the address, so every part of the portfolio
+  // opens here beside the section menu, Back works, and other pages can link straight to one.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const SECTION_IDS = ["personal", "academics", "extracurriculars", "awards", "documents"];
+  const activeSection = SECTION_IDS.includes(searchParams.get("section")) ? searchParams.get("section") : "personal";
+  const openEssay = searchParams.get("essay"); // essay id, "new", or null = the Documents overview
+  const setActiveSection = (id) => setSearchParams({ section: id });
+  const showEssay = (id) => setSearchParams({ section: "documents", essay: id ? String(id) : "new" });
+  const closeEssay = () => setSearchParams({ section: "documents" });
   const [profile, setProfile] = useState({
     grade_level: "",
     school: "",
@@ -104,6 +117,7 @@ export default function ProfileEditor() {
   const [inviteCode, setInviteCode] = useState("");
   const [academicForm, setAcademicForm] = useState({ year: "", course: "", level: "", grade: "", school_system: "" });
   const [testForm, setTestForm] = useState({ test_type: "", test_date: "", score: "", superscore: "" });
+  const [otherTestName, setOtherTestName] = useState("");
   const [awardForm, setAwardForm] = useState({ title: "", description: "", award_date: "" });
   const [awardFile, setAwardFile] = useState(null);
   const [savingAward, setSavingAward] = useState(false);
@@ -138,6 +152,8 @@ export default function ProfileEditor() {
 
   const setYearField = (yr, key, val) =>
     setYearForms((prev) => ({ ...prev, [yr]: { course: "", grade: "", ...(prev[yr] || {}), [key]: val } }));
+  // A curriculum that isn't one of the listed names was typed in under "Other (please specify)"
+  const curriculumIsOther = !!curriculum && (curriculum === CURRICULUM_OTHER || !flatOptions(curriculumGroups).includes(curriculum));
   const saveCurriculum = async (value) => {
     const prev = curriculum;
     setCurriculum(value);
@@ -251,6 +267,15 @@ export default function ProfileEditor() {
     const arr = (profile.intended_universities || "").split("|").map((s) => s.trim());
     return [arr[0] || "", arr[1] || "", arr[2] || "", arr[3] || ""];
   })();
+  // Universities offered in rows 1–3 come only from the target countries chosen above.
+  // The university list stores some countries short ("US", "UK"); "Other" means any country
+  // not named in the country list. No countries chosen yet → everything is offered.
+  const namedUniCountries = STUDY_COUNTRIES.map((c) => c.value);
+  const chosenCountries = (profile.target_countries || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const uniMatchesCountries = (u) => !chosenCountries.length || chosenCountries.some((c) =>
+    c === "Other" ? !namedUniCountries.includes(u.country) : u.country === uniCountryOf(c));
+  const countryUnis = uniOptions.filter(uniMatchesCountries);
+
   const setIntendedUni = (i) => (e) => {
     const next = [...intendedUnis];
     next[i] = e.target.value;
@@ -316,9 +341,13 @@ export default function ProfileEditor() {
   const addTest = async (e) => {
     e.preventDefault();
     if (!testForm.test_type) { alert("Please choose a test first."); return; }
+    const isOther = testForm.test_type === TEST_OTHER;
+    if (isOther && !otherTestName.trim()) { alert("Please type the name of the test."); return; }
     try {
-      await apiFetch("/api/students/me/tests", { method: "POST", body: JSON.stringify(testForm) });
+      const body = isOther ? { ...testForm, test_type: otherTestName.trim() } : testForm;
+      await apiFetch("/api/students/me/tests", { method: "POST", body: JSON.stringify(body) });
       setTestForm({ test_type: "", test_date: "", score: "", superscore: "" });
+      setOtherTestName("");
       setTests(await apiFetch("/api/students/me/tests"));
     } catch (err) {
       alert(`Could not add test: ${err.message}. If this says "Student only" or your session expired, please log in with a student account.`);
@@ -430,6 +459,9 @@ export default function ProfileEditor() {
       <div className="profile-editor-layout">
         {/* Sidebar */}
         <aside className="pe-sidebar">
+          <div style={{ marginBottom: "1.25rem", paddingBottom: "0.75rem", borderBottom: "1px solid var(--rule-soft)" }}>
+            <QuickMenu defaultOpen={false} />
+          </div>
           <div
             style={{
               fontSize: "0.7rem",
@@ -600,10 +632,16 @@ export default function ProfileEditor() {
                       <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", fontWeight: 700, color: "var(--gold-deep)", minWidth: "1.5rem" }}>{i + 1}.</span>
                       <select style={{ flex: 1 }} value={intendedUnis[i]} onChange={setIntendedUni(i)}>
                         <option value="">{i === 0 ? "1st choice — select a university" : i === 1 ? "2nd choice" : "3rd choice"}</option>
-                        {intendedUnis[i] && !uniOptions.some((u) => u.name === intendedUnis[i]) && (
-                          <option value={intendedUnis[i]}>{intendedUnis[i]}</option>
+                        {/* A pick made before the countries changed stays visible, flagged, until it's replaced */}
+                        {intendedUnis[i] && !countryUnis.some((u) => u.name === intendedUnis[i]) && (
+                          <option value={intendedUnis[i]}>
+                            {intendedUnis[i]}{uniOptions.some((u) => u.name === intendedUnis[i]) ? " — not in your target countries" : ""}
+                          </option>
                         )}
-                        {uniOptions.map((u) => (
+                        {countryUnis.length === 0 && (
+                          <option value="" disabled>No universities listed for these countries yet — type one in row 4</option>
+                        )}
+                        {countryUnis.filter((u) => u.name === intendedUnis[i] || !intendedUnis.slice(0, 3).includes(u.name)).map((u) => (
                           <option key={u.id} value={u.name}>{u.name}{u.country ? ` (${u.country})` : ""}</option>
                         ))}
                       </select>
@@ -614,7 +652,11 @@ export default function ProfileEditor() {
                     <input style={{ flex: 1 }} value={intendedUnis[3]} onChange={setIntendedUni(3)} placeholder="Other — type a university not in the list" />
                   </div>
                 </div>
-                <p className="text-muted" style={{ fontSize: "0.78rem", marginTop: "0.4rem" }}>Pick from the list, or type your own in row 4 — it'll be added to the database.</p>
+                <p className="text-muted" style={{ fontSize: "0.78rem", marginTop: "0.4rem" }}>
+                  {chosenCountries.length
+                    ? <>Showing universities in {chosenCountries.join(", ")}. Not listed? Type it in row 4 — it'll be added to the database.</>
+                    : "Choose your target countries above to narrow this list, or type your own in row 4 — it'll be added to the database."}
+                </p>
               </div>
 
               <div className="input form-section">
@@ -680,11 +722,23 @@ export default function ProfileEditor() {
 
               <div className="input form-section" style={{ marginTop: 0 }}>
                 <label>Curriculums</label>
-                <select value={curriculum} onChange={(e) => saveCurriculum(e.target.value)} style={{ maxWidth: "420px" }}>
+                <select value={curriculumIsOther ? CURRICULUM_OTHER : curriculum} onChange={(e) => saveCurriculum(e.target.value)} style={{ maxWidth: "420px" }}>
                   <option value="">— Select your curriculum —</option>
-                  {curriculum && !flatOptions(curriculumGroups).includes(curriculum) && <option value={curriculum}>{curriculum}</option>}
+                  {curriculumIsOther && !flatOptions(curriculumGroups).includes(CURRICULUM_OTHER) && <option value={CURRICULUM_OTHER}>{CURRICULUM_OTHER}</option>}
                   <GroupedOptions groups={curriculumGroups} />
                 </select>
+                {curriculumIsOther && (
+                  <input
+                    key={curriculum}
+                    defaultValue={curriculum === CURRICULUM_OTHER ? "" : curriculum}
+                    onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== curriculum) saveCurriculum(v); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                    placeholder="Type your curriculum, e.g. French Baccalauréat"
+                    aria-label="Your curriculum"
+                    maxLength={80}
+                    style={{ maxWidth: "420px", marginTop: "0.5rem" }}
+                  />
+                )}
                 <p className="text-muted" style={{ fontSize: "0.78rem", margin: 0 }}>Applies to all years below. Saved automatically.</p>
               </div>
 
@@ -787,6 +841,17 @@ export default function ProfileEditor() {
                       {testForm.test_type && !flatOptions(testGroups).includes(testForm.test_type) && <option value={testForm.test_type}>{testForm.test_type}</option>}
                       <GroupedOptions groups={testGroups} />
                     </select>
+                    {testForm.test_type === TEST_OTHER && (
+                      <input
+                        value={otherTestName}
+                        onChange={(e) => setOtherTestName(e.target.value)}
+                        placeholder="Test name, e.g. HSK 5"
+                        aria-label="Test name"
+                        maxLength={50}
+                        autoFocus
+                        style={{ marginTop: "0.4rem" }}
+                      />
+                    )}
                   </div>
                   <div className="input" style={{ marginBottom: 0 }}>
                     <label>Date</label>
@@ -858,13 +923,9 @@ export default function ProfileEditor() {
             <section className="card" style={{ padding: "2.25rem" }}>
               <SectionHead num="03" title="Extracurricular Activities" sub="Depth over breadth — the spike strategy." />
               <SectionAdviAI section="extracurricular" adviaiOn={adviaiOn} intro="Generate AI advice on building your spike and higher-impact activities." />
-              <p className="muted" style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>
-                Open the Extracurricular Activity Editor to capture leadership,
-                hours per week, MEPAi topic &amp; summary, and an MEPAi score for each activity.
-              </p>
-              <button className="button" onClick={() => navigate("/activities")}>
-                Add Extracurricular Activity →
-              </button>
+              <div style={{ marginTop: "1.5rem" }}>
+                <ActivitiesEditor embedded />
+              </div>
             </section>
           )}
 
@@ -964,7 +1025,7 @@ export default function ProfileEditor() {
                         {item.description && <p className="muted" style={{ fontSize: "0.9rem", marginTop: "0.4rem" }}>{item.description}</p>}
                         {item.award_date && <p className="text-muted" style={{ marginTop: "0.4rem" }}>{item.award_date}</p>}
                         {item.attachment_path && (
-                          <a href={fileUrl(item.attachment_path)} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: "0.4rem", fontSize: "0.82rem", fontWeight: 600, color: "var(--teal-deep)" }}>
+                          <a href="#" onClick={(e) => { e.preventDefault(); openFile(item.attachment_path, item.attachment_name); }} style={{ display: "inline-block", marginTop: "0.4rem", fontSize: "0.82rem", fontWeight: 600, color: "var(--teal-deep)" }}>
                             📎 {item.attachment_name || "Attachment"}
                           </a>
                         )}
@@ -980,7 +1041,17 @@ export default function ProfileEditor() {
             </section>
           )}
 
-          {activeSection === "documents" && (
+          {activeSection === "documents" && openEssay && (
+            <section className="card" style={{ padding: "2.25rem" }}>
+              <button type="button" className="button ghost" style={{ padding: "0.35rem 0.85rem", fontSize: "0.75rem", marginBottom: "1.25rem" }}
+                onClick={() => { closeEssay(); apiFetch("/api/students/me/essays").then((d) => setEssays(Array.isArray(d) ? d : [])).catch(() => {}); }}>
+                ← Back to Documents
+              </button>
+              <EssayEditor embedded essayParam={openEssay} onOpenEssay={showEssay} />
+            </section>
+          )}
+
+          {activeSection === "documents" && !openEssay && (
             <section className="card" style={{ padding: "2.25rem" }}>
               <SectionHead num="05" title="Documents" sub="Score reports and portfolio attachments." />
 
@@ -999,7 +1070,7 @@ export default function ProfileEditor() {
                       const avg = Math.round(scored.reduce((s, e) => s + Number(e.ai_score), 0) / scored.length);
                       return <span className="badge primary" title="Average AI score across your scored essays">Overall score (AI): {avg}/100</span>;
                     })()}
-                    <button className="button" style={{ padding: "0.45rem 1rem", fontSize: "0.78rem" }} onClick={() => navigate("/essay")}>
+                    <button className="button" style={{ padding: "0.45rem 1rem", fontSize: "0.78rem" }} onClick={() => showEssay(essays[0]?.id)}>
                       Open MEPAi →
                     </button>
                   </div>
@@ -1014,7 +1085,7 @@ export default function ProfileEditor() {
                     {essays.slice(0, 5).map((e) => (
                       <button
                         key={e.id}
-                        onClick={() => navigate(`/essay?id=${e.id}`)}
+                        onClick={() => showEssay(e.id)}
                         className="card compact"
                         style={{ background: "var(--surface-warm)", textAlign: "left", cursor: "pointer", border: "1px solid var(--rule)", fontFamily: "inherit" }}
                       >
@@ -1126,15 +1197,14 @@ export default function ProfileEditor() {
                         </p>
                       </div>
                       <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <a
-                          href={fileUrl(doc.file_path)}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => openFile(doc.file_path, doc.original_name)}
                           className="button ghost"
                           style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem" }}
                         >
                           View
-                        </a>
+                        </button>
                         <button
                           className="button ghost"
                           onClick={() => deleteDocument(doc.id)}
@@ -1165,7 +1235,7 @@ export default function ProfileEditor() {
                 <SectionUpload category="recommendation" hint="Recommendation letter (PDF, image, doc)" documents={documents} onChanged={() => apiFetch("/api/uploads/me").then(setDocuments).catch(() => {})} />
                 {adviaiOn && <AdvisoryPanel data={recAdvisory} />}
                 <div style={{ marginTop: "0.75rem" }}>
-                  <Link to="/essay" style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--teal-deep)" }}>Open MEPAi →</Link>
+                  <button type="button" onClick={() => showEssay(essays[0]?.id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: "0.78rem", fontWeight: 600, color: "var(--teal-deep)" }}>Open MEPAi →</button>
                 </div>
               </div>
 
@@ -1187,7 +1257,7 @@ export default function ProfileEditor() {
                 <SectionUpload category="additional" hint="Portfolio, abstract, résumé or media (PDF, image, doc)" documents={documents} onChanged={() => apiFetch("/api/uploads/me").then(setDocuments).catch(() => {})} />
                 {adviaiOn && <AdvisoryPanel data={docAdvisory} />}
                 <div style={{ marginTop: "0.75rem" }}>
-                  <Link to="/essay" style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--teal-deep)" }}>Open MEPAi →</Link>
+                  <button type="button" onClick={() => showEssay(essays[0]?.id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: "0.78rem", fontWeight: 600, color: "var(--teal-deep)" }}>Open MEPAi →</button>
                 </div>
               </div>
             </section>
@@ -1294,6 +1364,41 @@ function AdvisoryPanel({ data }) {
   return (
     <div style={{ padding: "0.95rem 1.1rem", background: "var(--surface-warm)", borderLeft: "2px solid var(--gold)" }}>
       <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--ink-soft)", lineHeight: 1.55 }}>{data.advisory}</p>
+      {/* One review per attached file — MEPAi read the file itself */}
+      {Array.isArray(data.files) && data.files.length > 0 && (
+        <div style={{ display: "grid", gap: "0.6rem", marginTop: "0.85rem" }}>
+          {data.files.map((f, i) => {
+            const v = String(f.verdict || "").toLowerCase();
+            const tone = v === "strong" ? { bg: "var(--success-soft)", fg: "var(--success-deep)" }
+              : v === "good" ? { bg: "var(--teal-soft)", fg: "var(--teal-deep)" }
+              : { bg: "#fef3c7", fg: "#92400e" };
+            return (
+              <div key={i} style={{ background: "var(--surface)", border: "1px solid var(--rule)", borderRadius: "var(--r-md)", padding: "0.75rem 0.9rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+                  <strong style={{ fontSize: "0.88rem", color: "var(--ink)", overflowWrap: "anywhere" }}>📄 {f.name}</strong>
+                  {f.verdict && <span className="badge" style={{ background: tone.bg, color: tone.fg, textTransform: "capitalize" }}>{f.verdict}</span>}
+                </div>
+                {f.summary && <p style={{ margin: "0.35rem 0 0", fontSize: "0.84rem", color: "var(--ink-soft)", lineHeight: 1.5 }}>{f.summary}</p>}
+                {Array.isArray(f.strengths) && f.strengths.length > 0 && (
+                  <ul className="list" style={{ marginTop: "0.4rem" }}>
+                    {f.strengths.map((x, j) => <li key={j} style={{ fontSize: "0.82rem" }}><span style={{ color: "var(--success-deep)", fontWeight: 700 }}>✓</span> {x}</li>)}
+                  </ul>
+                )}
+                {Array.isArray(f.improve) && f.improve.length > 0 && (
+                  <ul className="list" style={{ marginTop: "0.25rem" }}>
+                    {f.improve.map((x, j) => <li key={j} style={{ fontSize: "0.82rem" }}><span style={{ color: "#b45309", fontWeight: 700 }}>→</span> {x}</li>)}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {Array.isArray(data.skipped_files) && data.skipped_files.length > 0 && (
+        <p className="text-muted" style={{ fontSize: "0.75rem", margin: "0.5rem 0 0" }}>
+          Not read: {data.skipped_files.map((x) => `${x.name} (${x.reason})`).join("; ")}
+        </p>
+      )}
       {Array.isArray(data.suggestions) && data.suggestions.length > 0 && (
         <div style={{ marginTop: "0.6rem" }}>
           <div className="eyebrow" style={{ paddingLeft: 0, display: "block", marginBottom: "0.35rem" }}>Feedback &amp; suggestions (MEPAi)</div>
@@ -1471,7 +1576,7 @@ function SectionUpload({ category, hint, documents, onChanged }) {
                 <div className="text-muted" style={{ fontSize: "0.74rem" }}>{doc.uploaded_at ? fmtDate(doc.uploaded_at) : ""}</div>
               </div>
               <div style={{ display: "flex", gap: "0.4rem" }}>
-                <a href={fileUrl(doc.file_path)} target="_blank" rel="noopener noreferrer" className="button ghost" style={{ padding: "0.3rem 0.7rem", fontSize: "0.7rem" }}>View</a>
+                <button type="button" onClick={() => openFile(doc.file_path, doc.original_name)} className="button ghost" style={{ padding: "0.3rem 0.7rem", fontSize: "0.7rem" }}>View</button>
                 <button type="button" className="button ghost" onClick={() => remove(doc.id)} style={{ padding: "0.3rem 0.7rem", fontSize: "0.7rem", color: "var(--error)", borderColor: "var(--error)" }}>Delete</button>
               </div>
             </div>

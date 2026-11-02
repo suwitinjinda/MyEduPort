@@ -1,4 +1,6 @@
 const express = require("express");
+const { academicGpa } = require("../services/gpa");
+const { categorizeUniversities } = require("../services/aiClient");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -389,6 +391,7 @@ router.get("/me/activities", authRequired, async (req, res) => {
 });
 
 // ---- Activity photos & videos (stored as documents, category 'activities') ----
+const MEDIA_EXT = { "image/png": ".png", "image/jpeg": ".jpg", "image/jpg": ".jpg", "image/gif": ".gif", "image/webp": ".webp", "video/mp4": ".mp4", "video/quicktime": ".mov", "video/webm": ".webm" };
 const mediaUpload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -396,7 +399,8 @@ const mediaUpload = multer({
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       cb(null, dir);
     },
-    filename: (req, file, cb) => cb(null, `act-${Date.now()}-${crypto.randomBytes(4).toString("hex")}${path.extname(file.originalname).toLowerCase().replace(/[^.a-z0-9]/g, "")}`)
+    // Extension from the (already checked) type, never from the uploaded name
+    filename: (req, file, cb) => cb(null, `act-${Date.now()}-${crypto.randomBytes(4).toString("hex")}${MEDIA_EXT[file.mimetype] || ".bin"}`)
   }),
   limits: { fileSize: 50 * 1024 * 1024 }, // videos — matches nginx client_max_body_size
   fileFilter: (req, file, cb) => cb(null, /^(image\/(png|jpe?g|gif|webp)|video\/(mp4|quicktime|webm))$/.test(file.mimetype))
@@ -448,15 +452,34 @@ router.post("/me/activities", authRequired, async (req, res) => {
   return res.json({ id: result.insertId });
 });
 
+// Edit an activity. Only the fields sent are changed, so MEPAi can update just
+// topic/summary/score while the editor sends the whole activity.
 router.put("/me/activities/:id", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
-  const { id } = req.params;
-  const { topic, summary, ai_score } = req.body || {};
-  await pool.query(
-    "UPDATE activities SET topic = COALESCE(?, topic), summary = COALESCE(?, summary), ai_score = COALESCE(?, ai_score) WHERE id = ? AND student_id = ?",
-    [topic ?? null, summary ?? null, ai_score ?? null, id, studentId]
+  const b = req.body || {};
+  if (b.title !== undefined && !String(b.title).trim()) return res.status(400).json({ error: "Add a title first." });
+  // Trimmed to the column sizes; a non-number for hours counts as 0 (strict mode would 500)
+  const FIELDS = {
+    title: (v) => String(v || "").trim().slice(0, 120),
+    topic: (v) => String(v || "").slice(0, 180),
+    description: (v) => String(v || ""),
+    summary: (v) => (v == null ? null : String(v)),
+    role: (v) => String(v || "").slice(0, 80),
+    category: (v) => String(v || "").slice(0, 60),
+    hours_per_week: (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 ? Math.min(n, 168) : 0; },
+    leadership: (v) => Boolean(v),
+    start_date: (v) => v || null,
+    end_date: (v) => v || null,
+    ai_score: (v) => (v == null || v === "" ? null : Number(v))
+  };
+  const keys = Object.keys(FIELDS).filter((k) => b[k] !== undefined);
+  if (!keys.length) return res.json({ status: "ok" });
+  const [r] = await pool.query(
+    `UPDATE activities SET ${keys.map((k) => `${k} = ?`).join(", ")} WHERE id = ? AND student_id = ?`,
+    [...keys.map((k) => FIELDS[k](b[k])), req.params.id, studentId]
   );
+  if (!r.affectedRows) return res.status(404).json({ error: "Activity not found" });
   return res.json({ status: "ok" });
 });
 
@@ -464,7 +487,21 @@ router.delete("/me/activities/:id", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
   const { id } = req.params;
-  await pool.query("DELETE FROM activities WHERE id = ? AND student_id = ?", [id, studentId]);
+  // Its photos and videos go too — they are the student's private files.
+  let media = [];
+  try {
+    [media] = await pool.query(
+      `SELECT d.id, d.file_path FROM activity_media m JOIN documents d ON d.id = m.document_id
+       WHERE m.activity_id = ? AND d.student_id = ?`,
+      [id, studentId]
+    );
+  } catch (err) { /* migration not run yet */ }
+  const [r] = await pool.query("DELETE FROM activities WHERE id = ? AND student_id = ?", [id, studentId]);
+  if (!r.affectedRows) return res.status(404).json({ error: "Activity not found" });
+  for (const d of media) {
+    await pool.query("DELETE FROM documents WHERE id = ? AND student_id = ?", [d.id, studentId]);
+    fs.unlink(path.join(__dirname, "..", "..", process.env.UPLOAD_DIR || "uploads", path.basename(d.file_path)), () => {});
+  }
   return res.json({ status: "deleted" });
 });
 
@@ -680,12 +717,13 @@ router.get("/me/tasks", authRequired, async (req, res) => {
 router.post("/me/tasks", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
-  const { title, due_date, category, notes } = req.body || {};
+  const { title, due_date, category, notes, status } = req.body || {};
   if (!title) return res.status(400).json({ error: "title required" });
+  const st = ["open", "in_progress", "done"].includes(status) ? status : "open";
   try {
     const [r] = await pool.query(
-      "INSERT INTO tasks (student_id, title, due_date, category, notes) VALUES (?, ?, ?, ?, ?)",
-      [studentId, title, due_date || null, category || "general", notes || null]
+      "INSERT INTO tasks (student_id, title, due_date, category, notes, status) VALUES (?, ?, ?, ?, ?, ?)",
+      [studentId, title, due_date || null, category || "general", notes || null, st]
     );
     return res.json({ id: r.insertId });
   } catch (err) {
@@ -700,10 +738,22 @@ router.put("/me/tasks/:id", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
   const { id } = req.params;
-  const { title, due_date, category, status, notes } = req.body || {};
+  // Only the fields sent are changed — ticking a task's status must not clear its due date or notes.
+  const b = req.body || {};
+  if (b.status !== undefined && !["open", "in_progress", "done"].includes(b.status)) return res.status(400).json({ error: "Invalid status" });
+  if (b.title !== undefined && !String(b.title).trim()) return res.status(400).json({ error: "title required" });
+  const FIELDS = {
+    title: (v) => String(v).trim(),
+    due_date: (v) => v || null,
+    category: (v) => v || "general",
+    status: (v) => v,
+    notes: (v) => v || null
+  };
+  const keys = Object.keys(FIELDS).filter((k) => b[k] !== undefined);
+  if (!keys.length) return res.json({ status: "ok" });
   await pool.query(
-    "UPDATE tasks SET title = COALESCE(?, title), due_date = ?, category = COALESCE(?, category), status = COALESCE(?, status), notes = ? WHERE id = ? AND student_id = ?",
-    [title || null, due_date || null, category || null, status || null, notes || null, id, studentId]
+    `UPDATE tasks SET ${keys.map((k) => `${k} = ?`).join(", ")} WHERE id = ? AND student_id = ?`,
+    [...keys.map((k) => FIELDS[k](b[k])), id, studentId]
   );
   return res.json({ status: "ok" });
 });
@@ -776,6 +826,50 @@ router.get("/me/saved-universities", authRequired, async (req, res) => {
   }
 });
 
+// Compare starts from the Intended Universities chosen in Portfolio → Personal. Any of them
+// not on the list yet is added, sorted into Reach/Target/Safety from the student's GPA the
+// same way as University Recommendations. Ones the student removed from Compare stay removed.
+// Typed-in names that aren't in the university list are returned so the page can say so.
+router.post("/me/saved-universities/sync-intended", authRequired, async (req, res) => {
+  const studentId = await getStudentIdByUser(req.user.id);
+  if (!studentId) return res.status(403).json({ error: "Student only" });
+  const [[st]] = await pool.query("SELECT intended_universities FROM students WHERE id = ?", [studentId]);
+  const names = [...new Set(String(st?.intended_universities || "").split("|").map((x) => x.trim()).filter(Boolean))];
+  if (!names.length) return res.json({ added: [], not_found: [] });
+
+  const [unis] = await pool.query(
+    "SELECT id, name, selectivity_band, qs_rank FROM universities WHERE hidden = 0 AND LOWER(name) IN (?)",
+    [names.map((n) => n.toLowerCase())]
+  );
+  const not_found = names.filter((n) => !unis.some((u) => u.name.toLowerCase() === n.toLowerCase()));
+  if (!unis.length) return res.json({ added: [], not_found });
+
+  let dismissed = [];
+  try {
+    [dismissed] = await pool.query("SELECT university_id FROM saved_university_dismissals WHERE student_id = ?", [studentId]);
+  } catch (err) { /* migration not run yet */ }
+  const [have] = await pool.query("SELECT university_id FROM saved_universities WHERE student_id = ?", [studentId]);
+  const skip = new Set([...dismissed, ...have].map((r) => r.university_id));
+  const toAdd = unis.filter((u) => !skip.has(u.id));
+  if (!toAdd.length) return res.json({ added: [], not_found });
+
+  const gpa = (await academicGpa(req.user.id))?.value ?? 3.4;
+  const added = [];
+  for (const u of categorizeUniversities(toAdd, gpa)) {
+    try {
+      await pool.query(
+        "INSERT IGNORE INTO saved_universities (student_id, university_id, bucket, source) VALUES (?, ?, ?, 'intended')",
+        [studentId, u.id, u.category.toLowerCase()]
+      );
+    } catch (err) {
+      if (err.code !== "ER_BAD_FIELD_ERROR") throw err; // before the migration: add without the source tag
+      await pool.query("INSERT IGNORE INTO saved_universities (student_id, university_id, bucket) VALUES (?, ?, ?)", [studentId, u.id, u.category.toLowerCase()]);
+    }
+    added.push(u.name);
+  }
+  return res.json({ added, not_found });
+});
+
 router.post("/me/saved-universities", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
@@ -788,6 +882,8 @@ router.post("/me/saved-universities", authRequired, async (req, res) => {
        ON DUPLICATE KEY UPDATE bucket = VALUES(bucket), application_round = VALUES(application_round), deadline = VALUES(deadline), notes = VALUES(notes)`,
       [studentId, university_id, bucket || "target", application_round || "", deadline || null, notes || null]
     );
+    try { await pool.query("DELETE FROM saved_university_dismissals WHERE student_id = ? AND university_id = ?", [studentId, university_id]); }
+    catch (err) { /* migration not run yet */ }
     return res.json({ id: r.insertId, status: "ok" });
   } catch (err) {
     if (err.code === "ER_NO_SUCH_TABLE") {
@@ -801,10 +897,20 @@ router.put("/me/saved-universities/:id", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
   const { id } = req.params;
-  const { bucket, application_round, deadline, notes } = req.body || {};
+  // Only the fields sent are changed. Dates may arrive as full ISO timestamps from the list.
+  const b = req.body || {};
+  if (b.bucket !== undefined && !["reach", "target", "safety"].includes(b.bucket)) return res.status(400).json({ error: "Invalid bucket" });
+  const FIELDS = {
+    bucket: (v) => v,
+    application_round: (v) => String(v || "").slice(0, 40),
+    deadline: (v) => (v ? String(v).slice(0, 10) : null),
+    notes: (v) => v || null
+  };
+  const keys = Object.keys(FIELDS).filter((k) => b[k] !== undefined);
+  if (!keys.length) return res.json({ status: "ok" });
   await pool.query(
-    "UPDATE saved_universities SET bucket = COALESCE(?, bucket), application_round = ?, deadline = ?, notes = ? WHERE id = ? AND student_id = ?",
-    [bucket || null, application_round || "", deadline || null, notes || null, id, studentId]
+    `UPDATE saved_universities SET ${keys.map((k) => `${k} = ?`).join(", ")} WHERE id = ? AND student_id = ?`,
+    [...keys.map((k) => FIELDS[k](b[k])), id, studentId]
   );
   return res.json({ status: "ok" });
 });
@@ -812,7 +918,13 @@ router.put("/me/saved-universities/:id", authRequired, async (req, res) => {
 router.delete("/me/saved-universities/:id", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
+  const [[row]] = await pool.query("SELECT university_id FROM saved_universities WHERE id = ? AND student_id = ?", [req.params.id, studentId]);
   await pool.query("DELETE FROM saved_universities WHERE id = ? AND student_id = ?", [req.params.id, studentId]);
+  // Remember the removal so syncing Intended Universities doesn't bring it back
+  if (row) {
+    try { await pool.query("INSERT IGNORE INTO saved_university_dismissals (student_id, university_id) VALUES (?, ?)", [studentId, row.university_id]); }
+    catch (err) { /* migration not run yet */ }
+  }
   return res.json({ status: "deleted" });
 });
 

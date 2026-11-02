@@ -7,6 +7,7 @@ const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
 const { TRIAL_DAYS, getPlanStatus } = require("../services/plan");
 const { attachAtSignup } = require("../services/referrals");
+const consents = require("../services/consents");
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -56,6 +57,8 @@ router.post("/register", async (req, res) => {
   if (hasConsentColumn && data_consent !== true) {
     return res.status(400).json({ error: "Data consent is required to create an account" });
   }
+  const consent = role === "affiliate" ? null : consents.readSignupConsents({ ...req.body, email }, role);
+  if (consent?.error) return res.status(400).json({ error: consent.error });
   // Check if deleted_at column exists, otherwise use basic query
   let existing;
   try {
@@ -100,8 +103,45 @@ router.post("/register", async (req, res) => {
     await pool.query("INSERT INTO counselors (user_id) VALUES (?)", [userId]);
   }
   await attachAtSignup(userId, role, ref);
+  await saveSignupConsents(userId, email, name, consent);
   const token = buildToken({ id: userId, role, email });
   return res.json({ token });
+});
+
+// Records the consent form at sign-up: the audit rows, the age group, the marketing choice,
+// and a copy to the guardian of a student under 20. A failure here never blocks sign-up.
+async function saveSignupConsents(userId, email, name, consent) {
+  if (!consent) return;
+  try {
+    await consents.recordConsents(userId, consent.rows, "signup");
+    await pool.query("UPDATE users SET age_group = ?, guardian_email = ? WHERE id = ?", [consent.ageGroup, consent.guardianEmail, userId]);
+    await consents.applyMarketingChoice(email, consent.rows.some(([k, g]) => k === "marketing_email" && g));
+    if (consent.guardianEmail) consents.notifyGuardian({ guardianEmail: consent.guardianEmail, studentName: name, rows: consent.rows });
+  } catch (err) {
+    console.error("Saving sign-up consents failed:", err.message);
+  }
+}
+
+// The current consent choices (Settings shows and changes the optional ones)
+router.get("/consents", authRequired, async (req, res) => {
+  const current = await consents.currentConsents(req.user.id).catch(() => ({}));
+  // What's actually in effect, including accounts from before the form: marketing follows the
+  // unsubscribe list every campaign uses; results sharing follows the notice they reported under.
+  const [[unsub]] = await pool.query("SELECT 1 x FROM email_unsubscribes WHERE email = ?", [String(req.user.email || "").toLowerCase()]).catch(() => [[null]]);
+  const effective = {
+    outcomes_sharing: current.outcomes_sharing ? current.outcomes_sharing.granted : true,
+    marketing_email: !unsub
+  };
+  res.json({ version: consents.CONSENT_VERSION, optional: consents.OPTIONAL, current, effective });
+});
+
+router.put("/consents/:key", authRequired, async (req, res) => {
+  try {
+    await consents.setOptionalConsent(req.user, req.params.key, req.body?.granted === true);
+    res.json({ current: await consents.currentConsents(req.user.id) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.status ? err.message : "Couldn't save that choice." });
+  }
 });
 
 router.post("/login", async (req, res) => {
@@ -175,8 +215,14 @@ router.post("/google", async (req, res) => {
       return res.json({ token });
     }
 
-    // New Google signup — honor the role chosen on the Sign-Up form (default student)
+    // New Google signup — honor the role chosen on the Sign-Up form (default student). It goes
+    // through the same consent form as email sign-up.
     const role = ["student", "parent", "counselor"].includes(requestedRole) ? requestedRole : "student";
+    if (!req.body?.consents) {
+      return res.status(400).json({ error: "New to MyEduPort? Choose \"Create an account\", fill in the short form, then continue with Google.", code: "signup_required" });
+    }
+    const consent = consents.readSignupConsents({ ...req.body, email }, role);
+    if (consent.error) return res.status(400).json({ error: consent.error });
     const displayName = name || email.split("@")[0];
     let result;
     try {
@@ -200,6 +246,7 @@ router.post("/google", async (req, res) => {
       await pool.query("INSERT INTO counselors (user_id) VALUES (?)", [userId]);
     }
     await attachAtSignup(userId, role, ref);
+    await saveSignupConsents(userId, email, displayName, consent);
     const token = buildToken({ id: userId, role, email });
     return res.json({ token });
   } catch (err) {

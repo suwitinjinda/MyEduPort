@@ -115,6 +115,29 @@ async function callClaude(systemPrompt, userMessage, maxTokens = 1024) {
   }
 }
 
+// Same as callClaude, with the student's files (PDF/image/text content blocks) placed
+// before the instructions so Claude reads the documents themselves.
+async function callClaudeWithFiles(systemPrompt, userMessage, fileBlocks, maxTokens = 2000) {
+  if (!anthropicClient) return null;
+  try {
+    const system = systemPrompt === PORTFOLIO_GUIDE_CONTEXT
+      ? systemPrompt + (await kbContextFor(userMessage))
+      : systemPrompt;
+    const msg = await anthropicClient.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: "user", content: [...(fileBlocks || []), { type: "text", text: userMessage }] }]
+    });
+    if (msg.stop_reason === "refusal") return null;
+    const textBlock = msg.content?.find((b) => b.type === "text");
+    return textBlock?.text?.trim() || null;
+  } catch (err) {
+    console.error("Claude API error (with files):", err.message);
+    return null;
+  }
+}
+
 function safeNumber(value, fallback = 0) {
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
@@ -155,6 +178,42 @@ function buildProfileScore(summary) {
       summary.awardCount < 4 ? "Pursue national-level honors (AMC, USACO, Intel ISEF, etc.)" : null,
       summary.essayCount === 0 ? "Begin drafting the Common App personal statement" : null
     ].filter(Boolean)
+  };
+}
+
+// MEPAi Portfolio Score: Claude reads the student's actual portfolio (grades, tests,
+// activities, awards, essays — see services/portfolioDigest.js) plus the knowledge base and
+// scores each area for quality, not just quantity. The overall score is computed here from
+// the four parts with the guide's weights, so the parts always add up. Falls back to the
+// counting formula if the AI is unavailable.
+async function buildProfileScoreAI(summary, digest) {
+  const fallback = () => ({ ...buildProfileScore(summary), source: "formula" });
+  if (!anthropicClient || !digest) return fallback();
+  const prompt = `Score this student's university application portfolio. Judge QUALITY and fit, not just how many items there are: rigor and grades, test results, depth/leadership/impact and time commitment of activities, level of awards (school < regional < national < international), and how developed the essays are.
+Calibrate against a strong applicant AT THE SAME GRADE aiming for the student's intended universities and countries: a Grade 9 student isn't expected to have finished essays; a Grade 12 student is. Empty areas score low but not zero if the grade makes that normal.
+Scale for each area (0-100): 85-100 exceptional for top universities · 70-84 strong · 50-69 developing · 30-49 thin · 0-29 missing or very early.
+The student sees the strengths and next steps, so write them to the student as "you" in MEPAi VOICE, and be specific — name their actual subjects, activities and awards.
+Return ONLY JSON:
+{"categories":{"academic":<0-100>,"extracurricular":<0-100>,"essays":<0-100>,"achievements":<0-100>},
+"summary":"<2 sentences: where the portfolio stands overall and the single biggest lever>",
+"strengths":["<specific strength>","<strength>"],
+"weaknesses":["<specific next step that would raise the score most>","<next step>","<next step>"]}
+
+Student portfolio:
+${digest}`;
+  const parsed = parseJsonLoose(await callClaude(PORTFOLIO_GUIDE_CONTEXT, prompt, 1500), null);
+  const c = parsed?.categories;
+  const ok = c && ["academic", "extracurricular", "essays", "achievements"].every((k) => Number.isFinite(Number(c[k])));
+  if (!ok) return fallback();
+  const clamp = (n) => Math.max(0, Math.min(100, Math.round(Number(n))));
+  const categories = { academic: clamp(c.academic), extracurricular: clamp(c.extracurricular), essays: clamp(c.essays), achievements: clamp(c.achievements) };
+  return {
+    overall: Math.round(categories.academic * 0.4 + categories.extracurricular * 0.3 + categories.essays * 0.2 + categories.achievements * 0.1),
+    categories,
+    summary: String(parsed.summary || ""),
+    strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 4) : [],
+    weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses.slice(0, 4) : [],
+    source: "mepai"
   };
 }
 
@@ -238,7 +297,7 @@ Profile: grade_level=${summary.gradeLevel || "unknown"}, intended_major=${summar
  * Estimate acceptance probability across a student's saved universities.
  * Uses Claude when available; falls back to a heuristic.
  */
-async function estimateAcceptanceProbability(summary, savedUniversities = []) {
+async function estimateAcceptanceProbability(summary, savedUniversities = [], digest = "") {
   // Heuristic fallback — based on the guide's selectivity bands
   const heuristic = () => {
     if (!savedUniversities.length) return { average: 0, by_bucket: { reach: 0, target: 0, safety: 0 } };
@@ -279,7 +338,7 @@ Student summary:
 - Awards: ${summary.awardCount || 0}
 - Essays drafted: ${summary.essayCount || 0}
 - Class rank: ${summary.classRank || "not provided"}
-
+${digest ? `\nFull portfolio (judge from this — actual grades, tests, activities, awards, essays):\n${digest}\n` : ""}
 Saved universities:
 ${savedUniversities.map((u) => `- ${u.name} (${u.country}, selectivity=${u.selectivity_band || "Unknown"}, bucket=${u.bucket || "target"})`).join("\n")}${await outcomesContextFor(savedUniversities.map((u) => u.name))}
 
@@ -302,7 +361,7 @@ Return ONLY valid JSON, no markdown:
 
 // Advanced (Professional) prediction: the basic averages plus a probability for each
 // saved university and the factors most likely to move it.
-async function estimateAcceptanceAdvanced(summary, savedUniversities = []) {
+async function estimateAcceptanceAdvanced(summary, savedUniversities = [], digest = "") {
   const avg = (arr) => arr.length ? Math.round(arr.reduce((s, n) => s + n, 0) / arr.length) : 0;
   const rollUp = (perUni) => {
     const b = { reach: [], target: [], safety: [] };
@@ -355,7 +414,7 @@ Student summary:
 - Awards: ${summary.awardCount || 0}
 - Essays drafted: ${summary.essayCount || 0}
 - Class rank: ${summary.classRank || "not provided"}
-
+${digest ? `\nFull portfolio (judge from this — actual grades, tests, activities, awards, essays):\n${digest}\n` : ""}
 Saved universities (index. name):
 ${savedUniversities.map((u, i) => `${i}. ${u.name} (${u.country}, selectivity=${u.selectivity_band || "Unknown"}, bucket=${u.bucket || "target"})`).join("\n")}${await outcomesContextFor(savedUniversities.map((u) => u.name))}
 
@@ -436,7 +495,7 @@ You are EduBot, MyEduPort's AI admissions advisor for students in grades 9-13.
 - Personalize advice using the student's profile context when available.
 - Suggest concrete next actions, not vague encouragement.
 - If they are worried about their chances, be straight with them about where they stand and give them the next move. Do not catastrophize, and do not falsely reassure.
-${profileContext ? `\nStudent profile context:\n${profileContext}` : ""}${await kbContextFor(message)}`;
+${profileContext ? `\nStudent profile context:\n${profileContext}` : ""}${await kbContextFor(`${message} ${profileContext || ""}`)}`;
 
   const messages = [
     ...history.slice(-10).map((m) => ({
@@ -738,8 +797,35 @@ Return ONLY JSON:
   };
 }
 
-// --- 05 Documents: recommendation-letter advisory ---------------
-async function buildRecommendationAdvisory(summary) {
+// --- 05 Documents: recommendation letters & additional documents -------
+// With files attached, MEPAi reads each one and reviews it (what it shows, what's missing,
+// what to do next). With none, it falls back to general planning advice.
+const FILE_REVIEW_JSON = `{"advisory":"<2-3 sentences on the set as a whole: what is working, then the biggest opportunity>",
+"files":[{"name":"<file name exactly as given>","verdict":"<strong|good|needs work>","summary":"<1 sentence: what this file is and shows>","strengths":["<specific thing in the file that helps>"],"improve":["<specific next move for this file>"]}],
+"suggestions":["<specific action>","<action>","<action>"],
+"timeline":[{"when":"<period>","task":"<action>"}]}`;
+
+function profileLines(summary) {
+  return `Grade: ${summary?.gradeLevel || "unknown"}
+Intended major: ${summary?.intendedMajor || "unknown"}
+Target countries: ${summary?.targetCountries || "unknown"}
+Intended universities: ${summary?.intendedUniversities || "not chosen"}`;
+}
+
+function withFileNotes(result, files) {
+  return { ...result, read_files: files?.included || [], skipped_files: files?.skipped || [] };
+}
+// The files were sent but no review came back (API error, refusal, unreadable reply):
+// say so instead of presenting general advice as if the files had been read.
+function filesNotRead(result, files) {
+  return {
+    ...result,
+    read_files: [],
+    skipped_files: [...(files?.skipped || []), ...(files?.included || []).map((name) => ({ name, reason: "MEPAi couldn't read it this time — press the button again" }))]
+  };
+}
+
+async function buildRecommendationAdvisory(summary, files) {
   const heuristic = () => ({
     advisory: "Ask 2 core-subject teachers from Grade 11–12 who know you well, plus your counselor. Give each a brag sheet (résumé, transcript, goals, schools, deadlines) and 2–3 months' notice.",
     suggestions: [
@@ -753,19 +839,33 @@ async function buildRecommendationAdvisory(summary) {
       { when: "Grade 12 · Sep–Oct", task: "Confirm submission before early-application deadlines." }
     ]
   });
-  if (!anthropicClient) return heuristic();
-  const prompt = `Advise the student (write to them as "you") on recommendation letters for top US universities. Return ONLY JSON:
+  if (!anthropicClient) return withFileNotes(heuristic(), files);
+  const hasFiles = files?.blocks?.length > 0;
+  const prompt = hasFiles
+    ? `The attached files are the recommendation letters this student uploaded (${files.included.join(", ")}). Read every one in full.
+Review them as an admissions reader at the student's target universities would:
+- what each letter shows about the student (specific stories, comparisons with peers, evidence of curiosity, character, growth) versus generic praise;
+- how well the set fits the student's intended major and covers different sides of them;
+- red flags or gaps (no concrete examples, only grades restated, missing a core-subject teacher, wrong school or name, unsigned, outdated).
+The student usually can't edit a letter, so turn every point into something they can do: what to give the recommender (a brag sheet, a reminder of a specific moment), whether to ask someone else, which letter to send where.
+If a file isn't a recommendation letter, say so in its summary.
+Write to the student as "you". Return ONLY JSON:
+${FILE_REVIEW_JSON}
+
+${profileLines(summary)}`
+    : `The student hasn't uploaded any recommendation letters yet. Advise them (write to them as "you") on getting strong letters for their target universities. Return ONLY JSON:
 {"advisory":"<2-3 sentences>","suggestions":["<tip>","<tip>","<tip>"],"timeline":[{"when":"<period>","task":"<action>"}]}
 
-Grade: ${summary?.gradeLevel || "unknown"}
-Intended major: ${summary?.intendedMajor || "unknown"}`;
-  const json = await callClaude(PORTFOLIO_GUIDE_CONTEXT, prompt, 600);
+${profileLines(summary)}`;
+  const json = hasFiles
+    ? await callClaudeWithFiles(PORTFOLIO_GUIDE_CONTEXT, prompt, files.blocks, 2500)
+    : await callClaude(PORTFOLIO_GUIDE_CONTEXT, prompt, 600);
   const parsed = parseJsonLoose(json, null);
-  return parsed && parsed.advisory ? parsed : heuristic();
+  if (parsed && parsed.advisory) return withFileNotes(parsed, files);
+  return hasFiles ? filesNotRead(heuristic(), files) : withFileNotes(heuristic(), files);
 }
 
-// --- 05 Documents: additional-documents advisory ----------------
-async function buildDocumentAdvisory(summary) {
+async function buildDocumentAdvisory(summary, files) {
   const heuristic = () => ({
     advisory: "Additional documents (portfolio, research abstract, résumé, media) should reinforce your spike — only submit what strengthens your narrative. Follow each school's submission format.",
     suggestions: [
@@ -778,14 +878,28 @@ async function buildDocumentAdvisory(summary) {
       { when: "Grade 12 · Fall", task: "Finalize résumé and confirm each school's supplementary upload rules." }
     ]
   });
-  if (!anthropicClient) return heuristic();
-  const prompt = `Advise the student (write to them as "you") on additional/supplementary application documents for top US universities. Return ONLY JSON:
+  if (!anthropicClient) return withFileNotes(heuristic(), files);
+  const hasFiles = files?.blocks?.length > 0;
+  const prompt = hasFiles
+    ? `The attached files are the additional documents this student plans to submit with applications (${files.included.join(", ")}) — e.g. a portfolio, résumé, research abstract, certificates or media. Read every one in full.
+Review each as an admissions reader at the student's target universities would:
+- what it adds that the rest of the application can't show, and whether it supports their spike and intended major;
+- quality of content and presentation: structure, clarity, length, evidence and numbers, typos, layout, file naming;
+- whether it is worth submitting at all, and where (some schools don't accept supplements).
+Be specific: quote or point to the exact page, section or line you mean. Write to the student as "you". Return ONLY JSON:
+${FILE_REVIEW_JSON}
+
+${profileLines(summary)}`
+    : `The student hasn't uploaded any additional documents yet. Advise them (write to them as "you") on which supplementary documents would strengthen their application. Return ONLY JSON:
 {"advisory":"<2-3 sentences>","suggestions":["<tip>","<tip>","<tip>"],"timeline":[{"when":"<period>","task":"<action>"}]}
 
-Intended major: ${summary?.intendedMajor || "unknown"}`;
-  const json = await callClaude(PORTFOLIO_GUIDE_CONTEXT, prompt, 600);
+${profileLines(summary)}`;
+  const json = hasFiles
+    ? await callClaudeWithFiles(PORTFOLIO_GUIDE_CONTEXT, prompt, files.blocks, 2500)
+    : await callClaude(PORTFOLIO_GUIDE_CONTEXT, prompt, 600);
   const parsed = parseJsonLoose(json, null);
-  return parsed && parsed.advisory ? parsed : heuristic();
+  if (parsed && parsed.advisory) return withFileNotes(parsed, files);
+  return hasFiles ? filesNotRead(heuristic(), files) : withFileNotes(heuristic(), files);
 }
 
 // --- 05 Documents: essay "Edit & Apply" revision ----------------
@@ -805,28 +919,46 @@ ${plainText.slice(0, 4000)}`;
 }
 
 // --- 05 Documents: MEPAi — personalized essay advisory (PRO tier) ---
-async function buildEssayAdvisory(summary, essayText) {
-  const plain = (essayText || "").replace(/<[^>]*>/g, "").trim();
+// Documents → Essay: an in-depth review of THIS draft read against the student's whole
+// portfolio — deeper than the Personal page's writing tips. Beyond advisory/do/dont it
+// returns the four-part structure check, the strongest lines, the edits to make first,
+// how the essay fits the rest of the application, and notes per target university.
+async function buildEssayAdvisory(summary, essayText, portfolio = "") {
+  const plain = (essayText || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   const heuristic = () => ({
     advisory: "Center your statement on one specific story that reveals character and growth — in your authentic voice. Connect it to your intended field where it feels natural, not forced.",
     do: ["Open with a concrete, sensory moment", "Show vulnerability and what you learned", "Sound like a real 17-year-old, not a thesaurus"],
     dont: ["Summarize your résumé in prose", "Use clichéd topics (COVID, sports injury, service trip)", "Write what you think admissions want to hear"]
   });
   if (!anthropicClient || !plain) return heuristic();
-  const prompt = `You are MEPAi, giving PERSONALIZED advice on THIS student's Common App personal statement draft (not generic tips). Return ONLY JSON:
-{"advisory":"<2-3 sentence personalized assessment of this specific draft>","do":["<specific action for this essay>","<action>","<action>"],"dont":["<specific thing to avoid in this essay>","<avoid>","<avoid>"]}
+  const words = plain.split(" ").length;
+  const prompt = `You are MEPAi, giving an IN-DEPTH review of THIS student's Common App personal statement draft (${words} words; target 650). This is the detailed review in the Documents section, so go further than general writing tips: read the essay against the student's whole portfolio below, quote their actual lines, and be concrete.
+Return ONLY JSON:
+{"advisory":"<2-3 sentences: what is genuinely working, then the single biggest opportunity>",
+"structure":[{"part":"Hook","target_words":50,"current_words":<estimate>,"status":"<missing|thin|good|strong>","note":"<what this part does now and the next move>"},{"part":"Story","target_words":400,"current_words":<n>,"status":"...","note":"..."},{"part":"Reflection","target_words":150,"current_words":<n>,"status":"...","note":"..."},{"part":"Conclusion","target_words":50,"current_words":<n>,"status":"...","note":"..."}],
+"best_lines":["<an exact sentence from the draft that works, and why in a few words>"],
+"priority_edits":[{"quote":"<exact phrase from the draft, or empty if about something missing>","suggestion":"<the specific change and why>"}],
+"portfolio_fit":["<how this essay connects to, repeats, or misses something in the activities/awards/other essays — name them>"],
+"school_notes":[{"university":"<one of the student's intended universities>","note":"<what this school's readers will look for and how this draft lands>"}],
+"do":["<specific action for this essay>","<action>","<action>"],
+"dont":["<specific thing to avoid in this essay>","<avoid>","<avoid>"]}
+Rules: 2-4 best_lines (empty array if none yet), 3-5 priority_edits ordered by impact, 2-4 portfolio_fit points, school_notes only for universities listed below (empty array if none). Never invent facts about the student.
 
-Intended major: ${summary?.intendedMajor || "unknown"}
-Grade: ${summary?.gradeLevel || "unknown"}
+Student:
+- Grade: ${summary?.gradeLevel || "unknown"}
+- Intended major: ${summary?.intendedMajor || "unknown"}
+- Target countries: ${summary?.targetCountries || "unknown"}
+- Intended universities: ${summary?.intendedUniversities || "not chosen"}
+${portfolio ? `\n${portfolio}\n` : ""}
 Essay draft:
-${plain.slice(0, 3000)}`;
-  const json = await callClaude(PORTFOLIO_GUIDE_CONTEXT, prompt, 800);
+${plain.slice(0, 6000)}`;
+  const json = await callClaude(PORTFOLIO_GUIDE_CONTEXT, prompt, 3000);
   const parsed = parseJsonLoose(json, null);
   return parsed && parsed.advisory ? parsed : heuristic();
 }
 
 // --- Generic section MEPAi (Academics / Awards / Extracurricular / Documents) ---
-async function buildSectionAdvisory(section, summary) {
+async function buildSectionAdvisory(section, summary, extra = "") {
   const focus = {
     academics: "academics (GPA, course rigor, standardized tests) — how to strengthen your academic profile for top universities",
     awards: "awards & honors — which competitions/recognitions you should pursue and how to leverage existing ones",
@@ -852,8 +984,8 @@ Student profile:
 - Grade: ${summary?.gradeLevel || "unknown"}
 - Target countries: ${summary?.targetCountries || "US"}
 - Class rank: ${summary?.classRank || "not provided"}
-- Academic records: ${summary?.academicCount || 0}, Activities: ${summary?.activityCount || 0}, Awards: ${summary?.awardCount || 0}, Essays: ${summary?.essayCount || 0}`;
-  const json = await callClaude(PORTFOLIO_GUIDE_CONTEXT, prompt, 700);
+- Academic records: ${summary?.academicCount || 0}, Activities: ${summary?.activityCount || 0}, Awards: ${summary?.awardCount || 0}, Essays: ${summary?.essayCount || 0}${extra ? `\n\n${extra}` : ""}`;
+  const json = await callClaude(PORTFOLIO_GUIDE_CONTEXT, prompt, extra ? 1400 : 700);
   const parsed = parseJsonLoose(json, null);
   return parsed && parsed.advisory ? parsed : heuristic();
 }
@@ -1119,6 +1251,7 @@ module.exports = {
   correctGrammarWithClaude,
   draftMarketingEmailWithClaude,
   buildProfileScore,
+  buildProfileScoreAI,
   buildEssayAdvisory,
   buildSectionAdvisory,
   buildPersonalTest,

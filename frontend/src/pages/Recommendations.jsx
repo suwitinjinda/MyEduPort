@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import { STUDY_COUNTRIES } from "../utils/countries.js";
 import { PORTFOLIO_GUIDE } from "../components/AdvisoryNote.jsx";
 import Skeleton, { EmptyState } from "../components/Skeleton.jsx";
 
 const FLAG = { US: "🇺🇸", UK: "🇬🇧", China: "🇨🇳", Canada: "🇨🇦", Australia: "🇦🇺", Japan: "🇯🇵", Germany: "🇩🇪", Singapore: "🇸🇬", "Hong Kong": "🇭🇰" };
 
 export default function Recommendations() {
-  const [form, setForm] = useState({ country: "All", major: "", gpa: "3.7" });
+  const [form, setForm] = useState({ country: "All", major: "" });
+  const [gpaInfo, setGpaInfo] = useState(null); // the GPA the match was based on, from the server
   const [results, setResults] = useState([]);
   const [cap, setCap] = useState({ limit: -1, locked: 0 }); // MEPAi University Match plan cap
   const [status, setStatus] = useState("");
@@ -18,11 +20,12 @@ export default function Recommendations() {
 
   const updateField = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
-  const loadRecommendations = async () => {
+  const loadRecommendations = async (sort = sortBy) => {
     setLoading(true);
     try {
-      const data = await apiFetch("/api/ai/recommendations", { method: "POST", body: JSON.stringify({ ...form, sortBy }) });
+      const data = await apiFetch("/api/ai/recommendations", { method: "POST", body: JSON.stringify({ ...form, sortBy: sort }) });
       setResults(data.results || []);
+      setGpaInfo(data.gpa || null);
       setCap({ limit: data.limit ?? -1, locked: data.locked || 0 });
       setStatus("");
     } catch (err) {
@@ -34,7 +37,7 @@ export default function Recommendations() {
 
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
-    if (results.length > 0) loadRecommendations();
+    if (results.length > 0) loadRecommendations(e.target.value);
   };
 
   const reach = results.filter((r) => r.category === "Reach");
@@ -55,16 +58,43 @@ export default function Recommendations() {
           letterSpacing: "-0.01em"
         }}
       >
-        AI University Recommendations
+        MEPAi University Recommendations
       </div>
 
       <div
         className="card"
         style={{ borderRadius: "0 0 var(--r-lg) var(--r-lg)", padding: "2rem", borderTop: "none", marginBottom: "2rem" }}
       >
-        <h1 className="section-title" style={{ fontSize: "1.75rem", marginBottom: "1.5rem" }}>
+        <h1 className="section-title" style={{ fontSize: "1.75rem", marginBottom: "0.6rem" }}>
           Your University Recommendations
         </h1>
+        <p className="muted" style={{ fontSize: "0.92rem", lineHeight: 1.6, maxWidth: "75ch", margin: "0 0 0.85rem" }}>
+          MEPAi finds universities that teach your intended major in your chosen countries, then compares your
+          GPA with how selective each one is to sort them into a balanced list. The match % shows how your grades
+          sit against that school's usual bar — a higher % means a more comfortable fit. Add or update grades in
+          Portfolio → Academics, then press <strong>Rethink</strong>.
+        </p>
+        {gpaInfo && (
+          <p style={{ fontSize: "0.85rem", margin: "0 0 0.85rem", color: gpaInfo.source === "default" ? "#92400e" : "var(--ink-soft)" }}>
+            {gpaInfo.source === "academics"
+              ? <>Based on your GPA <strong>{Number(gpaInfo.value).toFixed(2)}</strong> / 4.0, from {gpaInfo.subjects} subject grade{gpaInfo.subjects === 1 ? "" : "s"} in Academics.</>
+              : gpaInfo.source === "entered"
+                ? <>Based on a GPA of <strong>{Number(gpaInfo.value).toFixed(2)}</strong> / 4.0.</>
+                : <>You haven't added grades yet, so this list uses a typical GPA of 3.4. <Link to="/profile?section=academics" style={{ color: "var(--teal-deep)", fontWeight: 600 }}>Add your grades</Link> for a match that's really yours.</>}
+          </p>
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.6rem", marginBottom: "1.5rem" }}>
+          {[
+            ["Reach", "#1f3461", "A stretch — worth applying, but admission is far from certain. Pick a few."],
+            ["Target", "#0f766e", "Your profile fits well. Most of your list should be here."],
+            ["Safety", "#047857", "You're very likely to be admitted. Include at least two you'd happily attend."]
+          ].map(([name, color, text]) => (
+            <div key={name} style={{ borderLeft: `3px solid ${color}`, background: "var(--surface-warm)", padding: "0.55rem 0.8rem", borderRadius: "0 var(--r-md) var(--r-md) 0" }}>
+              <div style={{ fontWeight: 700, fontSize: "0.85rem", color }}>{name}</div>
+              <div style={{ fontSize: "0.8rem", color: "var(--ink-soft)", lineHeight: 1.45 }}>{text}</div>
+            </div>
+          ))}
+        </div>
 
         {/* Filters */}
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "end", marginBottom: "1.5rem" }}>
@@ -81,10 +111,7 @@ export default function Recommendations() {
             <label>Country:</label>
             <select value={form.country} onChange={updateField("country")}>
               <option value="All">All Countries</option>
-              <option value="US">United States</option>
-              <option value="UK">United Kingdom</option>
-              <option value="Australia">Australia</option>
-              <option value="China">China</option>
+              {STUDY_COUNTRIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </div>
           <div className="input" style={{ marginBottom: 0, minWidth: "180px" }}>
@@ -98,7 +125,7 @@ export default function Recommendations() {
               <option value="Economics">Economics</option>
             </select>
           </div>
-          <button className="button" onClick={loadRecommendations} disabled={loading}>
+          <button className="button" onClick={() => loadRecommendations()} disabled={loading}>
             {loading ? "Thinking…" : "Rethink"}
           </button>
         </div>
@@ -110,7 +137,7 @@ export default function Recommendations() {
           <EmptyState
             title="No university matches yet."
             hint="Click below to generate AI-curated recommendations based on your profile."
-            action={<button className="button" onClick={loadRecommendations}>Generate recommendations →</button>}
+            action={<button className="button" onClick={() => loadRecommendations()}>Generate recommendations →</button>}
           />
         ) : (
           <div

@@ -1,4 +1,7 @@
 const express = require("express");
+const { fileBlocksFor, documentExcerpts } = require("../services/studentFiles");
+const { academicGpa } = require("../services/gpa");
+const { portfolioDigest } = require("../services/portfolioDigest");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
 const { checkQuota, incrementUsage, isFeatureAllowed, getPlanFeatures } = require("../services/plan");
@@ -21,14 +24,16 @@ async function portfolioFingerprint(userId) {
       await agg("academic_records", "year, course, grade"),
       await agg("test_scores", "test_type, score, superscore"),
       await agg("activities", "title, role, description, hours_per_week"),
-      await agg("awards", "title, description")
+      await agg("awards", "title, description"),
+      await agg("essays", "title, status, word_count, ai_score")
     ];
     return crypto.createHash("sha1").update(parts.join("#")).digest("hex").slice(0, 16);
   } catch (err) { return ""; }
 }
-const FINGERPRINTED = ["section_advisory", "test_advisory", "gap_analysis", "recommendation_advisory", "document_advisory", "activity_recommendations"];
+const FINGERPRINTED = ["section_advisory", "test_advisory", "gap_analysis", "recommendation_advisory", "document_advisory", "activity_recommendations", "acceptance"];
 const {
   buildProfileScore,
+  buildProfileScoreAI,
   buildGapAnalysis,
   buildGapAnalysisWithClaude,
   categorizeUniversities,
@@ -56,9 +61,45 @@ const {
 
 const router = express.Router();
 
+// The Documents overview reads the student's actual essays and documents, so its advice is
+// about this application rather than the general checklist on the Personal page.
+async function documentsContext(studentId) {
+  const parts = [];
+  try {
+    const [essays] = await pool.query("SELECT title, topic, status, ai_score, content FROM essays WHERE student_id = ? ORDER BY last_edited_at DESC LIMIT 5", [studentId]);
+    for (const e of essays) {
+      const text = String(e.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+      const words = text ? text.split(" ").length : 0;
+      parts.push(`ESSAY "${e.title || "Untitled"}" (${e.status || "draft"}, ${words} words${e.ai_score != null ? `, score ${e.ai_score}/100` : ""}${e.topic ? `, topic: ${e.topic}` : ""}):\n${text.slice(0, 2500) || "(empty)"}`);
+    }
+  } catch (err) { /* essays table missing */ }
+  const docs = await documentExcerpts(studentId, ["recommendation", "additional"]);
+  for (const d of docs) {
+    parts.push(`${d.category === "recommendation" ? "RECOMMENDATION LETTER" : "ADDITIONAL DOCUMENT"} "${d.name}":\n${d.excerpt || "(no readable text — an image or scanned file)"}`);
+  }
+  if (!parts.length) return "The student has no essays or documents yet.";
+  return `Read the student's actual documents below and refer to them by name. Point out exactly what to change in each (quote the line or name the section), how the essays, letters and documents fit together as one story, what's missing from the set, and the order to tackle it in. Be more specific than general checklist advice.\n\n${parts.join("\n\n")}`;
+}
+
+// What the in-depth essay review reads besides the essay: activities, awards and the
+// student's other essays, so it can say how the statement fits the whole application.
+async function essayPortfolioContext(studentId, essayId) {
+  const lines = [];
+  try {
+    const [acts] = await pool.query("SELECT title, role, category, hours_per_week, leadership, description FROM activities WHERE student_id = ? LIMIT 10", [studentId]);
+    if (acts.length) lines.push("Activities:\n" + acts.map((a) => `- ${a.title || "Untitled"}${a.role ? ` (${a.role})` : ""}${a.category ? `, ${a.category}` : ""}${a.hours_per_week ? `, ${a.hours_per_week} hrs/wk` : ""}${a.leadership ? ", leadership" : ""}${a.description ? `: ${String(a.description).slice(0, 160)}` : ""}`).join("\n"));
+    const [awards] = await pool.query("SELECT title, description FROM awards WHERE student_id = ? LIMIT 10", [studentId]);
+    if (awards.length) lines.push("Awards:\n" + awards.map((w) => `- ${w.title || "Award"}${w.description ? `: ${String(w.description).slice(0, 160)}` : ""}`).join("\n"));
+    const [essays] = await pool.query("SELECT id, title, topic, content FROM essays WHERE student_id = ? LIMIT 6", [studentId]);
+    const others = essays.filter((e) => String(e.id) !== String(essayId));
+    if (others.length) lines.push("Other essays:\n" + others.map((e) => `- "${e.title || "Untitled"}"${e.topic ? ` (topic: ${e.topic})` : ""}: ${String(e.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300)}`).join("\n"));
+  } catch (err) { /* older installs may lack a table */ }
+  return lines.join("\n\n");
+}
+
 async function getStudentSummary(userId) {
   const [[student]] = await pool.query(
-    "SELECT id, grade_level, intended_major, target_countries, class_rank FROM students WHERE user_id = ?",
+    "SELECT id, grade_level, intended_major, target_countries, intended_universities, class_rank FROM students WHERE user_id = ?",
     [userId]
   );
   if (!student) return null;
@@ -76,6 +117,7 @@ async function getStudentSummary(userId) {
     gradeLevel: student.grade_level,
     intendedMajor: student.intended_major,
     targetCountries: student.target_countries,
+    intendedUniversities: String(student.intended_universities || "").split("|").map((x) => x.trim()).filter(Boolean).join(", "),
     classRank: student.class_rank,
     academicCount: academicCount.count,
     activityCount: activityCount.count,
@@ -88,12 +130,18 @@ router.get("/score", authRequired, async (req, res) => {
   if (req.user.role !== "student") return res.status(403).json({ error: "Student only" });
   const summary = await getStudentSummary(req.user.id);
   if (!summary) return res.status(404).json({ error: "Student profile missing" });
-  const report = buildProfileScore(summary || {});
+  // MEPAi scores the portfolio once per version of it: the saved score is reused until the
+  // student's data changes (or ?refresh=1), so opening the dashboard costs nothing.
+  const fp = await portfolioFingerprint(req.user.id);
+  const saved = await getOutput(req.user.id, "profile_score", "");
+  if (saved && saved.source === "mepai" && fp && saved.inputs === fp && !req.query.refresh) return res.json(saved);
+  const report = await buildProfileScoreAI(summary, await portfolioDigest(req.user.id));
+  if (report.source === "mepai") await saveOutput(req.user.id, "profile_score", "", { ...report, inputs: fp });
   await pool.query(
     "INSERT INTO ai_reports (student_id, report_type, payload_json) VALUES (?, ?, ?)",
     [summary.studentId, "profile_score", JSON.stringify(report)]
   );
-  res.json(report);
+  res.json({ ...report, saved_at: new Date().toISOString() });
 });
 
 router.get("/gap-analysis", authRequired, async (req, res) => {
@@ -166,7 +214,14 @@ router.post("/recommendations", authRequired, async (req, res) => {
     const [all] = await pool.query(baseQuery + " LIMIT 30", baseParams);
     universities = all;
   }
-  const allResults = categorizeUniversities(universities, Number(gpa || 3.4));
+  // Match on the student's own grades. A GPA sent in the request still wins (kept for API
+  // callers); with neither, a typical profile (3.4) is used and the page says so.
+  const own = await academicGpa(req.user.id);
+  const sent = Number(gpa);
+  const gpaUsed = Number.isFinite(sent) && sent > 0 && sent <= 4.5
+    ? { value: sent, source: "entered" }
+    : own ? { value: own.value, source: "academics", subjects: own.subjects } : { value: 3.4, source: "default" };
+  const allResults = categorizeUniversities(universities, gpaUsed.value);
 
   // MEPAi University Match cap per plan (Free 3 / Essential 10 / Professional unlimited).
   // Pick round-robin across Reach → Target → Safety (best match first in each) so a
@@ -201,8 +256,8 @@ router.post("/recommendations", authRequired, async (req, res) => {
     "INSERT INTO ai_reports (student_id, report_type, payload_json) VALUES ((SELECT id FROM students WHERE user_id = ?), ?, ?)",
     [req.user.id, "recommendations", JSON.stringify({ country, major: studentMajor, results })]
   );
-  const matchOut = { country, major: studentMajor, results, limit: matchLimit, total: allResults.length, locked };
-  await saveOutput(req.user.id, "university_match", "", { ...matchOut, gpa, sortBy });
+  const matchOut = { country, major: studentMajor, results, limit: matchLimit, total: allResults.length, locked, gpa: gpaUsed };
+  await saveOutput(req.user.id, "university_match", "", { ...matchOut, sortBy });
   res.json(matchOut);
 });
 
@@ -272,10 +327,11 @@ router.get("/acceptance-probability", authRequired, async (req, res) => {
     );
     saved = rows;
   } catch (err) { /* table missing — migration needed */ }
+  const digest = await portfolioDigest(req.user.id);
   const result = tier === "advanced"
-    ? await estimateAcceptanceAdvanced(summary, saved)
-    : await estimateAcceptanceProbability(summary, saved);
-  await saveOutput(req.user.id, "acceptance", "", { ...result, tier });
+    ? await estimateAcceptanceAdvanced(summary, saved, digest)
+    : await estimateAcceptanceProbability(summary, saved, digest);
+  await saveOutput(req.user.id, "acceptance", "", { ...result, tier, inputs: await portfolioFingerprint(req.user.id) });
   res.json({ ...result, tier });
 });
 
@@ -493,7 +549,8 @@ router.get("/recommendation-advisory", authRequired, async (req, res) => {
     return res.status(403).json({ error: "MEPAi is a paid feature — upgrade to Essential or Professional." });
   }
   const summary = await getStudentSummary(req.user.id);
-  const result = await buildRecommendationAdvisory(summary || {});
+  const files = summary ? await fileBlocksFor(summary.studentId, "recommendation") : null;
+  const result = await buildRecommendationAdvisory(summary || {}, files);
   await saveOutput(req.user.id, "recommendation_advisory", "", { ...result, inputs: await portfolioFingerprint(req.user.id) });
   res.json(result);
 });
@@ -505,7 +562,8 @@ router.get("/document-advisory", authRequired, async (req, res) => {
     return res.status(403).json({ error: "MEPAi is a paid feature — upgrade to Essential or Professional." });
   }
   const summary = await getStudentSummary(req.user.id);
-  const result = await buildDocumentAdvisory(summary || {});
+  const files = summary ? await fileBlocksFor(summary.studentId, "additional") : null;
+  const result = await buildDocumentAdvisory(summary || {}, files);
   await saveOutput(req.user.id, "document_advisory", "", { ...result, inputs: await portfolioFingerprint(req.user.id) });
   res.json(result);
 });
@@ -518,7 +576,8 @@ router.post("/essay-advisory", authRequired, async (req, res) => {
   }
   const { essay } = req.body || {};
   const summary = await getStudentSummary(req.user.id);
-  const result = await buildEssayAdvisory(summary || {}, essay || "");
+  const portfolio = summary ? await essayPortfolioContext(summary.studentId, String(req.body?.scope || "")) : "";
+  const result = await buildEssayAdvisory(summary || {}, essay || "", portfolio);
   await saveOutput(req.user.id, "essay_advisory", String(req.body?.scope || ""), result);
   res.json(result);
 });
@@ -549,7 +608,8 @@ router.post("/section-advisory", authRequired, async (req, res) => {
   }
   const { section } = req.body || {};
   const summary = await getStudentSummary(req.user.id);
-  const result = await buildSectionAdvisory(section || "portfolio", summary || {});
+  const extra = section === "documents" && summary ? await documentsContext(summary.studentId) : "";
+  const result = await buildSectionAdvisory(section || "portfolio", summary || {}, extra);
   await saveOutput(req.user.id, "section_advisory", section || "portfolio", { ...result, inputs: await portfolioFingerprint(req.user.id) });
   res.json(result);
 });

@@ -28,9 +28,14 @@ const storage = multer.diskStorage({
   }
 });
 
+// Documents, pictures and video only. Web pages and SVGs can carry script, so they're refused.
+const ALLOWED_EXT = /\.(pdf|docx?|txt|png|jpe?g|gif|webp|mp4|mov|webm)$/i;
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => (ALLOWED_EXT.test(file.originalname || "")
+    ? cb(null, true)
+    : cb(new Error("Upload a PDF, Word document, text file, image (PNG, JPG, GIF, WebP) or video (MP4, MOV, WebM).")))
 });
 
 // Error handler for multer
@@ -58,7 +63,7 @@ router.post("/me", authRequired, upload.single("file"), handleUploadError, async
     if (!studentId) {
       // Clean up uploaded file if student not found
       if (req.file && req.file.path) {
-        fs.unlinkSync(req.file.path).catch(() => {});
+        fs.unlink(req.file.path, () => {});
       }
       return res.status(403).json({ error: "Student only" });
     }
@@ -81,7 +86,7 @@ router.post("/me", authRequired, upload.single("file"), handleUploadError, async
   } catch (err) {
     // Clean up uploaded file on error
     if (req.file && req.file.path) {
-      fs.unlinkSync(req.file.path).catch(() => {});
+      fs.unlink(req.file.path, () => {});
     }
     console.error("Upload error:", err);
     res.status(500).json({ error: err.message || "Failed to upload document" });

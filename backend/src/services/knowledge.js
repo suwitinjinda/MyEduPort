@@ -61,15 +61,44 @@ async function ingestText(docId, text) {
   return chunks.length;
 }
 
+// Words that appear in every MEPAi prompt (instructions, JSON field names, voice rules).
+// Searching on them matches everything a little and nothing well, so they're dropped and
+// the search runs on what the prompt is actually about: the topic and the student's details.
+const PROMPT_NOISE = new Set(`you your yours the and for are but not with this that these those from have has had will would
+could should shall must can may might into onto about above below then than when what which where while who whom why how
+all any each every both few more most other some such only own same very just also too here there their them they its
+it's was were been being does did doing done return json only exact exactly never always give write written writing
+mepai voice student students personalized personalised specific generic tips tip advice advise assessment sentence
+sentences action actions profile based below above unknown provided none null true false item items list one two three
+four five string number array object field fields key value values short long brief concise clear simple like make
+made start starts first next then goes straight phrased move moves working opportunity opportunities biggest single
+quote quotes quoted line lines rules rule format output use using used say says said tell told ask asked note notes
+grade major country countries university universities target intended`.split(/\s+/));
+
+// The search text for a prompt: JSON templates and boilerplate removed, each word once,
+// up to 60 words — so the student's actual topic and details decide what is found.
+function searchTextFor(query) {
+  const seen = new Set();
+  const out = [];
+  const words = String(query || "")
+    .replace(/\{[^{}]*\}/g, " ")      // JSON shapes ({"advisory":"<…>"})
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[^\p{L}\p{N}'\- ]+/gu, " ")
+    .split(/\s+/);
+  for (const raw of words) {
+    const w = raw.replace(/^['-]+|['-]+$/g, "");
+    const lw = w.toLowerCase();
+    if (w.length < 3 || PROMPT_NOISE.has(lw) || seen.has(lw)) continue;
+    seen.add(lw);
+    out.push(w);
+    if (out.length >= 60) break;
+  }
+  return out.join(" ");
+}
+
 // Natural-language FULLTEXT search over enabled documents → [{ doc_id, title, source, content, score }]
 async function searchKb(query, k = 5) {
-  const q = String(query || "")
-    .replace(/[{}"<>\[\]]/g, " ")
-    .replace(/\s+/g, " ")
-    .split(" ")
-    .filter((w) => w.length > 2)
-    .slice(0, 80)
-    .join(" ");
+  const q = searchTextFor(query);
   if (!q) return [];
   try {
     const [rows] = await pool.query(
@@ -84,7 +113,7 @@ async function searchKb(query, k = 5) {
 }
 
 // Prompt block with the most relevant knowledge-base passages (empty string if none)
-async function kbContextFor(query, { k = 4, maxChars = 3500 } = {}) {
+async function kbContextFor(query, { k = 5, maxChars = 6000 } = {}) {
   const hits = await searchKb(query, k);
   if (!hits.length) return "";
   let used = 0;
@@ -128,9 +157,11 @@ async function outcomesContextFor(universityNames = []) {
   const names = [...new Set(universityNames.filter(Boolean))].slice(0, 15);
   if (!names.length) return "";
   try {
+    // Leave out students who chose not to share their results (sign-up consent form)
+    const optedOut = await require("./consents").outcomesOptedOut();
     const [rows] = await pool.query(
-      `SELECT university_name, result, profile_snapshot FROM admission_outcomes WHERE university_name IN (?)`,
-      [names]
+      `SELECT university_name, result, profile_snapshot FROM admission_outcomes WHERE university_name IN (?)${optedOut.length ? " AND student_id NOT IN (?)" : ""}`,
+      optedOut.length ? [names, optedOut] : [names]
     );
     if (!rows.length) return "";
     const by = {};
@@ -152,4 +183,4 @@ async function outcomesContextFor(universityNames = []) {
   } catch (err) { return ""; }
 }
 
-module.exports = { extractText, chunkText, ingestText, searchKb, kbContextFor, profileSnapshot, outcomesContextFor };
+module.exports = { searchTextFor, extractText, chunkText, ingestText, searchKb, kbContextFor, profileSnapshot, outcomesContextFor };

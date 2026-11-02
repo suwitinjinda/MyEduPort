@@ -28,7 +28,8 @@ export default function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
-  const [form, setForm] = useState({ title: "", due_date: "", category: "general", notes: "" });
+  const BLANK = { title: "", due_date: "", category: "general", notes: "", status: "open" };
+  const [form, setForm] = useState(BLANK);
   const [status, setStatus] = useState("");
 
   const load = async () => {
@@ -49,16 +50,20 @@ export default function Tasks() {
     if (!form.title) return;
     try {
       await apiFetch("/api/students/me/tasks", { method: "POST", body: JSON.stringify(form) });
-      setForm({ title: "", due_date: "", category: "general", notes: "" });
+      setForm(BLANK);
       load();
     } catch (err) {
       setStatus(err.message);
     }
   };
 
-  const toggleStatus = async (task) => {
-    const next = task.status === "done" ? "open" : task.status === "open" ? "in_progress" : "done";
-    await apiFetch(`/api/students/me/tasks/${task.id}`, { method: "PUT", body: JSON.stringify({ status: next }) });
+  // Ongoing and Done are tick boxes: ticking one clears the other; unticking goes back to To do.
+  const setTaskStatus = async (task, ticked) => {
+    const next = task.status === ticked ? "open" : ticked;
+    setTasks((list) => list.map((t) => (t.id === task.id ? { ...t, status: next } : t)));
+    try {
+      await apiFetch(`/api/students/me/tasks/${task.id}`, { method: "PUT", body: JSON.stringify({ status: next }) });
+    } catch (err) { setStatus(err.message); }
     load();
   };
 
@@ -123,6 +128,10 @@ export default function Tasks() {
               </div>
             </div>
             <div className="input">
+              <label>Status</label>
+              <StatusTicks value={form.status} onChange={(v) => setForm({ ...form, status: form.status === v ? "open" : v })} />
+            </div>
+            <div className="input">
               <label>Notes (optional)</label>
               <textarea rows="2" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
@@ -149,8 +158,8 @@ export default function Tasks() {
             <div style={{ display: "flex", gap: "0.25rem" }}>
               {[
                 { id: "all", label: `All · ${tasks.length}` },
-                { id: "open", label: `Open · ${byStatus.open}` },
-                { id: "in_progress", label: `In progress · ${byStatus.in_progress}` },
+                { id: "open", label: `To do · ${byStatus.open}` },
+                { id: "in_progress", label: `Ongoing · ${byStatus.in_progress}` },
                 { id: "done", label: `Done · ${byStatus.done}` }
               ].map((f) => (
                 <button
@@ -179,32 +188,13 @@ export default function Tasks() {
             <Skeleton lines={6} />
           ) : visibleTasks.length === 0 ? (
             <EmptyState
-              title={filter === "all" ? "No tasks yet." : `No tasks in ${filter.replace("_", " ")}.`}
+              title={filter === "all" ? "No tasks yet." : `No tasks in ${{ open: "to do", in_progress: "ongoing", done: "done" }[filter]}.`}
               hint="Use the form on the left or seed the default admissions checklist."
             />
           ) : (
             <div style={{ display: "grid", gap: "0.6rem" }}>
               {visibleTasks.map((t) => (
-                <article key={t.id} className="card compact" style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "0.85rem", alignItems: "start" }}>
-                  <button
-                    onClick={() => toggleStatus(t)}
-                    title={`Mark ${t.status === "done" ? "open" : "next status"}`}
-                    style={{
-                      width: "22px",
-                      height: "22px",
-                      borderRadius: "50%",
-                      border: `2px solid ${t.status === "done" ? "var(--success)" : t.status === "in_progress" ? "var(--gold-deep)" : "var(--rule)"}`,
-                      background: t.status === "done" ? "var(--success)" : "transparent",
-                      color: t.status === "done" ? "var(--paper)" : "transparent",
-                      cursor: "pointer",
-                      fontSize: "12px",
-                      lineHeight: "18px",
-                      marginTop: "2px"
-                    }}
-                  >
-                    {t.status === "done" ? "✓" : t.status === "in_progress" ? "·" : ""}
-                  </button>
-
+                <article key={t.id} className="card compact" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "0.85rem", alignItems: "start" }}>
                   <div>
                     <div style={{ fontFamily: "var(--font-display)", color: "var(--ink)", fontWeight: 600, fontSize: "1rem", textDecoration: t.status === "done" ? "line-through" : "none", opacity: t.status === "done" ? 0.6 : 1 }}>
                       {t.title}
@@ -219,6 +209,9 @@ export default function Tasks() {
                       <span className="badge">{t.category}</span>
                     </div>
                     {t.notes && <p className="muted" style={{ fontSize: "0.85rem", marginTop: "0.4rem" }}>{t.notes}</p>}
+                    <div style={{ marginTop: "0.55rem" }}>
+                      <StatusTicks value={t.status} onChange={(v) => setTaskStatus(t, v)} label={t.title} />
+                    </div>
                   </div>
 
                   <button className="button ghost" onClick={() => remove(t.id)} style={{ padding: "0.3rem 0.6rem", fontSize: "0.7rem", color: "var(--error)", borderColor: "var(--error)" }}>
@@ -252,4 +245,21 @@ function daysUntil(date) {
   now.setHours(0, 0, 0, 0);
   target.setHours(0, 0, 0, 0);
   return Math.round((target - now) / 86400000);
+}
+
+// Two tick boxes — Ongoing / Done. Only one can be ticked; neither ticked means "To do".
+function StatusTicks({ value, onChange, label }) {
+  const box = (v, text, color) => (
+    <label style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.65rem", borderRadius: 999, cursor: "pointer", fontSize: "0.78rem", fontWeight: 600,
+      border: `1px solid ${value === v ? color : "var(--rule)"}`, background: value === v ? `${color}14` : "var(--surface)", color: value === v ? color : "var(--ink-muted)" }}>
+      <input type="checkbox" checked={value === v} onChange={() => onChange(v)} aria-label={label ? `${text}: ${label}` : text} style={{ accentColor: color, margin: 0 }} />
+      {text}
+    </label>
+  );
+  return (
+    <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+      {box("in_progress", "Ongoing", "#b45309")}
+      {box("done", "Done", "#047857")}
+    </div>
+  );
 }

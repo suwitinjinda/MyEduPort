@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { apiFetch } from "../api/client";
+import { apiFetch, openFile } from "../api/client";
 import Skeleton from "../components/Skeleton.jsx";
 import { fmtDate, fmtDayMonth } from "../utils/date.js";
 
@@ -52,13 +52,6 @@ export default function CounselorStudentDetail() {
   return (
     <div>
       <header style={{ borderBottom: "1px solid var(--rule)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
-        <button
-          className="button ghost"
-          onClick={() => navigate("/counselor")}
-          style={{ marginBottom: "1.25rem", padding: "0.5rem 1rem", fontSize: "0.7rem" }}
-        >
-          ← Counselor Dashboard
-        </button>
         <div className="eyebrow">Student Portfolio · Counselor View (read-only)</div>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2.25rem", color: "var(--ink)", letterSpacing: "-0.02em" }}>
           {profile.name}
@@ -382,11 +375,16 @@ export default function CounselorStudentDetail() {
         <div style={{ display: "grid", gap: "0.5rem" }}>
           {documents.length === 0 && <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No documents.</p>}
           {documents.map((d) => (
-            <div key={d.id} className="card compact">
-              <strong>{d.original_name || d.filename || "Document"}</strong>
-              <p className="text-muted" style={{ marginTop: "0.2rem" }}>
-                {d.category} · {d.uploaded_at ? fmtDate(d.uploaded_at) : "—"}
-              </p>
+            <div key={d.id} className="card compact flex-between">
+              <div>
+                <strong>{d.original_name || d.filename || "Document"}</strong>
+                <p className="text-muted" style={{ marginTop: "0.2rem" }}>
+                  {d.category} · {d.uploaded_at ? fmtDate(d.uploaded_at) : "—"}
+                </p>
+              </div>
+              {d.file_path && (
+                <button type="button" className="button ghost" onClick={() => openFile(d.file_path, d.original_name)} style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem" }}>View</button>
+              )}
             </div>
           ))}
         </div>

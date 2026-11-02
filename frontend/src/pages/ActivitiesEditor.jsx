@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { loadSaved, apiFetch, apiUpload, fileUrl } from "../api/client";
+import { loadSaved, apiFetch, apiUpload, openFile } from "../api/client";
+import PrivateMedia from "../components/PrivateMedia.jsx";
 import MepaiWorkspace from "../components/MepaiWorkspace.jsx";
 import { PORTFOLIO_GUIDE } from "../components/AdvisoryNote.jsx";
 
@@ -19,7 +20,16 @@ function activityTips(text) {
   return tips.slice(0, 5);
 }
 
-export default function ActivitiesEditor() {
+// embedded: shown inside Portfolio → Extracurricular, which already has its own MEPAi box
+// What an activity needs before it counts as done. MEPAi topic/summary/score aren't
+// required — free-plan students can't generate them. End date is optional (still running).
+const REQUIRED = [
+  ["title", "title"], ["role", "role"], ["category", "category"],
+  ["hours_per_week", "hours/week"], ["start_date", "start date"], ["description", "description"]
+];
+const missingFields = (a) => REQUIRED.filter(([k]) => (k === "hours_per_week" ? !(Number(a[k]) > 0) : !String(a[k] ?? "").trim())).map(([, label]) => label);
+
+export default function ActivitiesEditor({ embedded = false } = {}) {
   const EMPTY_FORM = {
     title: "", topic: "", role: "", description: "", summary: "",
     hours_per_week: "", leadership: false, start_date: "", end_date: "", category: "", ai_score: null
@@ -32,6 +42,14 @@ export default function ActivitiesEditor() {
   const [essaiLoading, setEssaiLoading] = useState(false);
   const [media, setMedia] = useState([]); // [{ file, url }] photos & videos picked for the activity being added
   const [wsKey, setWsKey] = useState(0); // bump to clear the description workspace after saving
+  // Editing a saved activity loads it into the same form. The unsaved new-activity draft is
+  // put aside meanwhile and comes back when the edit is saved or cancelled.
+  const [editingId, setEditingId] = useState(null);
+  const newDraftRef = useRef(null);
+  const editorRef = useRef(null);
+  const listRef = useRef(null);
+  const [justSaved, setJustSaved] = useState(null); // highlights the card that was just saved
+  const aiScope = editingId ? `act-${editingId}` : "new"; // MEPAi results kept per activity
   const [saving, setSaving] = useState(false);
   const draftReady = useRef(false);
   const [recs, setRecs] = useState(null);
@@ -52,7 +70,7 @@ export default function ActivitiesEditor() {
 
   // Autosave the unsaved activity form as a draft (photos/videos are attached on Save)
   useEffect(() => {
-    if (!draftReady.current) return undefined;
+    if (!draftReady.current || editingId) return undefined;
     const t = setTimeout(() => {
       const empty = Object.entries(form).every(([k, v]) => !v || v === EMPTY_FORM[k]);
       if (empty) apiFetch("/api/ai/saved/activity_draft?scope=new", { method: "DELETE" }).catch(() => {});
@@ -75,7 +93,7 @@ export default function ActivitiesEditor() {
   const runEssai = async () => {
     setEssaiLoading(true);
     try {
-      setEssai(await apiFetch("/api/ai/activity-description", { method: "POST", body: JSON.stringify({ activity: form, scope: "new" }) }));
+      setEssai(await apiFetch("/api/ai/activity-description", { method: "POST", body: JSON.stringify({ activity: form, scope: aiScope }) }));
     } catch (err) { alert(err.message || "MEPAi could not write a description"); }
     finally { setEssaiLoading(false); }
   };
@@ -100,8 +118,10 @@ export default function ActivitiesEditor() {
     if (!form.title.trim()) { setStatus("Add a title first."); return; }
     setSaving(true);
     setStatus("Saving…");
+    const wasEditing = editingId;
     try {
-      const { id } = await apiFetch("/api/students/me/activities", { method: "POST", body: JSON.stringify(form) });
+      const id = wasEditing || (await apiFetch("/api/students/me/activities", { method: "POST", body: JSON.stringify(form) })).id;
+      if (wasEditing) await apiFetch(`/api/students/me/activities/${id}`, { method: "PUT", body: JSON.stringify(form) });
       const failed = [];
       for (let i = 0; i < media.length; i++) {
         setStatus(`Uploading ${i + 1} of ${media.length}…`);
@@ -111,17 +131,65 @@ export default function ActivitiesEditor() {
       }
       media.forEach((m) => URL.revokeObjectURL(m.url));
       setMedia([]);
-      setForm(EMPTY_FORM);
       setEssai(null);
-      // the draft and its MEPAi results belonged to this activity — clear them for the next one
-      await Promise.all(["activity_draft", "activity_guidance", "activity_grammar", "activity_description"].map((k) => apiFetch(`/api/ai/saved/${k}?scope=new`, { method: "DELETE" }).catch(() => {})));
+      if (wasEditing) {
+        setEditingId(null);
+        setForm(newDraftRef.current || EMPTY_FORM);
+        newDraftRef.current = null;
+      } else {
+        setForm(EMPTY_FORM);
+        // the draft and its MEPAi results belonged to this activity — clear them for the next one
+        await Promise.all(["activity_draft", "activity_guidance", "activity_grammar", "activity_description"].map((k) => apiFetch(`/api/ai/saved/${k}?scope=new`, { method: "DELETE" }).catch(() => {})));
+      }
       setWsKey((k) => k + 1);
       await loadActivities();
-      setStatus(failed.length ? `Saved, but some files didn't upload — ${failed.join("; ")}` : "Saved.");
+      // Stay in Extracurricular and bring the saved activity into view in "Your activities"
+      setJustSaved(id);
+      setTimeout(() => setJustSaved(null), 3000);
+      listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setStatus(failed.length ? `Saved, but some files didn't upload — ${failed.join("; ")}` : wasEditing ? "Changes saved." : "Saved.");
       if (!failed.length) setTimeout(() => setStatus(""), 2500);
     } catch (err) {
       setStatus(err.message);
     } finally { setSaving(false); }
+  };
+
+  const startEdit = (a) => {
+    if (!editingId) newDraftRef.current = form;
+    media.forEach((m) => URL.revokeObjectURL(m.url));
+    setMedia([]);
+    setEssai(null);
+    setEditingId(a.id);
+    setForm({
+      ...EMPTY_FORM,
+      title: a.title || "", topic: a.topic || "", role: a.role || "", description: a.description || "",
+      summary: a.summary || "", category: a.category || "", leadership: !!a.leadership, ai_score: a.ai_score ?? null,
+      hours_per_week: a.hours_per_week ? String(a.hours_per_week) : "",
+      start_date: a.start_date ? String(a.start_date).slice(0, 10) : "",
+      end_date: a.end_date ? String(a.end_date).slice(0, 10) : ""
+    });
+    setWsKey((k) => k + 1);
+    setStatus("");
+    editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const cancelEdit = () => {
+    media.forEach((m) => URL.revokeObjectURL(m.url));
+    setMedia([]);
+    setEssai(null);
+    setEditingId(null);
+    setForm(newDraftRef.current || EMPTY_FORM);
+    newDraftRef.current = null;
+    setWsKey((k) => k + 1);
+    setStatus("");
+  };
+  const deleteActivity = async (a) => {
+    if (!window.confirm(`Delete "${a.title || "this activity"}"${a.media?.length ? ` and its ${a.media.length} photo/video file${a.media.length > 1 ? "s" : ""}` : ""}? This can't be undone.`)) return;
+    try {
+      await apiFetch(`/api/students/me/activities/${a.id}`, { method: "DELETE" });
+      apiFetch("/api/ai/saved/activity_guidance?scope=act-" + a.id, { method: "DELETE" }).catch(() => {});
+      if (editingId === a.id) cancelEdit();
+      await loadActivities();
+    } catch (err) { setStatus(err.message); }
   };
 
   const pickMedia = (files) => {
@@ -142,7 +210,7 @@ export default function ActivitiesEditor() {
   return (
     <div>
       {/* Free plan: MEPAi upsell (paid plans go straight to the recommendations card) */}
-      {!adviaiOn && (
+      {!adviaiOn && !embedded && (
         <aside className="advisory" style={{ borderStyle: "dashed" }}>
           <div className="advisory-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span>MEPAi</span><span className="badge">Paid</span>
@@ -207,52 +275,65 @@ export default function ActivitiesEditor() {
         </div>
       </section>
 
-      {/* Spike examples */}
-      <section style={{ marginTop: "2.5rem" }}>
-        <h2 className="section-title" style={{ fontSize: "1.4rem", marginBottom: "0.5rem" }}>
-          Spike examples
-        </h2>
-        <p className="muted" style={{ fontSize: "0.92rem", marginBottom: "1.5rem" }}>
-          Three illustrative spikes. Use them as a template for the depth and shape of your own.
-        </p>
-        <div className="grid three">
-          {PORTFOLIO_GUIDE.spike.examples.map((ex) => (
-            <div key={ex.spike} className="card" style={{ padding: "1.5rem", background: "var(--surface-warm)" }}>
-              <div className="subtitle" style={{ color: "var(--gold-deep)", fontSize: "1.05rem", marginBottom: "0.5rem" }}>{ex.spike}</div>
-              <ul className="list">
-                {ex.items.map((it, i) => <li key={i} style={{ fontSize: "0.88rem" }}>{it}</li>)}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Spike examples and quality indicators are the free plan's guidance. Essential and
+          Professional get the same advice personalised by MEPAi above, so it isn't repeated. */}
+      {!adviaiOn && (
+        <>
+        {/* Spike examples */}
+        <section style={{ marginTop: "2.5rem" }}>
+          <h2 className="section-title" style={{ fontSize: "1.4rem", marginBottom: "0.5rem" }}>
+            Spike examples
+          </h2>
+          <p className="muted" style={{ fontSize: "0.92rem", marginBottom: "1.5rem" }}>
+            Three illustrative spikes. Use them as a template for the depth and shape of your own.
+          </p>
+          <div className="grid three">
+            {PORTFOLIO_GUIDE.spike.examples.map((ex) => (
+              <div key={ex.spike} className="card" style={{ padding: "1.5rem", background: "var(--surface-warm)" }}>
+                <div className="subtitle" style={{ color: "var(--gold-deep)", fontSize: "1.05rem", marginBottom: "0.5rem" }}>{ex.spike}</div>
+                <ul className="list">
+                  {ex.items.map((it, i) => <li key={i} style={{ fontSize: "0.88rem" }}>{it}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
 
-      {/* Quality indicators */}
-      <section style={{ marginTop: "2.5rem" }}>
-        <h2 className="section-title" style={{ fontSize: "1.4rem", marginBottom: "0.5rem" }}>
-          Quality indicators
-        </h2>
-        <p className="muted" style={{ fontSize: "0.92rem", marginBottom: "1.5rem" }}>
-          What admissions officers actually look for when reading activity descriptions.
-        </p>
-        <div className="grid four">
-          {PORTFOLIO_GUIDE.qualityIndicators.blocks.map((b) => (
-            <div key={b.name} className="card compact">
-              <div className="subtitle" style={{ fontSize: "0.95rem" }}>{b.name}</div>
-              <ul className="list" style={{ marginTop: "0.5rem" }}>
-                {b.items.map((it, i) => <li key={i} style={{ fontSize: "0.82rem" }}>{it}</li>)}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
+        {/* Quality indicators */}
+        <section style={{ marginTop: "2.5rem" }}>
+          <h2 className="section-title" style={{ fontSize: "1.4rem", marginBottom: "0.5rem" }}>
+            Quality indicators
+          </h2>
+          <p className="muted" style={{ fontSize: "0.92rem", marginBottom: "1.5rem" }}>
+            What admissions officers actually look for when reading activity descriptions.
+          </p>
+          <div className="grid four">
+            {PORTFOLIO_GUIDE.qualityIndicators.blocks.map((b) => (
+              <div key={b.name} className="card compact">
+                <div className="subtitle" style={{ fontSize: "0.95rem" }}>{b.name}</div>
+                <ul className="list" style={{ marginTop: "0.5rem" }}>
+                  {b.items.map((it, i) => <li key={i} style={{ fontSize: "0.82rem" }}>{it}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+        </>
+      )}
 
       <div style={{ height: "1px", background: "var(--rule)", margin: "3rem 0 2rem" }} />
 
       {/* Editor: form + list */}
       <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 3fr) minmax(0, 2fr)", gap: "2rem" }} className="acts-grid">
-        <div className="card" style={{ padding: "2rem" }}>
-          <h2 className="section-title" style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>Extracurricular Activity Editor</h2>
+        <div className="card" ref={editorRef} style={{ padding: "2rem", scrollMarginTop: "100px", ...(editingId ? { borderColor: "var(--teal)", boxShadow: "0 0 0 2px var(--teal-soft)" } : {}) }}>
+          {editingId ? (
+            <div className="flex-between" style={{ gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+              <h2 className="section-title" style={{ fontSize: "1.35rem", margin: 0 }}>Editing: {form.title || "activity"}</h2>
+              <button type="button" className="button ghost" style={{ padding: "0.3rem 0.8rem", fontSize: "0.75rem" }} onClick={cancelEdit}>Cancel editing</button>
+            </div>
+          ) : (
+            <h2 className="section-title" style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>Extracurricular Activity Editor</h2>
+          )}
           <p className="muted" style={{ fontSize: "0.88rem", marginBottom: "1.5rem" }}>
             Use the formula: [Action verb] + [What you did] + [Impact / Result], in 150 characters.
           </p>
@@ -321,11 +402,11 @@ export default function ActivitiesEditor() {
               </div>
             )}
 
-            <p className="muted" style={{ fontSize: "0.8rem", margin: 0 }}>Write the description and add photos or videos below, then press <strong>Save activity</strong>. Your draft is saved automatically.</p>
+            <p className="muted" style={{ fontSize: "0.8rem", margin: 0 }}>Write the description and add photos or videos below, then press <strong>{editingId ? "Save changes" : "Save activity"}</strong>.{editingId ? "" : " Your draft is saved automatically."}</p>
           </div>
         </div>
 
-        <div>
+        <div ref={listRef} style={{ scrollMarginTop: "100px" }}>
           <h2 className="section-title" style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>
             Your activities <span className="badge" style={{ marginLeft: "0.5rem" }}>{activities.length}/10</span>
           </h2>
@@ -339,7 +420,7 @@ export default function ActivitiesEditor() {
               </div>
             )}
             {activities.map((activity, idx) => (
-              <article key={activity.id} className="card compact" style={{ background: "var(--surface-warm)" }}>
+              <article key={activity.id} className="card compact" style={{ background: "var(--surface-warm)", ...(editingId === activity.id || justSaved === activity.id ? { borderColor: "var(--teal)", boxShadow: "0 0 0 2px var(--teal-soft)" } : {}) }}>
                 <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "1rem", alignItems: "start" }}>
                   <span
                     style={{
@@ -358,8 +439,21 @@ export default function ActivitiesEditor() {
                         {activity.title}
                       </strong>
                       {activity.leadership ? <span className="badge primary">Leadership</span> : null}
-                      {activity.ai_score != null ? <span className="badge">Score {activity.ai_score}/100</span> : null}
                     </div>
+                    {(() => {
+                      const missing = missingFields(activity);
+                      return (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.35rem" }}>
+                          {missing.length === 0
+                            ? <span className="badge" style={{ background: "var(--success-soft)", color: "var(--success-deep)", border: "1px solid var(--success-deep)" }}>✓ Done</span>
+                            : <span className="badge" style={{ background: "#fef3c7", color: "#92400e", border: "1px solid #b45309" }} title={`Missing: ${missing.join(", ")}`}>On going</span>}
+                          <span className="badge" style={activity.ai_score != null ? undefined : { opacity: 0.7 }}>
+                            {activity.ai_score != null ? `Score ${activity.ai_score}/100` : "No score yet"}
+                          </span>
+                          {missing.length > 0 && <span className="text-muted" style={{ fontSize: "0.72rem" }}>Missing: {missing.join(", ")}</span>}
+                        </div>
+                      );
+                    })()}
                     {activity.topic ? (
                       <div style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--gold-deep)", fontWeight: 600, marginTop: "0.2rem" }}>
                         {activity.topic}
@@ -376,10 +470,8 @@ export default function ActivitiesEditor() {
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.5rem" }}>
                         {activity.media.map((m) => (
                           <div key={m.document_id} style={{ position: "relative", width: 72, height: 54, borderRadius: 6, overflow: "hidden", border: "1px solid var(--rule)", background: "#000" }}>
-                            <a href={fileUrl(m.file_path)} target="_blank" rel="noopener noreferrer" title={m.original_name}>
-                              {m.media_type === "video"
-                                ? <video src={fileUrl(m.file_path)} muted preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                : <img src={fileUrl(m.file_path)} alt={m.original_name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                            <a href="#" onClick={(e) => { e.preventDefault(); openFile(m.file_path, m.original_name); }} title={m.original_name}>
+                              <PrivateMedia path={m.file_path} video={m.media_type === "video"} alt={m.original_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                               {m.media_type === "video" && <span style={{ position: "absolute", left: 4, bottom: 2, color: "#fff", fontSize: "0.7rem" }}>▶</span>}
                             </a>
                             <button type="button" aria-label="Remove" onClick={() => removeSavedMedia(activity.id, m.document_id)} style={{ position: "absolute", top: 2, right: 2, width: 18, height: 18, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.6)", color: "#fff", cursor: "pointer", fontSize: "0.7rem", lineHeight: 1 }}>×</button>
@@ -408,6 +500,12 @@ export default function ActivitiesEditor() {
                         )}
                       </>
                     )}
+                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+                      <button type="button" className="button ghost" style={{ padding: "0.25rem 0.75rem", fontSize: "0.72rem" }} disabled={editingId === activity.id} onClick={() => startEdit(activity)}>
+                        {editingId === activity.id ? "Editing…" : "View / Edit"}
+                      </button>
+                      <button type="button" className="button ghost" style={{ padding: "0.25rem 0.75rem", fontSize: "0.72rem", color: "var(--error-deep)" }} onClick={() => deleteActivity(activity)}>Delete</button>
+                    </div>
                   </div>
                 </div>
               </article>
@@ -433,10 +531,10 @@ export default function ActivitiesEditor() {
           tipsFn={activityTips}
           guidanceKind="activity_guidance"
           grammarKind="activity_grammar"
-          scope="new"
+          scope={aiScope}
           workspace="activity"
           clearKey={wsKey}
-          requestGuidance={() => apiFetch("/api/ai/activity-guidance", { method: "POST", body: JSON.stringify({ activity: form, scope: "new" }) })}
+          requestGuidance={() => apiFetch("/api/ai/activity-guidance", { method: "POST", body: JSON.stringify({ activity: form, scope: aiScope }) })}
           extraPanel={
             <div style={{ border: "1px solid var(--rule)", borderRadius: "var(--r-md)", background: "var(--surface)", padding: "0.85rem 1rem" }}>
               <div className="flex-between" style={{ marginBottom: essai ? "0.5rem" : 0, gap: "0.5rem", flexWrap: "wrap" }}>
@@ -488,7 +586,8 @@ export default function ActivitiesEditor() {
         )}
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "1.5rem", flexWrap: "wrap" }}>
-          <button className="button" type="button" onClick={addActivity} disabled={saving}>{saving ? "Saving…" : "Save activity"}</button>
+          <button className="button" type="button" onClick={addActivity} disabled={saving}>{saving ? "Saving…" : editingId ? "Save changes" : "Save activity"}</button>
+          {editingId && <button className="button ghost" type="button" onClick={cancelEdit} disabled={saving}>Cancel editing</button>}
           {status && <span className="muted" style={{ fontSize: "0.85rem" }}>{status}</span>}
         </div>
       </section>

@@ -3,6 +3,42 @@ import { useNavigate, Link } from "react-router-dom";
 import { apiFetch, clearToken, getUserRole, getToken, API_URL } from "../api/client";
 import { fmtDate, fmtDateTime } from "../utils/date.js";
 
+// The optional choices from the sign-up consent form, changeable any time. Each change is
+// recorded (with the date) rather than overwriting the earlier answer.
+function ConsentChoices() {
+  const [data, setData] = useState(null);
+  const [saving, setSaving] = useState("");
+  const [err, setErr] = useState("");
+  useEffect(() => { apiFetch("/api/auth/consents").then(setData).catch(() => setData(null)); }, []);
+  if (!data) return null;
+  const change = async (key, granted) => {
+    setSaving(key); setErr("");
+    try {
+      await apiFetch(`/api/auth/consents/${key}`, { method: "PUT", body: JSON.stringify({ granted }) });
+      setData((d) => ({ ...d, effective: { ...d.effective, [key]: granted } }));
+    } catch (e) { setErr(e.message); } finally { setSaving(""); }
+  };
+  const items = [
+    ["outcomes_sharing", "Use my admission results, without my name, to help MEPAi advise future students.", getUserRole() === "student"],
+    ["marketing_email", "Email me tips, deadline reminders and offers.", true]
+  ].filter(([, , show]) => show);
+  return (
+    <div style={{ margin: "1rem 0 1.25rem", padding: "1rem 1.1rem", background: "var(--surface-warm, #f8fafc)", border: "1px solid var(--rule)", borderRadius: "var(--r-md)" }}>
+      <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--ink)", marginBottom: "0.5rem" }}>Your choices</div>
+      {items.map(([key, text]) => (
+        <label key={key} style={{ display: "flex", gap: "0.6rem", alignItems: "start", fontSize: "0.88rem", color: "var(--ink-soft)", lineHeight: 1.5, marginBottom: "0.45rem", cursor: "pointer" }}>
+          <input type="checkbox" checked={!!data.effective?.[key]} disabled={saving === key} onChange={(e) => change(key, e.target.checked)} style={{ marginTop: "0.25rem", accentColor: "var(--teal)" }} />
+          <span>{text}{data.current?.[key]?.at && <span className="text-muted" style={{ fontSize: "0.75rem" }}> · last changed {fmtDate(data.current[key].at)}</span>}</span>
+        </label>
+      ))}
+      {err && <p style={{ color: "var(--error-deep)", fontSize: "0.8rem", margin: "0.3rem 0 0" }}>{err}</p>}
+      <p className="text-muted" style={{ fontSize: "0.75rem", margin: "0.3rem 0 0" }}>
+        Required agreements (Terms, Privacy Policy, MEPAi using your information) stay in place while you have an account — delete your account below to withdraw them.
+      </p>
+    </div>
+  );
+}
+
 // Putting a backup ZIP back into the account. Deliberately two steps: the preview reads
 // the file and shows what it holds next to what the student has now, so the swap is
 // visible before anything is replaced. Nothing is written until they confirm.
@@ -346,6 +382,7 @@ export default function Settings() {
           Your work is yours. Take a full backup whenever you like, or delete your account
           and everything in it below.
         </p>
+        <ConsentChoices />
         {getUserRole() === "student" && (
           <>
             <button className="button" style={{ marginTop: "1rem" }} disabled={backingUp} onClick={downloadMyData}>

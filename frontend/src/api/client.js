@@ -12,9 +12,56 @@ export const API_URL = (() => {
   return "http://localhost:4000";
 })();
 
-// Absolute URL for a stored file path like "/uploads/abc.pdf" (same resolution as the API)
+// Absolute URL for a stored file path like "/uploads/abc.pdf" (same resolution as the API).
+// Only blog-* and email-* images are public; a student's own files need fetchFile/openFile.
 export function fileUrl(path) {
   return `${API_URL}${path || ""}`;
+}
+
+const isPublicFile = (path) => /^\/uploads\/(blog|email)-/.test(path || "");
+
+// A stored "/uploads/<name>" file, fetched with the session token → Blob
+export async function fetchFile(path) {
+  if (isPublicFile(path)) return (await fetch(fileUrl(path))).blob();
+  const name = String(path || "").split("/").pop();
+  const token = getToken();
+  const response = await fetch(`${API_URL}/api/files/${encodeURIComponent(name)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  if (!response.ok) throw new Error(response.status === 404 ? "File not found" : "Could not open the file");
+  return response.blob();
+}
+
+// Open a stored file in a new tab (or download it if pop-ups are blocked).
+// The tab is opened before the fetch so the browser still treats it as the user's click.
+// Only these open in a new tab; anything else is downloaded. A blob URL runs with this site's
+// origin, so an uploaded web page must never be opened as a page.
+const VIEWABLE = /^(application\/pdf|image\/(png|jpeg|gif|webp)|video\/(mp4|quicktime|webm)|text\/plain)/;
+export async function openFile(path, name) {
+  const tab = window.open("", "_blank");
+  try {
+    const blob = await fetchFile(path);
+    if (!VIEWABLE.test(blob.type || "")) {
+      if (tab) tab.close();
+      const dl = URL.createObjectURL(new Blob([blob], { type: "application/octet-stream" }));
+      const a = document.createElement("a");
+      a.href = dl;
+      a.download = name || String(path).split("/").pop();
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(dl), 60_000);
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    if (tab) { tab.location.href = url; return; }
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name || String(path).split("/").pop();
+    a.click();
+  } catch (err) {
+    if (tab) tab.close();
+    alert(err.message);
+  }
 }
 
 // Latest saved MEPAi results → { [kind]: { [scope]: { ...payload, saved_at } } }

@@ -5,7 +5,9 @@ import MachineLearningAdmin from "./MachineLearningAdmin.jsx";
 import BackupAdmin from "./BackupAdmin.jsx";
 import AffiliateAdmin from "./AffiliateAdmin.jsx";
 import CoinsAdmin from "./CoinsAdmin.jsx";
+import { STUDY_COUNTRIES } from "../utils/countries.js";
 import CampaignsAdmin from "./CampaignsAdmin.jsx";
+import BlogAdmin from "./BlogAdmin.jsx";
 import { fmtDateTime } from "../utils/date.js";
 
 export default function Admin() {
@@ -124,6 +126,7 @@ export default function Admin() {
     { id: "ml", label: "Machine Learning" },
     { id: "email", label: "Email Marketing" },
     { id: "campaigns", label: "Campaigns" },
+    { id: "blog", label: "Blog" },
     { id: "lists", label: "Dropdown Lists" },
     { id: "advisor", label: "Advisor Sessions" },
     { id: "settings", label: "Plan Settings" },
@@ -317,15 +320,7 @@ export default function Admin() {
                         <label>Country *</label>
                         <select value={universityForm.country} onChange={(e) => setUniversityForm({ ...universityForm, country: e.target.value })}>
                           <option value="">Select</option>
-                          <option value="US">United States</option>
-                          <option value="UK">United Kingdom</option>
-                          <option value="Australia">Australia</option>
-                          <option value="China">China</option>
-                          <option value="Canada">Canada</option>
-                          <option value="Hong Kong">Hong Kong</option>
-                          <option value="Singapore">Singapore</option>
-                          <option value="Japan">Japan</option>
-                          <option value="Germany">Germany</option>
+                          {STUDY_COUNTRIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                         </select>
                       </div>
                       <div className="input">
@@ -414,6 +409,7 @@ export default function Admin() {
           {activeTab === "affiliates" && <AffiliateAdmin />}
           {activeTab === "coins" && <CoinsAdmin />}
           {activeTab === "campaigns" && <CampaignsAdmin />}
+          {activeTab === "blog" && <BlogAdmin />}
           {activeTab === "backup" && <BackupAdmin />}
 
           {activeTab === "email" && <EmailMarketing />}

@@ -23,9 +23,15 @@ export default function Compare() {
   const [selectedToAdd, setSelectedToAdd] = useState({ id: "", bucket: "target", application_round: "", deadline: "" });
   const [status, setStatus] = useState("");
   const [outcomes, setOutcomes] = useState({}); // { [university_id]: result } — application results the student reported
+  const [intended, setIntended] = useState({ added: [], not_found: [] }); // from Portfolio → Personal
 
-  const load = async () => {
+  const load = async ({ sync = false } = {}) => {
     try {
+      // First visit of the page: bring in the Intended Universities picked in Portfolio → Personal
+      if (sync) {
+        const r = await apiFetch("/api/students/me/saved-universities/sync-intended", { method: "POST" }).catch(() => null);
+        if (r) setIntended({ added: r.added || [], not_found: r.not_found || [] });
+      }
       const [list, unis] = await Promise.all([
         apiFetch("/api/students/me/saved-universities").catch(() => []),
         apiFetch("/api/universities").catch(() => [])
@@ -39,7 +45,7 @@ export default function Compare() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load({ sync: true }); }, []);
 
   // Record the decision a university sent (helps MEPAi advise future students — saved with a profile snapshot)
   const setOutcome = async (row, result) => {
@@ -103,6 +109,22 @@ export default function Compare() {
           Build a balanced list — Reach, Target, Safety. Track application
           round and deadline for each, so nothing slips.
         </p>
+        <ul className="muted" style={{ fontSize: "0.88rem", lineHeight: 1.6, margin: "0.85rem 0 0", paddingLeft: "1.1rem", maxWidth: "75ch" }}>
+          <li>Your <strong>Intended Universities</strong> from Portfolio → Personal are added here automatically, sorted by how your GPA compares with each school.</li>
+          <li><strong>Bucket</strong> — Reach is a stretch, Target fits your profile, Safety is very likely. Change it any time.</li>
+          <li><strong>Round &amp; deadline</strong> — pick Early Decision, Early Action, Regular or Rolling and set the date; <strong>Days</strong> counts down for you.</li>
+          <li><strong>Result</strong> — when decisions arrive, record them here. They're kept with your Admission Results and help MEPAi advise future students.</li>
+        </ul>
+        {(intended.added.length > 0 || intended.not_found.length > 0) && (
+          <div className="card compact" style={{ marginTop: "1rem", background: "var(--success-soft)", fontSize: "0.86rem" }}>
+            {intended.added.length > 0 && <div>Added from your Intended Universities: <strong>{intended.added.join(", ")}</strong>.</div>}
+            {intended.not_found.length > 0 && (
+              <div style={{ marginTop: intended.added.length ? "0.3rem" : 0, color: "var(--ink-soft)" }}>
+                Not in our university list yet, so not added: {intended.not_found.join(", ")}.
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Add row */}
@@ -190,6 +212,7 @@ export default function Compare() {
                 <tr key={s.id}>
                   <td>
                     <strong style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>{s.name}</strong>
+                    {s.source === "intended" && <span className="badge" style={{ marginLeft: "0.4rem", fontSize: "0.62rem" }} title="From your Intended Universities in Portfolio → Personal">Intended</span>}
                     {s.city && <p className="text-muted" style={{ marginTop: "0.15rem" }}>{s.city}</p>}
                   </td>
                   <td>{FLAG[s.country] || "🏛"} {s.country}</td>
@@ -271,11 +294,12 @@ export default function Compare() {
       )}
 
       <div style={{ marginTop: "2rem", padding: "1.5rem", background: "var(--surface-warm)", borderLeft: "2px solid var(--gold)" }}>
-        <div className="advisory-label">Strategy reminder</div>
+        <div className="advisory-label">MEPAi Strategy</div>
         <p className="muted" style={{ fontSize: "0.92rem", marginTop: "0.4rem" }}>
-          The Excellent Portfolio Guide recommends a balanced list: roughly 30% reach, 50% target, 20% safety.
+          Aim for a balanced list of 8–12 schools: roughly 30% reach, 50% target, 20% safety.
           Apply only to schools you'd actually attend.
         </p>
+        <StrategyCheck counts={{ reach: buckets.reach.length, target: buckets.target.length, safety: buckets.safety.length }} />
         <Link to="/guide#interest" style={{ color: "var(--gold-deep)", fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginTop: "0.6rem", display: "inline-block" }}>
           Demonstrated interest guide →
         </Link>
@@ -296,4 +320,20 @@ function daysUntil(date) {
   now.setHours(0, 0, 0, 0);
   target.setHours(0, 0, 0, 0);
   return Math.round((target - now) / 86400000);
+}
+
+// Compares the student's list with the 30 / 50 / 20 balance and says what to add next.
+function StrategyCheck({ counts }) {
+  const total = counts.reach + counts.target + counts.safety;
+  if (!total) return null;
+  const goal = Math.max(8, total);
+  const want = { reach: Math.round(goal * 0.3), target: Math.round(goal * 0.5), safety: Math.max(2, Math.round(goal * 0.2)) };
+  const gaps = ["reach", "target", "safety"].filter((k) => counts[k] < want[k]).map((k) => `${want[k] - counts[k]} more ${k}`);
+  const pct = (n) => Math.round((n / total) * 100);
+  return (
+    <p style={{ fontSize: "0.88rem", margin: "0.6rem 0 0", color: "var(--ink)" }}>
+      Your list now: <strong>{counts.reach} reach ({pct(counts.reach)}%) · {counts.target} target ({pct(counts.target)}%) · {counts.safety} safety ({pct(counts.safety)}%)</strong>.{" "}
+      {gaps.length ? <>To balance it, add {gaps.join(", ")}.</> : <>That's a well-balanced list.</>}
+    </p>
+  );
 }

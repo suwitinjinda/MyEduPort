@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { loadSaved, apiFetch, getUserRole } from "../api/client";
 import AdvisoryNote, { PORTFOLIO_GUIDE } from "../components/AdvisoryNote.jsx";
@@ -12,11 +12,15 @@ const plainExcerpt = (html, n = 150) => {
   return t.length > n ? `${t.slice(0, n).trim()}…` : t;
 };
 
-export default function EssayEditor() {
+// Shown inside Portfolio → Documents (embedded): the open essay comes from the Portfolio
+// page's address (essayParam: an id or "new") and switching essays goes back through it.
+export default function EssayEditor({ embedded = false, essayParam = null, onOpenEssay } = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const role = getUserRole();
-  const essayId = searchParams.get("id");
+  const rawId = embedded ? essayParam : searchParams.get("id");
+  const essayId = rawId && rawId !== "new" ? rawId : null;
+  const goToEssay = (id, opts) => (embedded && onOpenEssay ? onOpenEssay(id) : navigate(id ? `/essay?id=${id}` : "/essay", opts));
 
   useEffect(() => {
     if (role === "parent") navigate("/parent", { replace: true });
@@ -67,13 +71,36 @@ export default function EssayEditor() {
   useEffect(() => {
     const warn = (e) => { if (dirtyRef.current) { e.preventDefault(); e.returnValue = ""; } };
     window.addEventListener("beforeunload", warn);
-    return () => { window.removeEventListener("beforeunload", warn); clearTimeout(autosaveTimer.current); };
+    return () => window.removeEventListener("beforeunload", warn);
   }, []);
+
+  // Leaving inside the app (Back, the side menu, "Back to Documents") doesn't fire beforeunload,
+  // and the 2-second autosave timer would be cancelled — so save what's pending right now.
+  // A layout-effect cleanup runs while the editor element is still attached.
+  const flushPendingSave = () => {
+    clearTimeout(autosaveTimer.current);
+    if (!dirtyRef.current || !editorRef.current) return;
+    const cur = essayRef.current;
+    const content = editorRef.current.innerHTML;
+    const words = (editorRef.current.innerText || "").trim().split(/\s+/).filter(Boolean).length;
+    const body = { title: cur.title || "Untitled Essay", topic: cur.topic || "", content, summary: plainExcerpt(content) };
+    dirtyRef.current = false;
+    if (cur.id) {
+      apiFetch(`/api/students/me/essays/${cur.id}`, { method: "PUT", body: JSON.stringify({ ...body, status: cur.status }) }).catch(() => {});
+    } else if (words >= 30) {
+      apiFetch("/api/students/me/essays", { method: "POST", body: JSON.stringify(body) }).catch(() => {});
+    }
+  };
+  const flushRef = useRef(flushPendingSave);
+  flushRef.current = flushPendingSave;
+  useLayoutEffect(() => () => flushRef.current(), []);
 
   useEffect(() => {
     // The URL just got the id of an essay autosave created a moment ago — the editor already
     // holds that content, so don't reload it (that would move the cursor while typing)
     if (essayId && essayRef.current?.id && String(essayRef.current.id) === String(essayId)) return;
+    // Switching to another essay: save the one being left first
+    flushRef.current();
     dirtyRef.current = false;
     setSaveState("");
     loadEssays();
@@ -130,7 +157,7 @@ export default function EssayEditor() {
         });
         id = created.id;
         setEssay((prev) => ({ ...prev, id }));
-        navigate(`/essay?id=${id}`, { replace: true });
+        goToEssay(id, { replace: true });
         await loadEssays();
       }
       const result = await apiFetch(`/api/students/me/essays/${id}/drafts`, { method: "POST", body: JSON.stringify({ content }) });
@@ -218,7 +245,7 @@ export default function EssayEditor() {
         const result = await apiFetch("/api/students/me/essays", { method: "POST", body: JSON.stringify({ title, topic, content, summary }) });
         essayRef.current = { ...essayRef.current, id: result.id };
         setEssay((prev) => ({ ...prev, id: result.id }));
-        navigate(`/essay?id=${result.id}`, { replace: true });
+        goToEssay(result.id, { replace: true });
       }
       dirtyRef.current = false;
       setSaveState("saved");
@@ -325,7 +352,7 @@ export default function EssayEditor() {
               onClick={() => {
                 setEssay({ id: null, title: "Untitled Essay", topic: "", content: "", word_count: 0, status: "draft", ai_score: null });
                 if (editorRef.current) editorRef.current.innerHTML = "";
-                navigate("/essay");
+                goToEssay(null);
                 setShowEssayList(false);
               }}
             >
@@ -341,7 +368,7 @@ export default function EssayEditor() {
                   key={e.id}
                   onClick={() => {
                     loadEssay(e.id);
-                    navigate(`/essay?id=${e.id}`);
+                    goToEssay(e.id);
                     setShowEssayList(false);
                   }}
                   style={{
@@ -499,7 +526,7 @@ export default function EssayEditor() {
                 )}
                 {essay.word_count > 0 && essay.word_count < 500 && (
                   <span style={{ marginLeft: "0.5rem", color: "var(--warn)" }}>
-                    · under-developed
+                    · keep going — aim for 500–650
                   </span>
                 )}
               </div>
@@ -611,6 +638,7 @@ export default function EssayEditor() {
               ) : (
                 <>
                   <p>{adviAi.advisory}</p>
+                  <EssayDeepReview data={adviAi} />
                   {(adviAi.do || adviAi.dont) && (
                     <div className="do-dont">
                       <div className="do">
@@ -853,5 +881,72 @@ export default function EssayEditor() {
         }
       `}</style>
     </div>
+  );
+}
+
+// The in-depth parts of the Documents essay review (older saved reviews simply lack them)
+const PART_TONE = { strong: "#047857", good: "#0f766e", thin: "#b45309", missing: "#b91c1c" };
+function EssayDeepReview({ data }) {
+  const head = (t) => <div className="eyebrow" style={{ paddingLeft: 0, display: "block", margin: "0.9rem 0 0.4rem" }}>{t}</div>;
+  const li = { fontSize: "0.84rem", lineHeight: 1.5, marginBottom: "0.4rem" };
+  return (
+    <>
+      {Array.isArray(data.structure) && data.structure.length > 0 && (
+        <>
+          {head("Structure — 650 words, four parts")}
+          <div style={{ display: "grid", gap: "0.45rem" }}>
+            {data.structure.map((p, i) => {
+              const color = PART_TONE[String(p.status || "").toLowerCase()] || "var(--ink-muted)";
+              const pct = p.target_words ? Math.min(100, Math.round((Number(p.current_words) || 0) / p.target_words * 100)) : 0;
+              return (
+                <div key={i} style={{ background: "var(--surface)", border: "1px solid var(--rule)", borderRadius: "var(--r-md)", padding: "0.5rem 0.7rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", fontSize: "0.82rem" }}>
+                    <strong>{p.part}</strong>
+                    <span style={{ color, fontWeight: 700, textTransform: "capitalize" }}>{p.status} · {Number(p.current_words) || 0}/{p.target_words}w</span>
+                  </div>
+                  <div style={{ height: 4, background: "var(--rule-soft, #eef2f7)", borderRadius: 4, margin: "0.35rem 0" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 4 }} />
+                  </div>
+                  {p.note && <div style={{ fontSize: "0.8rem", color: "var(--ink-soft)", lineHeight: 1.45 }}>{p.note}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {Array.isArray(data.best_lines) && data.best_lines.length > 0 && (
+        <>
+          {head("Lines that work")}
+          <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>{data.best_lines.map((x, i) => <li key={i} style={li}>{x}</li>)}</ul>
+        </>
+      )}
+      {Array.isArray(data.priority_edits) && data.priority_edits.length > 0 && (
+        <>
+          {head("Edits to make first")}
+          <ol style={{ margin: 0, paddingLeft: "1.2rem" }}>
+            {data.priority_edits.map((e, i) => (
+              <li key={i} style={li}>
+                {e.quote && <span style={{ display: "block", fontStyle: "italic", color: "var(--ink-muted)" }}>“{e.quote}”</span>}
+                {e.suggestion}
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+      {Array.isArray(data.portfolio_fit) && data.portfolio_fit.length > 0 && (
+        <>
+          {head("How it fits your portfolio")}
+          <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>{data.portfolio_fit.map((x, i) => <li key={i} style={li}>{x}</li>)}</ul>
+        </>
+      )}
+      {Array.isArray(data.school_notes) && data.school_notes.length > 0 && (
+        <>
+          {head("For your universities")}
+          <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
+            {data.school_notes.map((n, i) => <li key={i} style={li}><strong>{n.university}:</strong> {n.note}</li>)}
+          </ul>
+        </>
+      )}
+    </>
   );
 }

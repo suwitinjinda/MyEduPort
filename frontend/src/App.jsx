@@ -6,6 +6,7 @@ import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import UserProfileDropdown from "./components/UserProfileDropdown.jsx";
 import Skeleton from "./components/Skeleton.jsx";
+import { StudentShell } from "./components/StudentMenu.jsx";
 
 // Lazy-loaded — splits the bundle so the landing page loads fast.
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
@@ -14,8 +15,6 @@ const Recommendations = lazy(() => import("./pages/Recommendations.jsx"));
 const Chatbot = lazy(() => import("./pages/Chatbot.jsx"));
 const ParentDashboard = lazy(() => import("./pages/ParentDashboard.jsx"));
 const StudentDetail = lazy(() => import("./pages/StudentDetail.jsx"));
-const ActivitiesEditor = lazy(() => import("./pages/ActivitiesEditor.jsx"));
-const EssayEditor = lazy(() => import("./pages/EssayEditor.jsx"));
 const Pricing = lazy(() => import("./pages/Pricing.jsx"));
 const BillingSuccess = lazy(() => import("./pages/BillingSuccess.jsx"));
 const ExportPortfolio = lazy(() => import("./pages/ExportPortfolio.jsx"));
@@ -24,6 +23,7 @@ const Settings = lazy(() => import("./pages/Settings.jsx"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy.jsx"));
 const ApplicationProcess = lazy(() => import("./pages/ApplicationProcess.jsx"));
 const AdmissionResources = lazy(() => import("./pages/AdmissionResources.jsx"));
+const BlogPost = lazy(() => import("./pages/blog/BlogPost.jsx"));
 const CareerResources = lazy(() => import("./pages/CareerResources.jsx"));
 const About = lazy(() => import("./pages/About.jsx"));
 const NewsEvents = lazy(() => import("./pages/NewsEvents.jsx"));
@@ -72,6 +72,31 @@ function ProtectedRoute({ children, role }) {
     }
   }
   return children;
+}
+
+// One Back button, same place on every inner page. It goes to the previous page in the app,
+// or to the user's home when the page was opened directly (a link, a bookmark, a refresh).
+// Start pages — home, landing, sign-in, each role's dashboard — don't need one.
+const NO_BACK = [/^\/$/, /^\/lp(\/|$)/, /^\/login$/, /^\/reset$/, /^\/share\//, /^\/dashboard$/, /^\/parent$/, /^\/counselor$/, /^\/affiliate$/];
+function BackButton() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  if (NO_BACK.some((re) => re.test(location.pathname))) return null;
+  const goBack = () => {
+    if ((window.history.state?.idx ?? 0) > 0) navigate(-1);
+    else navigate(getToken() ? roleHome(getUserRole()) : "/");
+  };
+  return (
+    <button type="button" className="back-button" onClick={goBack}>
+      <span aria-hidden="true">←</span> Back
+    </button>
+  );
+}
+
+// Old essay links (/essay, /essay?id=12) open the essay inside Portfolio → Documents
+function EssayRedirect() {
+  const id = new URLSearchParams(useLocation().search).get("id");
+  return <Navigate to={`/profile?section=documents&essay=${id ? encodeURIComponent(id) : "new"}`} replace />;
 }
 
 export default function App() {
@@ -180,6 +205,7 @@ export default function App() {
       </header>
 
       <main className="page-container">
+        <BackButton />
         <Suspense fallback={<div style={{ padding: "2rem" }}><Skeleton lines={5} /></div>}>
           <Routes>
           <Route path="/" element={<Home />} />
@@ -189,32 +215,34 @@ export default function App() {
           <Route path="/reset" element={<ResetPassword />} />
           <Route path="/dashboard" element={<ProtectedRoute role="student"><Dashboard /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute role="student"><ProfileEditor /></ProtectedRoute>} />
-          <Route path="/recommendations" element={<ProtectedRoute role="student"><Recommendations /></ProtectedRoute>} />
-          <Route path="/chat" element={<ProtectedRoute role="student"><Chatbot /></ProtectedRoute>} />
+          <Route path="/recommendations" element={<ProtectedRoute role="student"><StudentShell><Recommendations /></StudentShell></ProtectedRoute>} />
+          <Route path="/chat" element={<ProtectedRoute role="student"><StudentShell><Chatbot /></StudentShell></ProtectedRoute>} />
           <Route path="/application" element={<ApplicationProcess />} />
           <Route path="/admission-resources" element={<AdmissionResources />} />
+          <Route path="/admission-resources/:slug" element={<BlogPost />} />
           <Route path="/career-resources" element={<CareerResources />} />
           <Route path="/parent" element={<ProtectedRoute role="parent"><ParentDashboard /></ProtectedRoute>} />
           <Route path="/parent/student/:studentId" element={<ProtectedRoute role="parent"><StudentDetail /></ProtectedRoute>} />
-          <Route path="/activities" element={<ProtectedRoute role="student"><ActivitiesEditor /></ProtectedRoute>} />
-          <Route path="/essay" element={<ProtectedRoute role="student"><EssayEditor /></ProtectedRoute>} />
+          {/* Activities and essays now open inside Portfolio, beside its section menu */}
+          <Route path="/activities" element={<Navigate to="/profile?section=extracurriculars" replace />} />
+          <Route path="/essay" element={<EssayRedirect />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/billing/success" element={<ProtectedRoute><BillingSuccess /></ProtectedRoute>} />
-          <Route path="/export" element={<ProtectedRoute role="student"><ExportPortfolio /></ProtectedRoute>} />
+          <Route path="/export" element={<ProtectedRoute role="student"><StudentShell><ExportPortfolio /></StudentShell></ProtectedRoute>} />
           <Route path="/admission-results" element={<ProtectedRoute role="student"><AdmissionResults /></ProtectedRoute>} />
           <Route path="/rewards" element={<ProtectedRoute role={["student", "parent"]}><Rewards /></ProtectedRoute>} />
           <Route path="/partners" element={<Partners />} />
           <Route path="/affiliate" element={<ProtectedRoute role="affiliate"><AffiliateDashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><StudentShell><Settings /></StudentShell></ProtectedRoute>} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/about" element={<About />} />
           <Route path="/news-events" element={<NewsEvents />} />
           <Route path="/user-manual" element={<UserManual />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/guide" element={<Guide />} />
-          <Route path="/tasks" element={<ProtectedRoute role="student"><Tasks /></ProtectedRoute>} />
-          <Route path="/compare" element={<ProtectedRoute role="student"><Compare /></ProtectedRoute>} />
+          <Route path="/tasks" element={<ProtectedRoute role="student"><StudentShell><Tasks /></StudentShell></ProtectedRoute>} />
+          <Route path="/compare" element={<ProtectedRoute role="student"><StudentShell><Compare /></StudentShell></ProtectedRoute>} />
           <Route path="/share/:token" element={<SharedPortfolio />} />
           <Route path="/counselor" element={<ProtectedRoute role="counselor"><CounselorDashboard /></ProtectedRoute>} />
           <Route path="/counselor/student/:studentId" element={<ProtectedRoute role="counselor"><CounselorStudentDetail /></ProtectedRoute>} />

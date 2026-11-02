@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { apiFetch, setToken, getUserRole } from "../api/client";
 import GoogleSignIn from "../components/GoogleSignIn";
+import SignupConsent, { BLANK_CONSENT, consentProblem } from "../components/SignupConsent.jsx";
 import { storedReferral, clearReferral } from "../utils/referral.js";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -26,9 +27,12 @@ export default function Login() {
     email: "",
     password: "",
     role: "student",
-    data_consent: false,
     ref: storedReferral()?.code || ""
   });
+  // The sign-up consent form (components/SignupConsent.jsx)
+  const [consent, setConsent] = useState(BLANK_CONSENT);
+  const consentRef = useRef(consent); consentRef.current = consent;
+  const consentPayload = (c) => ({ consents: c.consents, age_group: c.age_group, guardian_email: c.guardian_email, data_consent: c.consents.terms && c.consents.ai_processing });
   const [refInfo, setRefInfo] = useState(null); // { valid, from, discount_percent }
   useEffect(() => {
     const code = form.ref.trim();
@@ -55,7 +59,7 @@ export default function Login() {
       const body = { credential };
       if (registering) {
         body.role = formRef.current.role;
-        body.data_consent = formRef.current.data_consent;
+        Object.assign(body, consentPayload(consentRef.current));
         body.ref = formRef.current.ref || undefined;
       }
       const result = await apiFetch("/api/auth/google", {
@@ -81,7 +85,7 @@ export default function Login() {
       const path = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const payload = mode === "login"
         ? { email: form.email, password: form.password }
-        : form;
+        : { ...form, ...consentPayload(consent) };
       const result = await apiFetch(path, {
         method: "POST",
         body: JSON.stringify(payload)
@@ -172,12 +176,12 @@ export default function Login() {
           {isRegister && (
             <>
               <div className="input">
-                <label>Name</label>
-                <input value={form.name} onChange={updateField("name")} placeholder="Your full name" />
+                <label htmlFor="auth-name">Name</label>
+                <input id="auth-name" value={form.name} onChange={updateField("name")} placeholder="Your full name" />
               </div>
               <div className="input">
-                <label>Role</label>
-                <select value={form.role} onChange={updateField("role")}>
+                <label htmlFor="auth-role">Role</label>
+                <select id="auth-role" value={form.role} onChange={updateField("role")}>
                   <option value="student">Student</option>
                   <option value="parent">Parent</option>
                   <option value="counselor">School Counselor</option>
@@ -185,8 +189,8 @@ export default function Login() {
               </div>
               {form.role !== "counselor" && (
                 <div className="input">
-                  <label>Referral code <span className="text-muted" style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
-                  <input value={form.ref} onChange={updateField("ref")} placeholder="From a friend or partner" autoComplete="off" />
+                  <label htmlFor="auth-ref">Referral code <span className="text-muted" style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
+                  <input id="auth-ref" value={form.ref} onChange={updateField("ref")} placeholder="From a friend or partner" autoComplete="off" />
                   {refInfo?.valid && (
                     <span style={{ fontSize: "0.8rem", color: "var(--success-deep)", marginTop: "0.3rem", display: "block" }}>
                       ✓ From {refInfo.from} — {discountText(refInfo)}
@@ -202,13 +206,14 @@ export default function Login() {
             </>
           )}
           <div className="input">
-            <label>Email</label>
-            <input type="email" value={form.email} onChange={updateField("email")} placeholder="you@email.com" />
+            <label htmlFor="auth-email">Email</label>
+            <input id="auth-email" type="email" value={form.email} onChange={updateField("email")} placeholder="you@email.com" />
           </div>
           <div className="input">
-            <label>Password</label>
+            <label htmlFor="auth-password">Password</label>
             <div style={{ position: "relative" }}>
               <input
+                id="auth-password"
                 type={showPassword ? "text" : "password"}
                 value={form.password}
                 onChange={updateField("password")}
@@ -249,39 +254,14 @@ export default function Login() {
           )}
 
           {isRegister && (
-            <label
-              style={{
-                display: "flex",
-                alignItems: "start",
-                gap: "0.6rem",
-                cursor: "pointer",
-                fontSize: "0.85rem",
-                lineHeight: 1.55,
-                marginBottom: "1.25rem",
-                color: "var(--ink-muted)"
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={form.data_consent}
-                onChange={(e) => setForm((prev) => ({ ...prev, data_consent: e.target.checked }))}
-                style={{ marginTop: "0.25rem", cursor: "pointer", accentColor: "var(--teal)" }}
-                required
-              />
-              <span>
-                I consent to processing of my data for personalized guidance and AI improvement, as described in the{" "}
-                <Link to="/privacy" style={{ color: "var(--teal-deep)", textDecoration: "underline" }}>
-                  Privacy Policy
-                </Link>.
-              </span>
-            </label>
+            <SignupConsent value={consent} onChange={setConsent} role={form.role} />
           )}
 
           <button
             className="button"
             type="submit"
             style={{ width: "100%" }}
-            disabled={isRegister && !form.data_consent}
+            disabled={isRegister && !!consentProblem(consent, form.role)}
           >
             {isRegister ? "Create account" : "Sign in"}
           </button>
@@ -290,11 +270,11 @@ export default function Login() {
             <>
               <GoogleSignIn
                 onSuccess={handleGoogleSuccess}
-                disabled={!!status || (isRegister && !form.data_consent)}
+                disabled={!!status || (isRegister && !!consentProblem(consent, form.role))}
               />
-              {isRegister && !form.data_consent && (
+              {isRegister && consentProblem(consent, form.role) && (
                 <p className="muted" style={{ fontSize: "0.78rem", textAlign: "center", marginTop: "0.5rem" }}>
-                  Accept the Privacy Policy above to continue with Google.
+                  {consentProblem(consent, form.role)} Then you can continue with Google.
                 </p>
               )}
               {isRegister && (

@@ -1,0 +1,3431 @@
+{
+ "sections": [
+  {
+   "heading": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "header": [
+    "#",
+    "University",
+    "Location",
+    "Tier",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 50
+  },
+  {
+   "heading": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "header": [
+    "#",
+    "University",
+    "Location",
+    "Tier",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 50
+  },
+  {
+   "heading": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "header": [
+    "#",
+    "University",
+    "Location",
+    "Tier",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 50
+  },
+  {
+   "heading": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 20
+  },
+  {
+   "heading": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 20
+  },
+  {
+   "heading": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 20
+  },
+  {
+   "heading": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 20
+  },
+  {
+   "heading": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 10
+  },
+  {
+   "heading": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 10
+  },
+  {
+   "heading": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 10
+  },
+  {
+   "heading": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 10
+  },
+  {
+   "heading": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 10
+  },
+  {
+   "heading": "🇸🇬 Singapore — Top 5 Universities National Universities",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 5
+  },
+  {
+   "heading": "🇭🇰 Hong Kong — Top 5 Universities Flagship / Comprehensive",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 5
+  },
+  {
+   "heading": "🇹🇼 Taiwan — Top 5 Universities National Universities",
+   "header": [
+    "#",
+    "University",
+    "City / Location",
+    "Tier / Group",
+    "QS 2026",
+    "Popular Programs (Faculties)"
+   ],
+   "n": 5
+  }
+ ],
+ "rows": [
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "1",
+    "University": "Massachusetts Institute of Technology (MIT)",
+    "Location": "Cambridge, MA",
+    "Tier": "Ivy+",
+    "QS 2026": "#1",
+    "Popular Programs (Faculties)": "Engineering, CS, Physics, Math, Architecture, Business"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "2",
+    "University": "Stanford University",
+    "Location": "Stanford, CA",
+    "Tier": "Ivy+",
+    "QS 2026": "#3",
+    "Popular Programs (Faculties)": "CS, Engineering, Business (MBA), Medicine, Law, Education"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "3",
+    "University": "Harvard University",
+    "Location": "Cambridge, MA",
+    "Tier": "Ivy",
+    "QS 2026": "#5",
+    "Popular Programs (Faculties)": "Business (MBA), Law, Medicine, Economics, Government, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "4",
+    "University": "California Institute of Technology (Caltech)",
+    "Location": "Pasadena, CA",
+    "Tier": "Ivy+",
+    "QS 2026": "#10",
+    "Popular Programs (Faculties)": "Physics, Chemistry, Engineering, CS, Astronomy"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "5",
+    "University": "University of Chicago",
+    "Location": "Chicago, IL",
+    "Tier": "T14",
+    "QS 2026": "#13",
+    "Popular Programs (Faculties)": "Economics, Law, Business (MBA), Humanities, Social Sciences"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "6",
+    "University": "University of Pennsylvania",
+    "Location": "Philadelphia, PA",
+    "Tier": "Ivy",
+    "QS 2026": "#15",
+    "Popular Programs (Faculties)": "Business (Wharton), Medicine, Law, Engineering, Nursing"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "7",
+    "University": "Cornell University",
+    "Location": "Ithaca, NY",
+    "Tier": "Ivy",
+    "QS 2026": "#16",
+    "Popular Programs (Faculties)": "Engineering, Hotel Admin, Agriculture, Architecture, Veterinary"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "8",
+    "University": "University of California, Berkeley (UCB)",
+    "Location": "Berkeley, CA",
+    "Tier": "Public",
+    "QS 2026": "#17",
+    "Popular Programs (Faculties)": "CS, Engineering, Business (Haas), Law, Public Policy"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "9",
+    "University": "Yale University",
+    "Location": "New Haven, CT",
+    "Tier": "Ivy",
+    "QS 2026": "#21",
+    "Popular Programs (Faculties)": "Law, Medicine, Arts, Drama, Architecture, Humanities"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "10",
+    "University": "Johns Hopkins University",
+    "Location": "Baltimore, MD",
+    "Tier": "T20",
+    "QS 2026": "#24",
+    "Popular Programs (Faculties)": "Medicine, Public Health, Engineering, International Studies"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "11",
+    "University": "Princeton University",
+    "Location": "Princeton, NJ",
+    "Tier": "Ivy",
+    "QS 2026": "#25",
+    "Popular Programs (Faculties)": "Engineering, Public Affairs, Physics, Mathematics, Humanities"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "12",
+    "University": "Columbia University",
+    "Location": "New York, NY",
+    "Tier": "Ivy",
+    "QS 2026": "#38",
+    "Popular Programs (Faculties)": "Business (CBS), Law, Journalism, Medicine, Engineering, Arts"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "13",
+    "University": "Northwestern University",
+    "Location": "Evanston, IL",
+    "Tier": "T15",
+    "QS 2026": "#42",
+    "Popular Programs (Faculties)": "Business (Kellogg), Law, Journalism, Medicine, Engineering"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "14",
+    "University": "University of Michigan — Ann Arbor",
+    "Location": "Ann Arbor, MI",
+    "Tier": "Public",
+    "QS 2026": "#45",
+    "Popular Programs (Faculties)": "Engineering, Business (Ross), Medicine, Law, Education"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "15",
+    "University": "University of California, Los Angeles (UCLA)",
+    "Location": "Los Angeles, CA",
+    "Tier": "Public",
+    "QS 2026": "#46",
+    "Popular Programs (Faculties)": "Medicine, Law, Film (TFT), Engineering, Business (Anderson)"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "16",
+    "University": "Carnegie Mellon University (CMU)",
+    "Location": "Pittsburgh, PA",
+    "Tier": "T25",
+    "QS 2026": "#52",
+    "Popular Programs (Faculties)": "CS & AI, Engineering, Design, Business (Tepper), Drama"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "17",
+    "University": "New York University (NYU)",
+    "Location": "New York, NY",
+    "Tier": "T30",
+    "QS 2026": "#55",
+    "Popular Programs (Faculties)": "Business (Stern), Law, Medicine, Arts (Tisch), Social Work"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "18",
+    "University": "Duke University",
+    "Location": "Durham, NC",
+    "Tier": "T15",
+    "QS 2026": "#62",
+    "Popular Programs (Faculties)": "Medicine, Law, Business (Fuqua), Engineering, Environmental"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "19",
+    "University": "University of California, San Diego (UCSD)",
+    "Location": "San Diego, CA",
+    "Tier": "Public",
+    "QS 2026": "#66",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Marine Biology, CS, Cognitive Science"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "20",
+    "University": "University of Texas at Austin",
+    "Location": "Austin, TX",
+    "Tier": "Public",
+    "QS 2026": "#68",
+    "Popular Programs (Faculties)": "Engineering, Business (McCombs), Law, CS, Liberal Arts"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "21",
+    "University": "Brown University",
+    "Location": "Providence, RI",
+    "Tier": "Ivy",
+    "QS 2026": "#69",
+    "Popular Programs (Faculties)": "Liberal Arts, Medicine, Engineering, CS, Business"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "22",
+    "University": "University of Illinois Urbana-Champaign (UIUC)",
+    "Location": "Champaign, IL",
+    "Tier": "Public",
+    "QS 2026": "#70",
+    "Popular Programs (Faculties)": "CS, Engineering, Business (Gies), Law, Agriculture"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "23",
+    "University": "University of Washington",
+    "Location": "Seattle, WA",
+    "Tier": "Public",
+    "QS 2026": "#81",
+    "Popular Programs (Faculties)": "Medicine, CS, Engineering, Business (Foster), Public Affairs"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "24",
+    "University": "Pennsylvania State University",
+    "Location": "University Park, PA",
+    "Tier": "Public",
+    "QS 2026": "#82",
+    "Popular Programs (Faculties)": "Engineering, Business (Smeal), Agriculture, Education, Medicine"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "25",
+    "University": "Boston University",
+    "Location": "Boston, MA",
+    "Tier": "T30",
+    "QS 2026": "#88",
+    "Popular Programs (Faculties)": "Medicine, Law, Business (Questrom), Engineering, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "26",
+    "University": "Purdue University",
+    "Location": "West Lafayette, IN",
+    "Tier": "Public",
+    "QS 2026": "#88",
+    "Popular Programs (Faculties)": "Engineering, Agriculture, CS, Business (Krannert), Science"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "27",
+    "University": "University of Wisconsin-Madison",
+    "Location": "Madison, WI",
+    "Tier": "Public",
+    "QS 2026": "#110",
+    "Popular Programs (Faculties)": "Engineering, Business (Wisconsin), Agriculture, Law, Medicine"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "28",
+    "University": "University of California, Davis (UC Davis)",
+    "Location": "Davis, CA",
+    "Tier": "Public",
+    "QS 2026": "#114",
+    "Popular Programs (Faculties)": "Agriculture, Veterinary, Medicine, Engineering, Business"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "29",
+    "University": "Rice University",
+    "Location": "Houston, TX",
+    "Tier": "T25",
+    "QS 2026": "#119",
+    "Popular Programs (Faculties)": "Engineering, Architecture, Business (Jones), Music, Natural Sciences"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "30",
+    "University": "Georgia Institute of Technology",
+    "Location": "Atlanta, GA",
+    "Tier": "Public",
+    "QS 2026": "#123",
+    "Popular Programs (Faculties)": "Engineering, CS, Architecture, Business (Scheller), Sciences"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "31",
+    "University": "University of North Carolina, Chapel Hill",
+    "Location": "Chapel Hill, NC",
+    "Tier": "Public",
+    "QS 2026": "#140",
+    "Popular Programs (Faculties)": "Medicine, Business (Kenan-Flagler), Law, Public Health, Journalism"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "32",
+    "University": "Texas A&M University",
+    "Location": "College Station, TX",
+    "Tier": "Public",
+    "QS 2026": "#144",
+    "Popular Programs (Faculties)": "Engineering, Agriculture, Business, Veterinary, Architecture"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "33",
+    "University": "University of Southern California (USC)",
+    "Location": "Los Angeles, CA",
+    "Tier": "T30",
+    "QS 2026": "#146",
+    "Popular Programs (Faculties)": "Business (Marshall), Law, Film (Cinematic Arts), Engineering, Arts"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "34",
+    "University": "Michigan State University",
+    "Location": "East Lansing, MI",
+    "Tier": "Public",
+    "QS 2026": "#161",
+    "Popular Programs (Faculties)": "Agriculture, Veterinary, Business (Broad), Engineering, Education"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "35",
+    "University": "Washington University in St. Louis",
+    "Location": "St. Louis, MO",
+    "Tier": "T25",
+    "QS 2026": "#167",
+    "Popular Programs (Faculties)": "Medicine, Law, Business (Olin), Engineering, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "36",
+    "University": "Arizona State University",
+    "Location": "Tempe, AZ",
+    "Tier": "Public",
+    "QS 2026": "#173",
+    "Popular Programs (Faculties)": "Engineering, Business (W. P. Carey), Journalism, Education, Law"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "37",
+    "University": "University of California, Santa Barbara",
+    "Location": "Santa Barbara, CA",
+    "Tier": "Public",
+    "QS 2026": "#179",
+    "Popular Programs (Faculties)": "Engineering, Sciences, Arts, Marine Biology, CS"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "38",
+    "University": "Emory University",
+    "Location": "Atlanta, GA",
+    "Tier": "T25",
+    "QS 2026": "#182",
+    "Popular Programs (Faculties)": "Medicine, Business (Goizueta), Law, Public Health, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "39",
+    "University": "Ohio State University",
+    "Location": "Columbus, OH",
+    "Tier": "Public",
+    "QS 2026": "#190",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business (Fisher), Law, Education"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "40",
+    "University": "University of Maryland, College Park",
+    "Location": "College Park, MD",
+    "Tier": "Public",
+    "QS 2026": "#207",
+    "Popular Programs (Faculties)": "Engineering, CS, Business (Smith), Public Policy, Journalism"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "41",
+    "University": "University of Minnesota",
+    "Location": "Minneapolis, MN",
+    "Tier": "Public",
+    "QS 2026": "#210",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business (Carlson), Law, Education"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "42",
+    "University": "University of Florida",
+    "Location": "Gainesville, FL",
+    "Tier": "Public",
+    "QS 2026": "#212",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business (Warrington), Agriculture, Law"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "43",
+    "University": "University of Rochester",
+    "Location": "Rochester, NY",
+    "Tier": "T30",
+    "QS 2026": "#236",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business (Simon), Music, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "44",
+    "University": "Dartmouth College",
+    "Location": "Hanover, NH",
+    "Tier": "Ivy",
+    "QS 2026": "#247",
+    "Popular Programs (Faculties)": "Business (Tuck), Medicine, Engineering, Liberal Arts, Sciences"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "45",
+    "University": "University of Massachusetts, Amherst",
+    "Location": "Amherst, MA",
+    "Tier": "Public",
+    "QS 2026": "#247",
+    "Popular Programs (Faculties)": "Engineering, Business (Isenberg), CS, Social Sciences, Education"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "46",
+    "University": "Vanderbilt University",
+    "Location": "Nashville, TN",
+    "Tier": "T25",
+    "QS 2026": "#250",
+    "Popular Programs (Faculties)": "Medicine, Law, Business (Owen), Education, Engineering"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "47",
+    "University": "North Carolina State University",
+    "Location": "Raleigh, NC",
+    "Tier": "Public",
+    "QS 2026": "#272",
+    "Popular Programs (Faculties)": "Engineering, Agriculture, Business, Design, Veterinary"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "48",
+    "University": "University of Virginia",
+    "Location": "Charlottesville, VA",
+    "Tier": "Public",
+    "QS 2026": "#275",
+    "Popular Programs (Faculties)": "Business (Darden), Law, Medicine, Engineering, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "49",
+    "University": "University of Pittsburgh",
+    "Location": "Pittsburgh, PA",
+    "Tier": "T30",
+    "QS 2026": "#281",
+    "Popular Programs (Faculties)": "Medicine, Business (Katz), Law, Engineering, Public Health"
+   }
+  },
+  {
+   "section": "🇺🇸 United States — Top 50 Universities Ivy / Public Ivies / T50",
+   "cols": {
+    "#": "50",
+    "University": "Georgetown University",
+    "Location": "Washington, DC",
+    "Tier": "T30",
+    "QS 2026": "#285",
+    "Popular Programs (Faculties)": "Law, Business (McDonough), International Affairs, Medicine, Humanities"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "1",
+    "University": "University of Oxford",
+    "Location": "Oxford",
+    "Tier": "Ancient / Russell",
+    "QS 2026": "#4",
+    "Popular Programs (Faculties)": "PPE, Law, Medicine, Engineering, Humanities, Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "2",
+    "University": "Imperial College London",
+    "Location": "London",
+    "Tier": "Russell",
+    "QS 2026": "#2",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Business (CBS), CS, Natural Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "3",
+    "University": "University of Cambridge",
+    "Location": "Cambridge",
+    "Tier": "Ancient / Russell",
+    "QS 2026": "#6",
+    "Popular Programs (Faculties)": "Natural Sciences, Engineering, Medicine, Law, Economics, Math"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "4",
+    "University": "University College London (UCL)",
+    "Location": "London",
+    "Tier": "Russell",
+    "QS 2026": "#9",
+    "Popular Programs (Faculties)": "Architecture (Bartlett), Law, Medicine, Arts & Sciences, Engineering"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "5",
+    "University": "King's College London (KCL)",
+    "Location": "London",
+    "Tier": "Russell",
+    "QS 2026": "#31",
+    "Popular Programs (Faculties)": "Medicine, Law (Dickson Poon), Nursing, Arts, Social Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "6",
+    "University": "University of Edinburgh",
+    "Location": "Edinburgh",
+    "Tier": "Ancient / Russell",
+    "QS 2026": "#34",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Informatics, Law, Humanities, Business"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "7",
+    "University": "The University of Manchester",
+    "Location": "Manchester",
+    "Tier": "Russell",
+    "QS 2026": "#35",
+    "Popular Programs (Faculties)": "Engineering, Business (Alliance MBS), Medicine, CS"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "8",
+    "University": "University of Bristol",
+    "Location": "Bristol",
+    "Tier": "Russell",
+    "QS 2026": "#51",
+    "Popular Programs (Faculties)": "Engineering, Law, Medicine, Arts, CS, Education"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "9",
+    "University": "London School of Economics (LSE)",
+    "Location": "London",
+    "Tier": "Russell",
+    "QS 2026": "#56",
+    "Popular Programs (Faculties)": "Economics, Law, Political Science, Accounting, International Relations"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "10",
+    "University": "The University of Warwick",
+    "Location": "Coventry",
+    "Tier": "Russell",
+    "QS 2026": "#74",
+    "Popular Programs (Faculties)": "Business (WBS), Engineering, Mathematics, Economics, Law"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "11",
+    "University": "University of Birmingham",
+    "Location": "Birmingham",
+    "Tier": "Russell",
+    "QS 2026": "#76",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business, Law, Arts & Science"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "12",
+    "University": "University of Glasgow",
+    "Location": "Glasgow",
+    "Tier": "Ancient / Russell",
+    "QS 2026": "#79",
+    "Popular Programs (Faculties)": "Medicine, Law, Arts, Engineering, Business (Adam Smith)"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "13",
+    "University": "University of Leeds",
+    "Location": "Leeds",
+    "Tier": "Russell",
+    "QS 2026": "#86",
+    "Popular Programs (Faculties)": "Business, Engineering, Medicine, Arts, Education"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "14",
+    "University": "University of Southampton",
+    "Location": "Southampton",
+    "Tier": "Russell",
+    "QS 2026": "#87",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Law, Oceanography, CS, Business"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "15",
+    "University": "The University of Sheffield",
+    "Location": "Sheffield",
+    "Tier": "Russell",
+    "QS 2026": "#92",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Architecture, Business, Arts & Humanities"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "16",
+    "University": "Durham University",
+    "Location": "Durham",
+    "Tier": "Russell",
+    "QS 2026": "#94",
+    "Popular Programs (Faculties)": "Business, Law, Physics, Archaeology, History"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "17",
+    "University": "University of St Andrews",
+    "Location": "St Andrews",
+    "Tier": "Ancient",
+    "QS 2026": "#94",
+    "Popular Programs (Faculties)": "Philosophy, CS, Mathematics, International Relations, Medicine"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "18",
+    "University": "The University of Nottingham",
+    "Location": "Nottingham",
+    "Tier": "Russell",
+    "QS 2026": "#97",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business, Pharmacy, Arts, Education"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "19",
+    "University": "Queen Mary University of London (QMUL)",
+    "Location": "London",
+    "Tier": "Russell",
+    "QS 2026": "#143",
+    "Popular Programs (Faculties)": "Medicine, Law, Engineering, Business, Humanities, Dentistry"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "20",
+    "University": "Newcastle University",
+    "Location": "Newcastle",
+    "Tier": "Russell",
+    "QS 2026": "#137",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Architecture, Business, Arts, Law"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "21",
+    "University": "University of Liverpool",
+    "Location": "Liverpool",
+    "Tier": "Russell",
+    "QS 2026": "#147",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Law, Business, Veterinary"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "22",
+    "University": "University of Exeter",
+    "Location": "Exeter",
+    "Tier": "Russell",
+    "QS 2026": "#155",
+    "Popular Programs (Faculties)": "Business, Law, Medicine, Engineering, Arts & Humanities"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "23",
+    "University": "Lancaster University",
+    "Location": "Lancaster",
+    "Tier": "Other",
+    "QS 2026": "#157",
+    "Popular Programs (Faculties)": "Business (LUMS), Law, Medicine, Arts & Sciences, Engineering"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "24",
+    "University": "University of York",
+    "Location": "York",
+    "Tier": "Other",
+    "QS 2026": "#169",
+    "Popular Programs (Faculties)": "Medicine, Law, Engineering, Arts, Social Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "25",
+    "University": "Cardiff University",
+    "Location": "Cardiff",
+    "Tier": "Russell",
+    "QS 2026": "#181",
+    "Popular Programs (Faculties)": "Medicine, Law, Engineering, Business, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "26",
+    "University": "University of Reading",
+    "Location": "Reading",
+    "Tier": "Other",
+    "QS 2026": "#194",
+    "Popular Programs (Faculties)": "Agriculture, Business, Law, Arts, Education"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "27",
+    "University": "Queen's University Belfast",
+    "Location": "Belfast",
+    "Tier": "Russell",
+    "QS 2026": "#199",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Law, Business, Arts & Humanities"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "28",
+    "University": "Loughborough University",
+    "Location": "Loughborough",
+    "Tier": "Other",
+    "QS 2026": "#225",
+    "Popular Programs (Faculties)": "Engineering, Sports Science, Business, Design, Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "29",
+    "University": "University of Strathclyde",
+    "Location": "Glasgow",
+    "Tier": "Other",
+    "QS 2026": "#251",
+    "Popular Programs (Faculties)": "Engineering, Business, Law, Sciences, Education"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "30",
+    "University": "University of Aberdeen",
+    "Location": "Aberdeen",
+    "Tier": "Ancient",
+    "QS 2026": "#262",
+    "Popular Programs (Faculties)": "Medicine, Law, Engineering, Business, Arts"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "31",
+    "University": "University of Surrey",
+    "Location": "Guildford",
+    "Tier": "Other",
+    "QS 2026": "#262",
+    "Popular Programs (Faculties)": "Engineering, Business, Health Sciences, Arts, CS"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "32",
+    "University": "University of Sussex",
+    "Location": "Brighton",
+    "Tier": "Other",
+    "QS 2026": "#278",
+    "Popular Programs (Faculties)": "Social Sciences, Arts, Engineering, Medicine, Law"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "33",
+    "University": "Heriot-Watt University",
+    "Location": "Edinburgh",
+    "Tier": "Other",
+    "QS 2026": "#287",
+    "Popular Programs (Faculties)": "Engineering, Business, CS, Architecture, Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "34",
+    "University": "Swansea University",
+    "Location": "Swansea",
+    "Tier": "Other",
+    "QS 2026": "#292",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Law, Business, Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "35",
+    "University": "University of Bath",
+    "Location": "Bath",
+    "Tier": "Other",
+    "QS 2026": "#301",
+    "Popular Programs (Faculties)": "Engineering, Business, Sciences, Architecture, Education"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "36",
+    "University": "City St George's, University of London",
+    "Location": "London",
+    "Tier": "Other",
+    "QS 2026": "#310",
+    "Popular Programs (Faculties)": "Business (Cass), Law, Medicine, Journalism, Engineering"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "37",
+    "University": "University of Leicester",
+    "Location": "Leicester",
+    "Tier": "Other",
+    "QS 2026": "#326",
+    "Popular Programs (Faculties)": "Medicine, Law, Engineering, Business, Arts"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "38",
+    "University": "Oxford Brookes University",
+    "Location": "Oxford",
+    "Tier": "Other",
+    "QS 2026": "#374",
+    "Popular Programs (Faculties)": "Architecture, Business, Law, Arts, Social Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "39",
+    "University": "University of East Anglia (UEA)",
+    "Location": "Norwich",
+    "Tier": "Other",
+    "QS 2026": "#381",
+    "Popular Programs (Faculties)": "Environmental Sciences, Medicine, Law, Arts, Business"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "40",
+    "University": "Brunel University of London",
+    "Location": "London",
+    "Tier": "Other",
+    "QS 2026": "#385",
+    "Popular Programs (Faculties)": "Engineering, Business, Law, Arts, Social Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "41",
+    "University": "Birkbeck, University of London",
+    "Location": "London",
+    "Tier": "Other",
+    "QS 2026": "#388",
+    "Popular Programs (Faculties)": "Arts, Law, Business, Social Sciences, Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "42",
+    "University": "Aston University",
+    "Location": "Birmingham",
+    "Tier": "Other",
+    "QS 2026": "#395",
+    "Popular Programs (Faculties)": "Business, Engineering, Law, Life Sciences, CS"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "43",
+    "University": "University of Kent",
+    "Location": "Canterbury",
+    "Tier": "Other",
+    "QS 2026": "#397",
+    "Popular Programs (Faculties)": "Law, Business, Arts, Sciences, Social Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "44",
+    "University": "University of Dundee",
+    "Location": "Dundee",
+    "Tier": "Other",
+    "QS 2026": "#428",
+    "Popular Programs (Faculties)": "Medicine, Law, Engineering, Dentistry, Arts"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "45",
+    "University": "University of Essex",
+    "Location": "Essex",
+    "Tier": "Other",
+    "QS 2026": "#456",
+    "Popular Programs (Faculties)": "Social Sciences, Law, CS, Business, Arts"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "46",
+    "University": "Royal Holloway, University of London",
+    "Location": "London",
+    "Tier": "Other",
+    "QS 2026": "#461",
+    "Popular Programs (Faculties)": "Arts, Business, Law, CS, Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "47",
+    "University": "Coventry University",
+    "Location": "Coventry",
+    "Tier": "Other",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Engineering, Business, Law, Arts, Health Sciences"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "48",
+    "University": "University of Portsmouth",
+    "Location": "Portsmouth",
+    "Tier": "Other",
+    "QS 2026": "#651+",
+    "Popular Programs (Faculties)": "Engineering, Business, Law, Sciences, Arts"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "49",
+    "University": "Nottingham Trent University",
+    "Location": "Nottingham",
+    "Tier": "Other",
+    "QS 2026": "#701+",
+    "Popular Programs (Faculties)": "Business, Law, Arts, Sciences, Education"
+   }
+  },
+  {
+   "section": "🇬🇧 United Kingdom — Top 50 Universities Russell Group / Ancient / Other",
+   "cols": {
+    "#": "50",
+    "University": "University of Huddersfield",
+    "Location": "Huddersfield",
+    "Tier": "Other",
+    "QS 2026": "#801+",
+    "Popular Programs (Faculties)": "Engineering, Business, Education, Arts, Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "1",
+    "University": "University of Melbourne",
+    "Location": "VIC",
+    "Tier": "Go8",
+    "QS 2026": "#19",
+    "Popular Programs (Faculties)": "Medicine, Law, Business (MBS), Engineering, Arts, Education"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "2",
+    "University": "University of New South Wales (UNSW)",
+    "Location": "NSW",
+    "Tier": "Go8",
+    "QS 2026": "#20",
+    "Popular Programs (Faculties)": "Engineering, Business, Law, Medicine, Architecture"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "3",
+    "University": "University of Sydney",
+    "Location": "NSW",
+    "Tier": "Go8",
+    "QS 2026": "#25",
+    "Popular Programs (Faculties)": "Medicine, Law, Business, Engineering, Architecture"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "4",
+    "University": "Australian National University (ANU)",
+    "Location": "ACT",
+    "Tier": "Go8",
+    "QS 2026": "#32",
+    "Popular Programs (Faculties)": "Law, Engineering, Arts, Science, Business, Public Policy"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "5",
+    "University": "Monash University",
+    "Location": "VIC",
+    "Tier": "Go8",
+    "QS 2026": "#36",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Law, Business, Arts, Pharmacy"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "6",
+    "University": "The University of Queensland (UQ)",
+    "Location": "QLD",
+    "Tier": "Go8",
+    "QS 2026": "#42",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business, Law, Agriculture, Science"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "7",
+    "University": "The University of Western Australia (UWA)",
+    "Location": "WA",
+    "Tier": "Go8",
+    "QS 2026": "#77",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business, Law, Science, Arts"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "8",
+    "University": "University of Adelaide",
+    "Location": "SA",
+    "Tier": "Go8",
+    "QS 2026": "#82",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business, Law, Science, Architecture"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "9",
+    "University": "University of Technology Sydney (UTS)",
+    "Location": "NSW",
+    "Tier": "ATN",
+    "QS 2026": "#96",
+    "Popular Programs (Faculties)": "Engineering, IT, Business, Design, Communication, Science"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "10",
+    "University": "University of Wollongong (UOW)",
+    "Location": "NSW",
+    "Tier": "Other",
+    "QS 2026": "#196",
+    "Popular Programs (Faculties)": "Engineering, IT, Business, Creative Arts, Education, Law"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "11",
+    "University": "Macquarie University",
+    "Location": "NSW",
+    "Tier": "Other",
+    "QS 2026": "#195",
+    "Popular Programs (Faculties)": "Business, Law, Medicine, Arts & Humanities, Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "12",
+    "University": "Curtin University",
+    "Location": "WA",
+    "Tier": "ATN",
+    "QS 2026": "#354",
+    "Popular Programs (Faculties)": "Engineering, Business, Arts, Health Sciences, Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "13",
+    "University": "RMIT University",
+    "Location": "VIC",
+    "Tier": "ATN",
+    "QS 2026": "#166",
+    "Popular Programs (Faculties)": "Engineering, Business, Design, Architecture, Arts, Science"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "14",
+    "University": "Deakin University",
+    "Location": "VIC",
+    "Tier": "Other",
+    "QS 2026": "#337",
+    "Popular Programs (Faculties)": "Education, Business, Engineering, Health Sciences, Arts"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "15",
+    "University": "University of Newcastle",
+    "Location": "NSW",
+    "Tier": "Other",
+    "QS 2026": "#227",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Architecture, Business, Education"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "16",
+    "University": "La Trobe University",
+    "Location": "VIC",
+    "Tier": "Other",
+    "QS 2026": "#233",
+    "Popular Programs (Faculties)": "Medicine, Law, Business, Education, Agriculture, Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "17",
+    "University": "Queensland University of Technology (QUT)",
+    "Location": "QLD",
+    "Tier": "ATN",
+    "QS 2026": "#327",
+    "Popular Programs (Faculties)": "Engineering, Business, Law, Creative Industries, Education"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "18",
+    "University": "Griffith University",
+    "Location": "QLD",
+    "Tier": "Other",
+    "QS 2026": "#268",
+    "Popular Programs (Faculties)": "Business, Law, Medicine, Arts, Engineering, Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "19",
+    "University": "Swinburne University of Technology",
+    "Location": "VIC",
+    "Tier": "ATN",
+    "QS 2026": "#294",
+    "Popular Programs (Faculties)": "Engineering, Business, Design, CS, Arts"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "20",
+    "University": "University of Tasmania",
+    "Location": "TAS",
+    "Tier": "Other",
+    "QS 2026": "#314",
+    "Popular Programs (Faculties)": "Medicine, Law, Science, Engineering, Arts, Business"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "21",
+    "University": "University of South Australia",
+    "Location": "SA",
+    "Tier": "Other",
+    "QS 2026": "#456",
+    "Popular Programs (Faculties)": "Business, Engineering, Arts, Law, Health Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "22",
+    "University": "Flinders University",
+    "Location": "SA",
+    "Tier": "Other",
+    "QS 2026": "#387",
+    "Popular Programs (Faculties)": "Medicine, Law, Business, Engineering, Education, Arts"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "23",
+    "University": "Western Sydney University",
+    "Location": "NSW",
+    "Tier": "Other",
+    "QS 2026": "#400",
+    "Popular Programs (Faculties)": "Business, Law, Medicine, Engineering, Arts, Education"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "24",
+    "University": "University of Canberra",
+    "Location": "ACT",
+    "Tier": "Other",
+    "QS 2026": "#494",
+    "Popular Programs (Faculties)": "Business, Law, Health Sciences, Education, Engineering"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "25",
+    "University": "Central Queensland University",
+    "Location": "QLD",
+    "Tier": "Other",
+    "QS 2026": "#499",
+    "Popular Programs (Faculties)": "Engineering, Business, Education, Sciences, Arts"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "26",
+    "University": "James Cook University",
+    "Location": "QLD",
+    "Tier": "Other",
+    "QS 2026": "#440",
+    "Popular Programs (Faculties)": "Marine Sciences, Medicine, Law, Business, Engineering"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "27",
+    "University": "Murdoch University",
+    "Location": "WA",
+    "Tier": "Other",
+    "QS 2026": "#423",
+    "Popular Programs (Faculties)": "Business, Law, Engineering, Agriculture, IT, Veterinary"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "28",
+    "University": "Edith Cowan University",
+    "Location": "WA",
+    "Tier": "Other",
+    "QS 2026": "#487",
+    "Popular Programs (Faculties)": "Business, Law, Arts, Education, Health Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "29",
+    "University": "Bond University",
+    "Location": "QLD",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business, Law, Health Sciences, IT, Humanities"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "30",
+    "University": "Notre Dame University Australia",
+    "Location": "WA",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Medicine, Law, Business, Education, Philosophy"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "31",
+    "University": "Australian Catholic University (ACU)",
+    "Location": "NSW/VIC",
+    "Tier": "Other",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Education, Business, Law, Health Sciences, Arts"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "32",
+    "University": "Victoria University",
+    "Location": "VIC",
+    "Tier": "Other",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Engineering, Business, Law, Arts, Education"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "33",
+    "University": "Charles Darwin University",
+    "Location": "NT",
+    "Tier": "Other",
+    "QS 2026": "#501+",
+    "Popular Programs (Faculties)": "Education, Law, Business, Engineering, Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "34",
+    "University": "Federation University Australia",
+    "Location": "VIC",
+    "Tier": "Other",
+    "QS 2026": "#701+",
+    "Popular Programs (Faculties)": "Engineering, Business, Education, IT, Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "35",
+    "University": "University of the Sunshine Coast",
+    "Location": "QLD",
+    "Tier": "Other",
+    "QS 2026": "#701+",
+    "Popular Programs (Faculties)": "Business, Health Sciences, Education, Sciences, Arts"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "36",
+    "University": "Southern Cross University",
+    "Location": "NSW",
+    "Tier": "Other",
+    "QS 2026": "#701+",
+    "Popular Programs (Faculties)": "Business, Law, Health Sciences, Education, Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "37",
+    "University": "Charles Sturt University",
+    "Location": "NSW",
+    "Tier": "Other",
+    "QS 2026": "#701+",
+    "Popular Programs (Faculties)": "Agriculture, Education, Business, Law, Health Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "38",
+    "University": "University of New England",
+    "Location": "NSW",
+    "Tier": "Other",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Agriculture, Law, Business, Education, Sciences"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "39",
+    "University": "Torrens University Australia",
+    "Location": "SA",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business, Design, Health Sciences, IT, Education"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "40",
+    "University": "Australian Institute of Management (AIM)",
+    "Location": "NSW",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business (MBA), Leadership, Project Management"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "41",
+    "University": "Avondale University",
+    "Location": "NSW",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business, Education, Nursing, Sciences, Arts"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "42",
+    "University": "Campion College of Australia",
+    "Location": "NSW",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Liberal Arts, Philosophy, Theology, Humanities"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "43",
+    "University": "University of Divinity",
+    "Location": "VIC",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Theology, Philosophy, Education, Ministry"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "44",
+    "University": "Holmes Institute",
+    "Location": "VIC",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business, Commerce, IT, Hospitality"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "45",
+    "University": "Kaplan Business School",
+    "Location": "NSW",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business, Commerce, IT, Marketing"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "46",
+    "University": "Excelsia College",
+    "Location": "NSW",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Arts, Business, Education, Counselling"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "47",
+    "University": "International College of Hotel Management",
+    "Location": "SA",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Hospitality, Tourism, Business Management"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "48",
+    "University": "Think Education",
+    "Location": "QLD",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Design, Nursing, Business, Education, Technology"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "49",
+    "University": "Alphacrucis University College",
+    "Location": "NSW",
+    "Tier": "Private",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Theology, Ministry, Business, Education"
+   }
+  },
+  {
+   "section": "🇦🇺 Australia — Top 50 Universities Go8 / ATN / Other",
+   "cols": {
+    "#": "50",
+    "University": "Navitas Skilled Futures",
+    "Location": "VIC",
+    "Tier": "Other",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Pathways, English, Business, Sciences"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "1",
+    "University": "Tsinghua University (清华大学)",
+    "City / Location": "Beijing",
+    "Tier / Group": "C9",
+    "QS 2026": "#25",
+    "Popular Programs (Faculties)": "Engineering, CS & AI, Architecture, Business, Physics, Economics"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "2",
+    "University": "Peking University (北京大学)",
+    "City / Location": "Beijing",
+    "Tier / Group": "C9",
+    "QS 2026": "#27",
+    "Popular Programs (Faculties)": "Law, Medicine, Humanities, Physics, Economics, International Studies"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "3",
+    "University": "Fudan University (复旦大学)",
+    "City / Location": "Shanghai",
+    "Tier / Group": "C9",
+    "QS 2026": "#39",
+    "Popular Programs (Faculties)": "Medicine (MBBS), Economics, Law, Journalism, Business, International Studies"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "4",
+    "University": "Shanghai Jiao Tong University (上海交通大学)",
+    "City / Location": "Shanghai",
+    "Tier / Group": "C9",
+    "QS 2026": "#45",
+    "Popular Programs (Faculties)": "Engineering, Medicine (SJTU-SM), CS, Business (Antai), Naval Architecture"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "5",
+    "University": "Zhejiang University (浙江大学)",
+    "City / Location": "Hangzhou",
+    "Tier / Group": "C9",
+    "QS 2026": "#47",
+    "Popular Programs (Faculties)": "Engineering, Medicine, CS, Agriculture, Architecture, Business"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "6",
+    "University": "University of Science & Technology China (USTC)",
+    "City / Location": "Hefei",
+    "Tier / Group": "C9",
+    "QS 2026": "#94",
+    "Popular Programs (Faculties)": "Physics, Chemistry, Mathematics, CS, Engineering, Life Sciences"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "7",
+    "University": "Nanjing University (南京大学)",
+    "City / Location": "Nanjing",
+    "Tier / Group": "C9",
+    "QS 2026": "#145",
+    "Popular Programs (Faculties)": "Humanities, Natural Sciences, Engineering, Business, Law"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "8",
+    "University": "Harbin Institute of Technology (哈工大)",
+    "City / Location": "Harbin",
+    "Tier / Group": "C9",
+    "QS 2026": "#252",
+    "Popular Programs (Faculties)": "Engineering, CS, Architecture, Science, Management"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "9",
+    "University": "Xi'an Jiaotong University (西安交通大学)",
+    "City / Location": "Xi'an",
+    "Tier / Group": "C9",
+    "QS 2026": "#295",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Business, Economics, Law, Energy"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "10",
+    "University": "Wuhan University (武汉大学)",
+    "City / Location": "Wuhan",
+    "Tier / Group": "985",
+    "QS 2026": "#194",
+    "Popular Programs (Faculties)": "Medicine (MBBS), Law, Chinese Language, Engineering, Business"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "11",
+    "University": "Sun Yat-sen University (中山大学)",
+    "City / Location": "Guangzhou",
+    "Tier / Group": "985",
+    "QS 2026": "#196",
+    "Popular Programs (Faculties)": "Medicine, Law, Business, Engineering, Humanities"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "12",
+    "University": "Tongji University (同济大学)",
+    "City / Location": "Shanghai",
+    "Tier / Group": "985",
+    "QS 2026": "#202",
+    "Popular Programs (Faculties)": "Architecture, Engineering, Environment, Design, Business"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "13",
+    "University": "Beijing Normal University (北京师范大学)",
+    "City / Location": "Beijing",
+    "Tier / Group": "985",
+    "QS 2026": "#234",
+    "Popular Programs (Faculties)": "Education, Psychology, Chinese, Environment, Journalism"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "14",
+    "University": "Huazhong Univ. of Sci. & Tech. (HUST)",
+    "City / Location": "Wuhan",
+    "Tier / Group": "985",
+    "QS 2026": "#230",
+    "Popular Programs (Faculties)": "Medicine (MBBS), Engineering, CS, Architecture, Business"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "15",
+    "University": "Renmin University of China (人民大学)",
+    "City / Location": "Beijing",
+    "Tier / Group": "985",
+    "QS 2026": "#471",
+    "Popular Programs (Faculties)": "Law, Economics, Business, Journalism, Philosophy, Public Affairs"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "16",
+    "University": "Beihang University (北京航空航天大学)",
+    "City / Location": "Beijing",
+    "Tier / Group": "985",
+    "QS 2026": "#453",
+    "Popular Programs (Faculties)": "Aerospace Engineering, CS, Electronic Engineering, Automation"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "17",
+    "University": "Southeast University (东南大学)",
+    "City / Location": "Nanjing",
+    "Tier / Group": "985",
+    "QS 2026": "#238",
+    "Popular Programs (Faculties)": "Architecture, Engineering, Electronic Engineering, Medicine, Art"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "18",
+    "University": "Beijing Institute of Technology (北京理工大学)",
+    "City / Location": "Beijing",
+    "Tier / Group": "985",
+    "QS 2026": "#335",
+    "Popular Programs (Faculties)": "Engineering, CS, Management, Optics, Chemistry"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "19",
+    "University": "UESTC (电子科技大学)",
+    "City / Location": "Chengdu",
+    "Tier / Group": "985",
+    "QS 2026": "#201",
+    "Popular Programs (Faculties)": "Electronic Engineering, CS, AI, Automation, Business"
+   }
+  },
+  {
+   "section": "🇨🇳 China — Top 20 Universities C9 League / 985 Project",
+   "cols": {
+    "#": "20",
+    "University": "Xiamen University (厦门大学)",
+    "City / Location": "Xiamen",
+    "Tier / Group": "985",
+    "QS 2026": "#331",
+    "Popular Programs (Faculties)": "Economics, Law, Business, Chemistry, Marine Sciences, Journalism"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "1",
+    "University": "The University of Tokyo (東京大学)",
+    "City / Location": "Tokyo",
+    "Tier / Group": "National",
+    "QS 2026": "#36",
+    "Popular Programs (Faculties)": "Engineering, Law, Medicine, Sciences, Humanities, Economics"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "2",
+    "University": "Kyoto University (京都大学)",
+    "City / Location": "Kyoto",
+    "Tier / Group": "National",
+    "QS 2026": "#57",
+    "Popular Programs (Faculties)": "Sciences, Medicine, Engineering, Law, Humanities, Business"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "3",
+    "University": "Tokyo Institute of Technology (東京工業大学)",
+    "City / Location": "Tokyo",
+    "Tier / Group": "National",
+    "QS 2026": "#85",
+    "Popular Programs (Faculties)": "Engineering, CS, Sciences, Architecture, Business"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "4",
+    "University": "Osaka University (大阪大学)",
+    "City / Location": "Osaka",
+    "Tier / Group": "National",
+    "QS 2026": "#91",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Sciences, Law, Economics, Humanities"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "5",
+    "University": "Tohoku University (東北大学)",
+    "City / Location": "Sendai",
+    "Tier / Group": "National",
+    "QS 2026": "#109",
+    "Popular Programs (Faculties)": "Engineering, Sciences, Medicine, Law, Economics, Agriculture"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "6",
+    "University": "Nagoya University (名古屋大学)",
+    "City / Location": "Nagoya",
+    "Tier / Group": "National",
+    "QS 2026": "#164",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Sciences, Law, Economics, Humanities"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "7",
+    "University": "Hokkaido University (北海道大学)",
+    "City / Location": "Sapporo",
+    "Tier / Group": "National",
+    "QS 2026": "#170",
+    "Popular Programs (Faculties)": "Agriculture, Veterinary, Medicine, Engineering, Sciences, Law"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "8",
+    "University": "Kyushu University (九州大学)",
+    "City / Location": "Fukuoka",
+    "Tier / Group": "National",
+    "QS 2026": "#170",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Agriculture, Sciences, Design, Law"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "9",
+    "University": "Waseda University (早稲田大学)",
+    "City / Location": "Tokyo",
+    "Tier / Group": "Private",
+    "QS 2026": "#196",
+    "Popular Programs (Faculties)": "Business, Law, Engineering, Humanities, Social Sciences, CS"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "10",
+    "University": "Keio University (慶應義塾大学)",
+    "City / Location": "Tokyo",
+    "Tier / Group": "Private",
+    "QS 2026": "#215",
+    "Popular Programs (Faculties)": "Business, Law, Medicine, Engineering, Humanities, Economics"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "11",
+    "University": "University of Tsukuba (筑波大学)",
+    "City / Location": "Tsukuba",
+    "Tier / Group": "National",
+    "QS 2026": "#350",
+    "Popular Programs (Faculties)": "Sciences, Engineering, Medicine, Business, Arts, Physical Education"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "12",
+    "University": "Hiroshima University (広島大学)",
+    "City / Location": "Hiroshima",
+    "Tier / Group": "National",
+    "QS 2026": "#480",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Sciences, Education, Law, Economics"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "13",
+    "University": "Kobe University (神戸大学)",
+    "City / Location": "Kobe",
+    "Tier / Group": "National",
+    "QS 2026": "#482",
+    "Popular Programs (Faculties)": "Business, Law, Economics, Engineering, Sciences, Agriculture"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "14",
+    "University": "Okayama University (岡山大学)",
+    "City / Location": "Okayama",
+    "Tier / Group": "National",
+    "QS 2026": "#501+",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Sciences, Agriculture, Law, Education"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "15",
+    "University": "Chiba University (千葉大学)",
+    "City / Location": "Chiba",
+    "Tier / Group": "National",
+    "QS 2026": "#501+",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Sciences, Horticulture, Design, Law"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "16",
+    "University": "Tokyo Medical and Dental University (TMDU)",
+    "City / Location": "Tokyo",
+    "Tier / Group": "National",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Medicine, Dentistry, Biomedical Sciences"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "17",
+    "University": "Ritsumeikan University (立命館大学)",
+    "City / Location": "Kyoto",
+    "Tier / Group": "Private",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Business, Law, Engineering, Humanities, CS, International Relations"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "18",
+    "University": "Doshisha University (同志社大学)",
+    "City / Location": "Kyoto",
+    "Tier / Group": "Private",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Business, Law, Engineering, Theology, Humanities, CS"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "19",
+    "University": "Sophia University (上智大学)",
+    "City / Location": "Tokyo",
+    "Tier / Group": "Private",
+    "QS 2026": "#701+",
+    "Popular Programs (Faculties)": "International Relations, Law, Business, Languages, Humanities"
+   }
+  },
+  {
+   "section": "🇯🇵 Japan — Top 20 Universities National / Private",
+   "cols": {
+    "#": "20",
+    "University": "Tokyo University of Science (東京理科大学)",
+    "City / Location": "Tokyo",
+    "Tier / Group": "Private",
+    "QS 2026": "#701+",
+    "Popular Programs (Faculties)": "Engineering, Sciences, CS, Architecture, Business"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "1",
+    "University": "Technical University of Munich (TUM)",
+    "City / Location": "Munich",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#22",
+    "Popular Programs (Faculties)": "Engineering, CS, Business, Medicine, Natural Sciences"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "2",
+    "University": "Ludwig-Maximilians-Universität München (LMU)",
+    "City / Location": "Munich",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#58",
+    "Popular Programs (Faculties)": "Medicine, Law, Humanities, Sciences, Business, Education"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "3",
+    "University": "Heidelberg University",
+    "City / Location": "Heidelberg",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#80",
+    "Popular Programs (Faculties)": "Medicine, Law, Humanities, Sciences, Engineering, Social Sciences"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "4",
+    "University": "Freie Universität Berlin",
+    "City / Location": "Berlin",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#88",
+    "Popular Programs (Faculties)": "Humanities, Social Sciences, Law, Medicine, Sciences, Education"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "5",
+    "University": "Karlsruhe Institute of Technology (KIT)",
+    "City / Location": "Karlsruhe",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#98",
+    "Popular Programs (Faculties)": "Engineering, CS, Sciences, Economics, Architecture"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "6",
+    "University": "RWTH Aachen University",
+    "City / Location": "Aachen",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#105",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Sciences, Business, Architecture"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "7",
+    "University": "Humboldt-Universität zu Berlin",
+    "City / Location": "Berlin",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#130",
+    "Popular Programs (Faculties)": "Humanities, Sciences, Law, Medicine, Education, Social Sciences"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "8",
+    "University": "Technische Universität Berlin (TU Berlin)",
+    "City / Location": "Berlin",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#145",
+    "Popular Programs (Faculties)": "Engineering, CS, Architecture, Business, Sciences"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "9",
+    "University": "Universität Hamburg",
+    "City / Location": "Hamburg",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#193",
+    "Popular Programs (Faculties)": "Law, Sciences, Medicine, Humanities, Business, Education"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "10",
+    "University": "Universität Freiburg",
+    "City / Location": "Freiburg",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#201",
+    "Popular Programs (Faculties)": "Sciences, Medicine, Law, Humanities, Business"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "11",
+    "University": "University of Bonn",
+    "City / Location": "Bonn",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#207",
+    "Popular Programs (Faculties)": "Sciences, Medicine, Law, Humanities, Agriculture"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "12",
+    "University": "Eberhard Karls Universität Tübingen",
+    "City / Location": "Tübingen",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#215",
+    "Popular Programs (Faculties)": "Medicine, Sciences, Humanities, Law, Social Sciences"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "13",
+    "University": "TU Dresden",
+    "City / Location": "Dresden",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#218",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Sciences, Humanities, Business, Architecture"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "14",
+    "University": "Friedrich-Alexander Universität Erlangen-Nürnberg (FAU)",
+    "City / Location": "Erlangen",
+    "Tier / Group": "Other",
+    "QS 2026": "#232",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Sciences, Law, Business, Humanities"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "15",
+    "University": "University of Göttingen",
+    "City / Location": "Göttingen",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#243",
+    "Popular Programs (Faculties)": "Sciences, Medicine, Agriculture, Law, Humanities, Economics"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "16",
+    "University": "TU Darmstadt",
+    "City / Location": "Darmstadt",
+    "Tier / Group": "Other",
+    "QS 2026": "#253",
+    "Popular Programs (Faculties)": "Engineering, CS, Sciences, Architecture, Business"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "17",
+    "University": "University of Cologne",
+    "City / Location": "Cologne",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#272",
+    "Popular Programs (Faculties)": "Medicine, Law, Humanities, Business, Sciences"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "18",
+    "University": "University of Stuttgart",
+    "City / Location": "Stuttgart",
+    "Tier / Group": "Other",
+    "QS 2026": "#310",
+    "Popular Programs (Faculties)": "Engineering, Architecture, Sciences, Business, Humanities"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "19",
+    "University": "Goethe University Frankfurt",
+    "City / Location": "Frankfurt",
+    "Tier / Group": "Other",
+    "QS 2026": "#316",
+    "Popular Programs (Faculties)": "Business, Law, Medicine, Humanities, Sciences, Social Sciences"
+   }
+  },
+  {
+   "section": "🇩🇪 Germany — Top 20 Universities Excellence Initiative / Other",
+   "cols": {
+    "#": "20",
+    "University": "University of Münster",
+    "City / Location": "Münster",
+    "Tier / Group": "Excellence Initiative",
+    "QS 2026": "#350",
+    "Popular Programs (Faculties)": "Law, Sciences, Medicine, Business, Humanities, Education"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "1",
+    "University": "PSL University (Paris Sciences et Lettres)",
+    "City / Location": "Paris",
+    "Tier / Group": "Grand Établissement",
+    "QS 2026": "#28",
+    "Popular Programs (Faculties)": "Sciences, Humanities, Engineering, Business (HEC Paris), Arts, Medicine"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "2",
+    "University": "Institut Polytechnique de Paris",
+    "City / Location": "Paris",
+    "Tier / Group": "Grand Établissement",
+    "QS 2026": "#41",
+    "Popular Programs (Faculties)": "Engineering, CS, Mathematics, Physics, Economics"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "3",
+    "University": "Université Paris-Saclay",
+    "City / Location": "Paris-Saclay",
+    "Tier / Group": "Université",
+    "QS 2026": "#70",
+    "Popular Programs (Faculties)": "Sciences, Engineering, Medicine, Economics, Law, Social Sciences"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "4",
+    "University": "Sorbonne University",
+    "City / Location": "Paris",
+    "Tier / Group": "Université",
+    "QS 2026": "#72",
+    "Popular Programs (Faculties)": "Humanities, Sciences, Medicine, Law, Engineering, Social Sciences"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "5",
+    "University": "ENS de Lyon",
+    "City / Location": "Lyon",
+    "Tier / Group": "Grand Établissement",
+    "QS 2026": "#205",
+    "Popular Programs (Faculties)": "Sciences, Humanities, Mathematics, Philosophy, Languages"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "6",
+    "University": "Université Paris 1 Panthéon-Sorbonne",
+    "City / Location": "Paris",
+    "Tier / Group": "Université",
+    "QS 2026": "#257",
+    "Popular Programs (Faculties)": "Law, Economics, Humanities, Arts, Political Science"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "7",
+    "University": "Université Paris Cité",
+    "City / Location": "Paris",
+    "Tier / Group": "Université",
+    "QS 2026": "#300",
+    "Popular Programs (Faculties)": "Medicine, Sciences, Humanities, Law, Social Sciences"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "8",
+    "University": "Université Grenoble Alpes",
+    "City / Location": "Grenoble",
+    "Tier / Group": "Université",
+    "QS 2026": "#321",
+    "Popular Programs (Faculties)": "Engineering, Sciences, Business, Law, Humanities"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "9",
+    "University": "Sciences Po Paris",
+    "City / Location": "Paris",
+    "Tier / Group": "Grand Établissement",
+    "QS 2026": "#367",
+    "Popular Programs (Faculties)": "Political Science, International Relations, Law, Sociology, Economics"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "10",
+    "University": "INSA Lyon",
+    "City / Location": "Lyon",
+    "Tier / Group": "Grande École",
+    "QS 2026": "#406",
+    "Popular Programs (Faculties)": "Engineering, Architecture, CS, Sciences, Business"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "11",
+    "University": "Université de Strasbourg",
+    "City / Location": "Strasbourg",
+    "Tier / Group": "Université",
+    "QS 2026": "#420",
+    "Popular Programs (Faculties)": "Sciences, Medicine, Law, Humanities, Business, Engineering"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "12",
+    "University": "Aix-Marseille University",
+    "City / Location": "Marseille",
+    "Tier / Group": "Université",
+    "QS 2026": "#428",
+    "Popular Programs (Faculties)": "Sciences, Medicine, Law, Humanities, Business, Engineering"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "13",
+    "University": "Université de Montpellier",
+    "City / Location": "Montpellier",
+    "Tier / Group": "Université",
+    "QS 2026": "#430",
+    "Popular Programs (Faculties)": "Medicine, Law, Sciences, Business, Engineering"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "14",
+    "University": "Université de Bordeaux",
+    "City / Location": "Bordeaux",
+    "Tier / Group": "Université",
+    "QS 2026": "#494",
+    "Popular Programs (Faculties)": "Sciences, Medicine, Law, Humanities, Engineering, Business"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "15",
+    "University": "Université de Lille",
+    "City / Location": "Lille",
+    "Tier / Group": "Université",
+    "QS 2026": "#501+",
+    "Popular Programs (Faculties)": "Medicine, Law, Sciences, Engineering, Humanities, Business"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "16",
+    "University": "Université Paul Sabatier (Toulouse III)",
+    "City / Location": "Toulouse",
+    "Tier / Group": "Université",
+    "QS 2026": "#501+",
+    "Popular Programs (Faculties)": "Sciences, Medicine, Engineering, Technology"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "17",
+    "University": "CentraleSupélec",
+    "City / Location": "Paris",
+    "Tier / Group": "Grande École",
+    "QS 2026": "#501+",
+    "Popular Programs (Faculties)": "Engineering, CS, Energy, Mathematics, Business"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "18",
+    "University": "ESSEC Business School",
+    "City / Location": "Paris",
+    "Tier / Group": "Grande École",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business (MBA), Finance, Marketing, Management, Luxury"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "19",
+    "University": "HEC Paris",
+    "City / Location": "Paris",
+    "Tier / Group": "Grande École",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business (MBA), Finance, Entrepreneurship, Marketing, Economics"
+   }
+  },
+  {
+   "section": "🇫🇷 France — Top 20 Universities Grande École / Université",
+   "cols": {
+    "#": "20",
+    "University": "École Normale Supérieure (ENS Paris)",
+    "City / Location": "Paris",
+    "Tier / Group": "Grand Établissement",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Sciences, Humanities, Mathematics, Philosophy, Social Sciences"
+   }
+  },
+  {
+   "section": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "cols": {
+    "#": "1",
+    "University": "McGill University",
+    "City / Location": "Montreal, QC",
+    "Tier / Group": "U15",
+    "QS 2026": "#27",
+    "Popular Programs (Faculties)": "Medicine, Law, Business (Desautels), Engineering, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "cols": {
+    "#": "2",
+    "University": "University of Toronto",
+    "City / Location": "Toronto, ON",
+    "Tier / Group": "U15",
+    "QS 2026": "#29",
+    "Popular Programs (Faculties)": "Medicine, Law, Business (Rotman), Engineering, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "cols": {
+    "#": "3",
+    "University": "University of British Columbia (UBC)",
+    "City / Location": "Vancouver, BC",
+    "Tier / Group": "U15",
+    "QS 2026": "#40",
+    "Popular Programs (Faculties)": "Medicine, Law, Business (Sauder), Engineering, Arts, Forestry"
+   }
+  },
+  {
+   "section": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "cols": {
+    "#": "4",
+    "University": "University of Alberta",
+    "City / Location": "Edmonton, AB",
+    "Tier / Group": "U15",
+    "QS 2026": "#94",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business, Law, Agriculture, Sciences"
+   }
+  },
+  {
+   "section": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "cols": {
+    "#": "5",
+    "University": "University of Waterloo",
+    "City / Location": "Waterloo, ON",
+    "Tier / Group": "U15",
+    "QS 2026": "#119",
+    "Popular Programs (Faculties)": "Engineering, CS, Mathematics, Business, Architecture, Sciences"
+   }
+  },
+  {
+   "section": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "cols": {
+    "#": "6",
+    "University": "Western University",
+    "City / Location": "London, ON",
+    "Tier / Group": "U15",
+    "QS 2026": "#151",
+    "Popular Programs (Faculties)": "Business (Ivey), Medicine, Law, Engineering, Arts & Humanities"
+   }
+  },
+  {
+   "section": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "cols": {
+    "#": "7",
+    "University": "Université de Montréal",
+    "City / Location": "Montreal, QC",
+    "Tier / Group": "U15",
+    "QS 2026": "#168",
+    "Popular Programs (Faculties)": "Medicine, Law, Business, Humanities, Sciences, Education"
+   }
+  },
+  {
+   "section": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "cols": {
+    "#": "8",
+    "University": "McMaster University",
+    "City / Location": "Hamilton, ON",
+    "Tier / Group": "U15",
+    "QS 2026": "#173",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Business (DeGroote), Arts & Sciences, Health Sciences"
+   }
+  },
+  {
+   "section": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "cols": {
+    "#": "9",
+    "University": "Queen's University",
+    "City / Location": "Kingston, ON",
+    "Tier / Group": "U15",
+    "QS 2026": "#191",
+    "Popular Programs (Faculties)": "Business (Smith), Law, Medicine, Engineering, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇨🇦 Canada — Top 10 Universities U15 Group",
+   "cols": {
+    "#": "10",
+    "University": "University of Calgary",
+    "City / Location": "Calgary, AB",
+    "Tier / Group": "U15",
+    "QS 2026": "#211",
+    "Popular Programs (Faculties)": "Medicine, Law, Business (Haskayne), Engineering, Arts & Sciences"
+   }
+  },
+  {
+   "section": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "cols": {
+    "#": "1",
+    "University": "Delft University of Technology (TU Delft)",
+    "City / Location": "Delft",
+    "Tier / Group": "Technical",
+    "QS 2026": "#47",
+    "Popular Programs (Faculties)": "Engineering, Architecture, CS, Sciences, Industrial Design"
+   }
+  },
+  {
+   "section": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "cols": {
+    "#": "2",
+    "University": "University of Amsterdam (UvA)",
+    "City / Location": "Amsterdam",
+    "Tier / Group": "Research",
+    "QS 2026": "#53",
+    "Popular Programs (Faculties)": "Business, Law, Social Sciences, Arts, Medicine, Sciences"
+   }
+  },
+  {
+   "section": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "cols": {
+    "#": "3",
+    "University": "Utrecht University",
+    "City / Location": "Utrecht",
+    "Tier / Group": "Research",
+    "QS 2026": "#103",
+    "Popular Programs (Faculties)": "Sciences, Medicine, Law, Humanities, Social Sciences"
+   }
+  },
+  {
+   "section": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "cols": {
+    "#": "4",
+    "University": "Leiden University",
+    "City / Location": "Leiden",
+    "Tier / Group": "Research",
+    "QS 2026": "#119",
+    "Popular Programs (Faculties)": "Law, Humanities, Sciences, Medicine, Social Sciences"
+   }
+  },
+  {
+   "section": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "cols": {
+    "#": "5",
+    "University": "Eindhoven University of Technology (TU/e)",
+    "City / Location": "Eindhoven",
+    "Tier / Group": "Technical",
+    "QS 2026": "#140",
+    "Popular Programs (Faculties)": "Engineering, CS, Business, Industrial Design, Sciences"
+   }
+  },
+  {
+   "section": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "cols": {
+    "#": "6",
+    "University": "Erasmus University Rotterdam",
+    "City / Location": "Rotterdam",
+    "Tier / Group": "Research",
+    "QS 2026": "#140",
+    "Popular Programs (Faculties)": "Business (RSM), Law, Medicine, Social Sciences, Economics"
+   }
+  },
+  {
+   "section": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "cols": {
+    "#": "7",
+    "University": "University of Groningen",
+    "City / Location": "Groningen",
+    "Tier / Group": "Research",
+    "QS 2026": "#147",
+    "Popular Programs (Faculties)": "Medicine, Law, Business, Sciences, Social Sciences, Engineering"
+   }
+  },
+  {
+   "section": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "cols": {
+    "#": "8",
+    "University": "Wageningen University & Research",
+    "City / Location": "Wageningen",
+    "Tier / Group": "Research",
+    "QS 2026": "#153",
+    "Popular Programs (Faculties)": "Agriculture, Veterinary, Environmental Sciences, Food Sciences, Business"
+   }
+  },
+  {
+   "section": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "cols": {
+    "#": "9",
+    "University": "Vrije Universiteit Amsterdam (VU)",
+    "City / Location": "Amsterdam",
+    "Tier / Group": "Research",
+    "QS 2026": "#194",
+    "Popular Programs (Faculties)": "Business, Law, Sciences, Arts, Medicine, Social Sciences"
+   }
+  },
+  {
+   "section": "🇳🇱 Netherlands — Top 10 Universities Research / Technical",
+   "cols": {
+    "#": "10",
+    "University": "University of Twente",
+    "City / Location": "Enschede",
+    "Tier / Group": "Technical",
+    "QS 2026": "#203",
+    "Popular Programs (Faculties)": "Engineering, CS, Business, Design, Sciences"
+   }
+  },
+  {
+   "section": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "cols": {
+    "#": "1",
+    "University": "ETH Zurich (Swiss Federal Institute of Technology)",
+    "City / Location": "Zurich",
+    "Tier / Group": "Federal",
+    "QS 2026": "#7",
+    "Popular Programs (Faculties)": "Engineering, CS, Architecture, Sciences, Mathematics, Business"
+   }
+  },
+  {
+   "section": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "cols": {
+    "#": "2",
+    "University": "EPFL (École Polytechnique Fédérale de Lausanne)",
+    "City / Location": "Lausanne",
+    "Tier / Group": "Federal",
+    "QS 2026": "#22",
+    "Popular Programs (Faculties)": "Engineering, CS, Life Sciences, Architecture, Mathematics"
+   }
+  },
+  {
+   "section": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "cols": {
+    "#": "3",
+    "University": "University of Zurich (UZH)",
+    "City / Location": "Zurich",
+    "Tier / Group": "Cantonal",
+    "QS 2026": "#100",
+    "Popular Programs (Faculties)": "Medicine, Law, Sciences, Humanities, Business, Social Sciences"
+   }
+  },
+  {
+   "section": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "cols": {
+    "#": "4",
+    "University": "University of Geneva",
+    "City / Location": "Geneva",
+    "Tier / Group": "Cantonal",
+    "QS 2026": "#155",
+    "Popular Programs (Faculties)": "Sciences, Medicine, Law, International Studies, Humanities"
+   }
+  },
+  {
+   "section": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "cols": {
+    "#": "5",
+    "University": "University of Basel",
+    "City / Location": "Basel",
+    "Tier / Group": "Cantonal",
+    "QS 2026": "#158",
+    "Popular Programs (Faculties)": "Medicine, Law, Sciences, Humanities, Business, Engineering"
+   }
+  },
+  {
+   "section": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "cols": {
+    "#": "6",
+    "University": "University of Bern",
+    "City / Location": "Bern",
+    "Tier / Group": "Cantonal",
+    "QS 2026": "#184",
+    "Popular Programs (Faculties)": "Medicine, Law, Sciences, Humanities, Business, Veterinary"
+   }
+  },
+  {
+   "section": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "cols": {
+    "#": "7",
+    "University": "University of Lausanne (UNIL)",
+    "City / Location": "Lausanne",
+    "Tier / Group": "Cantonal",
+    "QS 2026": "#212",
+    "Popular Programs (Faculties)": "Medicine, Law, Sciences, Business, Humanities, Social Sciences"
+   }
+  },
+  {
+   "section": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "cols": {
+    "#": "8",
+    "University": "Università della Svizzera Italiana (USI)",
+    "City / Location": "Lugano",
+    "Tier / Group": "Cantonal",
+    "QS 2026": "#473",
+    "Popular Programs (Faculties)": "Business, Architecture, CS, Law, Communication"
+   }
+  },
+  {
+   "section": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "cols": {
+    "#": "9",
+    "University": "University of Lucerne",
+    "City / Location": "Lucerne",
+    "Tier / Group": "Cantonal",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Law, Theology, Humanities, Social Sciences, Health Sciences"
+   }
+  },
+  {
+   "section": "🇨🇭 Switzerland — Top 10 Universities Federal / Cantonal",
+   "cols": {
+    "#": "10",
+    "University": "University of St. Gallen (HSG)",
+    "City / Location": "St. Gallen",
+    "Tier / Group": "Cantonal",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business (MBA), Law, Economics, International Affairs"
+   }
+  },
+  {
+   "section": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "cols": {
+    "#": "1",
+    "University": "Chulalongkorn University (จุฬาลงกรณ์มหาวิทยาลัย)",
+    "City / Location": "Bangkok",
+    "Tier / Group": "Flagship",
+    "QS 2026": "#221",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Law, Business (CBS), Arts, Architecture"
+   }
+  },
+  {
+   "section": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "cols": {
+    "#": "2",
+    "University": "Mahidol University (มหาวิทยาลัยมหิดล)",
+    "City / Location": "Nakhon Pathom / Bangkok",
+    "Tier / Group": "Flagship",
+    "QS 2026": "#358",
+    "Popular Programs (Faculties)": "Medicine, Pharmacy, Dentistry, Public Health, Science, Engineering"
+   }
+  },
+  {
+   "section": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "cols": {
+    "#": "3",
+    "University": "Chiang Mai University (มหาวิทยาลัยเชียงใหม่)",
+    "City / Location": "Chiang Mai",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Agriculture, Business, Arts, Dentistry"
+   }
+  },
+  {
+   "section": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "cols": {
+    "#": "4",
+    "University": "Kasetsart University (มหาวิทยาลัยเกษตรศาสตร์)",
+    "City / Location": "Bangkok",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Agriculture, Veterinary, Engineering, Business, Sciences, Forestry"
+   }
+  },
+  {
+   "section": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "cols": {
+    "#": "5",
+    "University": "Thammasat University (มหาวิทยาลัยธรรมศาสตร์)",
+    "City / Location": "Bangkok",
+    "Tier / Group": "Flagship",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Law, Business (TBS), Political Science, Medicine, Engineering"
+   }
+  },
+  {
+   "section": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "cols": {
+    "#": "6",
+    "University": "King Mongkut's University of Technology Thonburi (KMUTT)",
+    "City / Location": "Bangkok",
+    "Tier / Group": "Technical",
+    "QS 2026": "#701+",
+    "Popular Programs (Faculties)": "Engineering, CS, Architecture, Sciences, Business"
+   }
+  },
+  {
+   "section": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "cols": {
+    "#": "7",
+    "University": "Prince of Songkla University (มหาวิทยาลัยสงขลานครินทร์)",
+    "City / Location": "Songkhla",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#701+",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Sciences, Business, Pharmacy, Law"
+   }
+  },
+  {
+   "section": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "cols": {
+    "#": "8",
+    "University": "Khon Kaen University (มหาวิทยาลัยขอนแก่น)",
+    "City / Location": "Khon Kaen",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#701+",
+    "Popular Programs (Faculties)": "Medicine, Engineering, Agriculture, Business, Humanities, Sciences"
+   }
+  },
+  {
+   "section": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "cols": {
+    "#": "9",
+    "University": "Suranaree University of Technology (SUT)",
+    "City / Location": "Nakhon Ratchasima",
+    "Tier / Group": "Technical",
+    "QS 2026": "#801+",
+    "Popular Programs (Faculties)": "Engineering, Sciences, Business, Agriculture, Medicine"
+   }
+  },
+  {
+   "section": "🇹🇭 Thailand — Top 10 Universities National / Technical",
+   "cols": {
+    "#": "10",
+    "University": "King Mongkut's Institute of Technology Ladkrabang (KMITL)",
+    "City / Location": "Bangkok",
+    "Tier / Group": "Technical",
+    "QS 2026": "#801+",
+    "Popular Programs (Faculties)": "Engineering, Architecture, Industrial Education, IT, Sciences"
+   }
+  },
+  {
+   "section": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "cols": {
+    "#": "1",
+    "University": "University of Auckland",
+    "City / Location": "Auckland",
+    "Tier / Group": "Go8 equiv.",
+    "QS 2026": "#65",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Law, Business (Business School), Arts, Sciences"
+   }
+  },
+  {
+   "section": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "cols": {
+    "#": "2",
+    "University": "University of Otago",
+    "City / Location": "Dunedin",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#197",
+    "Popular Programs (Faculties)": "Medicine, Law, Business, Sciences, Humanities, Dentistry"
+   }
+  },
+  {
+   "section": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "cols": {
+    "#": "3",
+    "University": "Massey University",
+    "City / Location": "Palmerston North",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#230",
+    "Popular Programs (Faculties)": "Agriculture, Veterinary, Business, Engineering, Arts, Sciences"
+   }
+  },
+  {
+   "section": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "cols": {
+    "#": "4",
+    "University": "Victoria University of Wellington",
+    "City / Location": "Wellington",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#240",
+    "Popular Programs (Faculties)": "Law, Business (Victoria), Architecture, Arts, Sciences, Engineering"
+   }
+  },
+  {
+   "section": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "cols": {
+    "#": "5",
+    "University": "University of Canterbury",
+    "City / Location": "Christchurch",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#261",
+    "Popular Programs (Faculties)": "Engineering, Sciences, Business, Arts, Law, Education"
+   }
+  },
+  {
+   "section": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "cols": {
+    "#": "6",
+    "University": "University of Waikato",
+    "City / Location": "Hamilton",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#281",
+    "Popular Programs (Faculties)": "Business (Waikato Management), Law, Sciences, Education, Arts"
+   }
+  },
+  {
+   "section": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "cols": {
+    "#": "7",
+    "University": "Lincoln University",
+    "City / Location": "Christchurch",
+    "Tier / Group": "Specialist",
+    "QS 2026": "#407",
+    "Popular Programs (Faculties)": "Agriculture, Engineering, Sciences, Business, Environment"
+   }
+  },
+  {
+   "section": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "cols": {
+    "#": "8",
+    "University": "Auckland University of Technology (AUT)",
+    "City / Location": "Auckland",
+    "Tier / Group": "Modern",
+    "QS 2026": "#410",
+    "Popular Programs (Faculties)": "Business, Engineering, Health Sciences, Arts, Law, Education"
+   }
+  },
+  {
+   "section": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "cols": {
+    "#": "9",
+    "University": "University of South Pacific (USP) — NZ campus",
+    "City / Location": "Suva / NZ",
+    "Tier / Group": "Regional",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business, Law, Sciences, Education, Agriculture"
+   }
+  },
+  {
+   "section": "🇳🇿 New Zealand — Top 10 Universities Comprehensive / Specialist",
+   "cols": {
+    "#": "10",
+    "University": "Eastern Institute of Technology (EIT)",
+    "City / Location": "Napier",
+    "Tier / Group": "Institute",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Business, Health Sciences, Engineering, Arts, Education"
+   }
+  },
+  {
+   "section": "🇸🇬 Singapore — Top 5 Universities National Universities",
+   "cols": {
+    "#": "1",
+    "University": "National University of Singapore (NUS)",
+    "City / Location": "Singapore",
+    "Tier / Group": "National",
+    "QS 2026": "#8",
+    "Popular Programs (Faculties)": "Engineering, Business (NUS Business), Law, Medicine, CS, Sciences"
+   }
+  },
+  {
+   "section": "🇸🇬 Singapore — Top 5 Universities National Universities",
+   "cols": {
+    "#": "2",
+    "University": "Nanyang Technological University (NTU)",
+    "City / Location": "Singapore",
+    "Tier / Group": "National",
+    "QS 2026": "#12",
+    "Popular Programs (Faculties)": "Engineering, Business (NBS), CS & AI, Sciences, Architecture, Law"
+   }
+  },
+  {
+   "section": "🇸🇬 Singapore — Top 5 Universities National Universities",
+   "cols": {
+    "#": "3",
+    "University": "Singapore Management University (SMU)",
+    "City / Location": "Singapore",
+    "Tier / Group": "National",
+    "QS 2026": "#601+",
+    "Popular Programs (Faculties)": "Business, Law, Accountancy, Economics, IT, Social Sciences"
+   }
+  },
+  {
+   "section": "🇸🇬 Singapore — Top 5 Universities National Universities",
+   "cols": {
+    "#": "4",
+    "University": "Singapore University of Technology and Design (SUTD)",
+    "City / Location": "Singapore",
+    "Tier / Group": "National",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Engineering, Architecture, Design, CS, AI"
+   }
+  },
+  {
+   "section": "🇸🇬 Singapore — Top 5 Universities National Universities",
+   "cols": {
+    "#": "5",
+    "University": "Singapore Institute of Technology (SIT)",
+    "City / Location": "Singapore",
+    "Tier / Group": "National",
+    "QS 2026": "N/A",
+    "Popular Programs (Faculties)": "Engineering, Health Sciences, IT, Design, Business"
+   }
+  },
+  {
+   "section": "🇭🇰 Hong Kong — Top 5 Universities Flagship / Comprehensive",
+   "cols": {
+    "#": "1",
+    "University": "The University of Hong Kong (HKU)",
+    "City / Location": "Hong Kong",
+    "Tier / Group": "Flagship",
+    "QS 2026": "#11",
+    "Popular Programs (Faculties)": "Medicine, Law, Business (HKU Business), Engineering, Arts, Sciences"
+   }
+  },
+  {
+   "section": "🇭🇰 Hong Kong — Top 5 Universities Flagship / Comprehensive",
+   "cols": {
+    "#": "2",
+    "University": "The Chinese University of Hong Kong (CUHK)",
+    "City / Location": "Hong Kong",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#32",
+    "Popular Programs (Faculties)": "Medicine, Business (CUHK Business), Law, Engineering, Arts, Sciences"
+   }
+  },
+  {
+   "section": "🇭🇰 Hong Kong — Top 5 Universities Flagship / Comprehensive",
+   "cols": {
+    "#": "3",
+    "University": "The Hong Kong University of Science and Technology (HKUST)",
+    "City / Location": "Hong Kong",
+    "Tier / Group": "Research",
+    "QS 2026": "#44",
+    "Popular Programs (Faculties)": "Engineering, Business (HKUST Business), Sciences, CS & AI"
+   }
+  },
+  {
+   "section": "🇭🇰 Hong Kong — Top 5 Universities Flagship / Comprehensive",
+   "cols": {
+    "#": "4",
+    "University": "The Hong Kong Polytechnic University (PolyU)",
+    "City / Location": "Hong Kong",
+    "Tier / Group": "Polytechnic",
+    "QS 2026": "#54",
+    "Popular Programs (Faculties)": "Engineering, Design, Business, Health Sciences, Applied Sciences"
+   }
+  },
+  {
+   "section": "🇭🇰 Hong Kong — Top 5 Universities Flagship / Comprehensive",
+   "cols": {
+    "#": "5",
+    "University": "City University of Hong Kong (CityU)",
+    "City / Location": "Hong Kong",
+    "Tier / Group": "Comprehensive",
+    "QS 2026": "#63",
+    "Popular Programs (Faculties)": "Business, Engineering, Law, CS, Sciences, Veterinary"
+   }
+  },
+  {
+   "section": "🇹🇼 Taiwan — Top 5 Universities National Universities",
+   "cols": {
+    "#": "1",
+    "University": "National Taiwan University (NTU / 國立臺灣大學)",
+    "City / Location": "Taipei",
+    "Tier / Group": "National",
+    "QS 2026": "#63",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Law, Business, Sciences, Humanities"
+   }
+  },
+  {
+   "section": "🇹🇼 Taiwan — Top 5 Universities National Universities",
+   "cols": {
+    "#": "2",
+    "University": "National Tsing Hua University (NTHU / 國立清華大學)",
+    "City / Location": "Hsinchu",
+    "Tier / Group": "National",
+    "QS 2026": "#176",
+    "Popular Programs (Faculties)": "Engineering, Sciences, CS, Business, Humanities"
+   }
+  },
+  {
+   "section": "🇹🇼 Taiwan — Top 5 Universities National Universities",
+   "cols": {
+    "#": "3",
+    "University": "National Yang Ming Chiao Tung University (NYCU)",
+    "City / Location": "Hsinchu",
+    "Tier / Group": "National",
+    "QS 2026": "#199",
+    "Popular Programs (Faculties)": "Engineering, Medicine, CS, Sciences, Management"
+   }
+  },
+  {
+   "section": "🇹🇼 Taiwan — Top 5 Universities National Universities",
+   "cols": {
+    "#": "4",
+    "University": "National Cheng Kung University (NCKU / 國立成功大學)",
+    "City / Location": "Tainan",
+    "Tier / Group": "National",
+    "QS 2026": "#203",
+    "Popular Programs (Faculties)": "Engineering, Medicine, Architecture, Sciences, Management"
+   }
+  },
+  {
+   "section": "🇹🇼 Taiwan — Top 5 Universities National Universities",
+   "cols": {
+    "#": "5",
+    "University": "National Taiwan University of Science and Technology (NTUST / 台科大)",
+    "City / Location": "Taipei",
+    "Tier / Group": "National",
+    "QS 2026": "#345",
+    "Popular Programs (Faculties)": "Engineering, CS, Design, Business, Sciences"
+   }
+  }
+ ]
+}
