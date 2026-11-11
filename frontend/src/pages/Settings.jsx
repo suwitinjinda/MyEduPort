@@ -51,12 +51,18 @@ function ConsentChoices() {
     } catch (e) { setErr(e.message); } finally { setSaving(""); }
   };
   const items = [
-    ["outcomes_sharing", "Use my admission results, without my name, to help MEPAi advise future students.", getUserRole() === "student"],
-    ["marketing_email", "Email me tips, deadline reminders and offers.", true]
+    ["marketing", "I'd like to receive news, offers and tips by email, LINE or SMS.", true],
+    ["ai_improvement", "My de-identified data (including admission results) may be used to improve and train MyEduPort's AI.", true]
   ].filter(([, , show]) => show);
   return (
     <div style={{ margin: "1rem 0 1.25rem", padding: "1rem 1.1rem", background: "var(--surface-warm, #f8fafc)", border: "1px solid var(--rule)", borderRadius: "var(--r-md)" }}>
-      <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--ink)", marginBottom: "0.5rem" }}>Your choices</div>
+      <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--ink)", marginBottom: "0.5rem" }}>Privacy settings</div>
+      {data.minor && (
+        <p style={{ fontSize: "0.82rem", margin: "0 0 0.6rem", color: "var(--ink-soft)" }}>
+          {data.parent_consent_status === "confirmed" ? "Your parent or guardian has given consent and can also change these from their Parent Dashboard."
+            : data.parent_consent_status === "pending" ? <>Waiting for your parent or guardian to give consent. <Link to="/waiting-for-parent">See the status →</Link></> : null}
+        </p>
+      )}
       {items.map(([key, text]) => (
         <label key={key} style={{ display: "flex", gap: "0.6rem", alignItems: "start", fontSize: "0.88rem", color: "var(--ink-soft)", lineHeight: 1.5, marginBottom: "0.45rem", cursor: "pointer" }}>
           <input type="checkbox" checked={!!data.effective?.[key]} disabled={saving === key} onChange={(e) => change(key, e.target.checked)} style={{ marginTop: "0.25rem", accentColor: "var(--teal)" }} />
@@ -65,7 +71,7 @@ function ConsentChoices() {
       ))}
       {err && <p style={{ color: "var(--error-deep)", fontSize: "0.8rem", margin: "0.3rem 0 0" }}>{err}</p>}
       <p className="text-muted" style={{ fontSize: "0.75rem", margin: "0.3rem 0 0" }}>
-        Required agreements (Terms, Privacy Policy, MEPAi using your information) stay in place while you have an account — delete your account below to withdraw them.
+        The required agreements (Terms of Service and Privacy Policy, storage and processing outside Thailand) are what MyEduPort needs to run. To withdraw them, delete your account below — your data is then permanently erased.
       </p>
     </div>
   );
@@ -397,6 +403,7 @@ export default function Settings() {
             {billing.status && billing.status !== "active" && <> · <span style={{ color: "var(--warn)" }}>{billing.status.replace("_", " ")}</span></>}
           </p>
           <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+            {getUserRole() === "student" && <Link to="/my-plan" className="button ghost">What's in my plan</Link>}
             {billing.can_manage ? (
               <button className="button" onClick={openPortal} disabled={portalBusy}>{portalBusy ? "Opening…" : "Manage subscription"}</button>
             ) : (

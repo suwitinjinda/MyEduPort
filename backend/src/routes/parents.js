@@ -3,6 +3,7 @@ const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
 const { estimateAcceptanceProbability } = require("../services/aiClient");
 const { getPlanLimits, effectivePlan } = require("../services/plan");
+const consents = require("../services/consents");
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.get("/me/students", authRequired, async (req, res) => {
   const parentId = await getParentIdByUser(req.user.id);
   const [rows] = await pool.query(
     `SELECT s.id AS student_id, s.grade_level, s.school, s.target_countries, s.intended_major,
-            u.name, u.email, u.plan, u.trial_ends_at,
+            u.id AS user_id, u.name, u.email, u.plan, u.trial_ends_at, u.age_group, u.parent_consent_status,
             (SELECT COUNT(*) FROM academic_records ar WHERE ar.student_id = s.id) AS academics_count,
             (SELECT COUNT(*) FROM test_scores ts WHERE ts.student_id = s.id) AS tests_count,
             (SELECT COUNT(*) FROM activities ac WHERE ac.student_id = s.id) AS activities_count,
@@ -41,7 +42,7 @@ router.get("/me/students", authRequired, async (req, res) => {
   const limits = await getPlanLimits();
   const [[me]] = await pool.query("SELECT plan, trial_ends_at FROM users WHERE id = ?", [req.user.id]);
   const parentHas = !!limits[effectivePlan(me)]?.parent_dashboard;
-  const enriched = rows.map(({ plan, trial_ends_at, ...student }) => {
+  const enriched = await Promise.all(rows.map(async ({ plan, trial_ends_at, user_id, ...student }) => {
     const profileFields = ["grade_level", "school", "target_countries", "intended_major"];
     const filledProfile = profileFields.filter((field) => student[field]).length;
     const profileScore = filledProfile / profileFields.length;
@@ -52,9 +53,70 @@ router.get("/me/students", authRequired, async (req, res) => {
       Math.min(1, student.awards_count / 2) * 0.1 +
       Math.min(1, student.documents_count / 3) * 0.1;
     const completion = Math.round((profileScore * 0.4 + dataScore * 0.6) * 100);
-    return { ...student, completion, dashboard_unlocked: parentHas || !!limits[effectivePlan({ plan, trial_ends_at })]?.parent_dashboard };
-  });
+    const cur = await consents.currentConsents(user_id).catch(() => ({}));
+    return {
+      ...student, completion,
+      dashboard_unlocked: parentHas || !!limits[effectivePlan({ plan, trial_ends_at })]?.parent_dashboard,
+      minor: student.age_group === "minor",
+      consents: { marketing: !!cur.marketing?.granted, ai_improvement: !!(cur.ai_improvement || cur.outcomes_sharing)?.granted, parent_consent: !!cur.parent_consent?.granted, parent_consent_at: cur.parent_consent?.at || null },
+      recent: await recentActivity(student.student_id)
+    };
+  }));
   return res.json(enriched);
+});
+
+// What the student has actually done lately, newest first (replaces placeholder notifications)
+async function recentActivity(studentId) {
+  const q = async (sql) => { try { const [r] = await pool.query(sql, [studentId]); return r; } catch { return []; } };
+  const items = [
+    ...(await q("SELECT title, created_at AS at FROM activities WHERE student_id = ? ORDER BY created_at DESC LIMIT 3")).map((r) => ({ kind: "activity", text: `Added an activity: ${r.title || "untitled"}`, at: r.at })),
+    ...(await q("SELECT title, created_at AS at FROM awards WHERE student_id = ? ORDER BY created_at DESC LIMIT 3")).map((r) => ({ kind: "award", text: `Added an award: ${r.title || "untitled"}`, at: r.at })),
+    ...(await q("SELECT title, last_edited_at AS at FROM essays WHERE student_id = ? ORDER BY last_edited_at DESC LIMIT 3")).map((r) => ({ kind: "essay", text: `Worked on an essay: ${r.title || "Untitled"}`, at: r.at })),
+    ...(await q("SELECT course, grade, created_at AS at FROM academic_records WHERE student_id = ? ORDER BY created_at DESC LIMIT 2")).map((r) => ({ kind: "academic", text: `Added a grade: ${r.course || "subject"}${r.grade ? ` (${r.grade})` : ""}`, at: r.at })),
+    ...(await q("SELECT test_type, score, created_at AS at FROM test_scores WHERE student_id = ? ORDER BY created_at DESC LIMIT 2")).map((r) => ({ kind: "test", text: `Added a test score: ${r.test_type}${r.score ? ` ${r.score}` : ""}`, at: r.at })),
+    ...(await q("SELECT original_name, uploaded_at AS at FROM documents WHERE student_id = ? ORDER BY uploaded_at DESC LIMIT 2")).map((r) => ({ kind: "document", text: `Uploaded a document: ${r.original_name || "file"}`, at: r.at }))
+  ].filter((x) => x.at);
+  const upcoming = (await q("SELECT title, due_date FROM tasks WHERE student_id = ? AND status <> 'done' AND due_date >= CURDATE() ORDER BY due_date LIMIT 3"))
+    .map((t) => ({ kind: "deadline", text: `Due: ${t.title}`, at: t.due_date, upcoming: true }));
+  return [...upcoming, ...items.sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 6)];
+}
+
+// The linked student's user row, if this parent is linked to them
+async function linkedStudent(parentUserId, studentId) {
+  const parentId = await getParentIdByUser(parentUserId);
+  const [[row]] = await pool.query(
+    `SELECT u.id AS user_id, u.name, u.email, u.age_group FROM parent_student_links l
+     JOIN students s ON s.id = l.student_id JOIN users u ON u.id = s.user_id
+     WHERE l.parent_id = ? AND l.student_id = ?`,
+    [parentId, studentId]
+  );
+  return row || null;
+}
+
+// A parent changes the optional consents for their child (news & offers, AI improvement)
+router.put("/me/students/:studentId/consents/:key", authRequired, async (req, res) => {
+  if (req.user.role !== "parent") return res.status(403).json({ error: "Parent only" });
+  const st = await linkedStudent(req.user.id, req.params.studentId);
+  if (!st) return res.status(403).json({ error: "Not linked to this student" });
+  try {
+    await consents.setOptionalConsent({ id: st.user_id, email: st.email }, req.params.key, req.body?.granted === true, { by: "parent", actorUserId: req.user.id, ip: consents.clientIp(req) });
+    res.json({ ok: true });
+  } catch (err) { res.status(err.status || 500).json({ error: err.status ? err.message : "Couldn't save that choice." }); }
+});
+
+// A parent withdraws consent for a child under 20: the child's account and data are deleted.
+// They must type the child's first name to confirm.
+router.post("/me/students/:studentId/withdraw", authRequired, async (req, res) => {
+  if (req.user.role !== "parent") return res.status(403).json({ error: "Parent only" });
+  const st = await linkedStudent(req.user.id, req.params.studentId);
+  if (!st) return res.status(403).json({ error: "Not linked to this student" });
+  if (st.age_group !== "minor") return res.status(400).json({ error: "This student is 20 or older, so they manage their own consent." });
+  const first = String(st.name || "").trim().split(/\s+/)[0].toLowerCase();
+  if (String(req.body?.confirm || "").trim().toLowerCase() !== first) return res.status(400).json({ error: `Type ${st.name.split(/\s+/)[0]} to confirm.` });
+  await consents.recordConsents(st.user_id, [["parent_consent", 0]], { source: "withdrawn", by: "parent", actorUserId: req.user.id, ip: consents.clientIp(req) }).catch(() => {});
+  console.log(`[parent-consent] parent ${req.user.id} withdrew consent — deleting student user ${st.user_id}`);
+  await consents.hardDeleteUser(st.user_id);
+  res.json({ ok: true });
 });
 
 router.post("/me/link", authRequired, async (req, res) => {

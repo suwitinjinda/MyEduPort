@@ -3,7 +3,7 @@ import { useNavigate, NavLink, Link } from "react-router-dom";
 import { apiFetch, getUserRole, loadSaved } from "../api/client";
 import Skeleton, { SkeletonStats } from "../components/Skeleton.jsx";
 import { fmtDate, fmtDateTime } from "../utils/date.js";
-import { StudentSidebar } from "../components/StudentMenu.jsx";
+import { QuickMenu } from "../components/StudentMenu.jsx";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -163,7 +163,7 @@ export default function Dashboard() {
     <div className="dash-layout">
       {/* ───────── Sidebar ───────── */}
       <aside className="dash-sidebar">
-        <StudentSidebar overdue={overdueTasks.length} />
+        <QuickMenu overdue={overdueTasks.length} />
       </aside>
 
       {/* ───────── Main ───────── */}
@@ -328,7 +328,7 @@ export default function Dashboard() {
             }}
           >
             <div>
-              <div style={{ fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--error)", fontWeight: 700 }}>
+              <div style={{ fontSize: "0.7rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--error-deep)", fontWeight: 700 }}>
                 Action required
               </div>
               <div style={{ color: "var(--ink)", fontWeight: 600, fontSize: "0.95rem" }}>
@@ -606,10 +606,11 @@ function AdvisorSessionCard({ advisorLimit }) {
 }
 
 // ---- Next Steps Timeline (phased steps + at-a-glance chart) ----
+// color: dots, borders and bars · text: badge text, dark enough to read on the soft tint
 const PRIORITY_STYLE = {
-  High: { color: "var(--error)", soft: "var(--error-soft)", label: "High", short: "High" },
-  Medium: { color: "var(--warn)", soft: "var(--warn-soft, #fef3c7)", label: "Medium", short: "Med" },
-  Low: { color: "var(--success)", soft: "var(--success-soft, #dcfce7)", label: "Low", short: "Low" }
+  High: { color: "var(--error)", text: "var(--error-deep)", soft: "var(--error-soft)", label: "High", short: "High" },
+  Medium: { color: "var(--warn)", text: "#92400e", soft: "var(--warn-soft, #fef3c7)", label: "Medium", short: "Med" },
+  Low: { color: "var(--success)", text: "var(--success-deep)", soft: "var(--success-soft, #dcfce7)", label: "Low", short: "Low" }
 };
 
 // "Grade 7 / Year 8" → 7
@@ -689,7 +690,7 @@ function NextStepsTimeline({ steps, gradeLevel }) {
                     }} />
                     <div style={{ border: "1px solid var(--rule)", borderLeft: `4px solid ${ps.color}`, borderRadius: "var(--r-md)", padding: "0.9rem 1.1rem", background: "var(--surface)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap", marginBottom: "0.45rem" }}>
-                        <span style={{ fontSize: "0.68rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: ps.color, background: ps.soft, border: `1px solid ${ps.color}`, borderRadius: "var(--r-full)", padding: "0.12rem 0.55rem" }}>
+                        <span style={{ fontSize: "0.68rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: ps.text, background: ps.soft, border: `1px solid ${ps.color}`, borderRadius: "var(--r-full)", padding: "0.12rem 0.55rem" }}>
                           {ps.label}
                         </span>
                         <span style={{ fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 600 }}>{st.category}</span>
@@ -716,7 +717,7 @@ function NextStepsTimeline({ steps, gradeLevel }) {
         <div style={{ fontSize: "0.75rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-muted)", fontWeight: 700, marginBottom: "0.75rem" }}>
           Estimated timeline at a glance
         </div>
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
+        <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Next steps by grade (scrolls sideways)">
           <table style={{ width: "100%", minWidth: "560px", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)" }}>
@@ -738,7 +739,7 @@ function NextStepsTimeline({ steps, gradeLevel }) {
                   <tr key={i} style={{ borderTop: "1px solid var(--rule-soft)" }}>
                     <td style={{ padding: "0.65rem 0.5rem 0.65rem 0", fontWeight: 600, color: "var(--ink)", fontSize: "0.9rem" }}>{st.title}</td>
                     <td style={{ padding: "0.65rem 0.5rem" }}>
-                      <span style={{ fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: ps.color, background: ps.soft, border: `1px solid ${ps.color}`, borderRadius: "var(--r-full)", padding: "0.1rem 0.5rem" }}>
+                      <span style={{ fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: ps.text, background: ps.soft, border: `1px solid ${ps.color}`, borderRadius: "var(--r-full)", padding: "0.1rem 0.5rem" }}>
                         {ps.short}
                       </span>
                     </td>
@@ -862,7 +863,7 @@ function RingGauge({ value, size = 96, stroke = 10, center, sub, label, loading 
         )}
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--ink)", lineHeight: 1 }}>
           <span className={loading ? "ring-pulse" : undefined} style={{ fontSize: size >= 110 ? "1.6rem" : "1.3rem", fontWeight: 800, letterSpacing: "-0.02em" }}>{centerText}</span>
-          {sub && value != null && <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--ink-muted)", marginTop: "0.2rem" }}>{sub}</span>}
+          {sub && value != null && <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--ink-soft)", marginTop: "0.2rem" }}>{sub}</span>}
         </div>
       </div>
       {label && <span style={{ fontSize: "0.78rem", fontWeight: 600, textAlign: "center", maxWidth: size + 40, color: "var(--ink-soft)" }}>{label}</span>}

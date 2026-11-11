@@ -35,6 +35,8 @@ const referralAdmin = require("./routes/referralAdmin");
 const campaigns = require("./routes/campaigns");
 const blog = require("./routes/blog");
 const { readOnlyGuard } = require("./middleware/readOnly");
+const { parentConsentGate } = require("./middleware/parentConsentGate");
+const consentRoutes = require("./routes/consent");
 const { startEmailWorker } = require("./services/emailMarketing");
 
 const app = express();
@@ -85,8 +87,11 @@ app.get("/health", healthHandler);
 
 // Lapsed accounts (trial over / subscription cancelled) can read and export, not write
 app.use(readOnlyGuard);
+app.use(parentConsentGate);
 
 app.use("/api/auth", authRoutes);
+app.use("/api/consent", consentRoutes.router);
+app.use("/api/admin/consents", consentRoutes.adminRouter);
 app.use("/api/students/me/backup", myBackup);
 app.use("/api/students/me/restore", myRestore);
 app.use("/api/students/me/admission-results", admissionResults);
@@ -139,6 +144,18 @@ const port = Number(process.env.PORT || 4000);
 // reverse proxy (proxy_pass http://127.0.0.1:4000). Override with HOST if a
 // deployment ever needs a different bind address.
 const host = process.env.HOST || "127.0.0.1";
+// Email settings saved in Admin → Email Settings
+require("./services/mailer").loadMailSettings();
+
+// Hourly: parent-consent reminders and expiry, and deleting closed accounts after the
+// retention period (services/consents.js). Skipped in test servers started with NO_JOBS=1.
+if (!process.env.NO_JOBS) {
+  const { runConsentJobs } = require("./services/consents");
+  const tick = () => runConsentJobs().catch((err) => console.error("[consent-jobs]", err.message));
+  setTimeout(tick, 60 * 1000);
+  setInterval(tick, 60 * 60 * 1000);
+}
+
 app.listen(port, host, () => {
   startEmailWorker(); // scheduled / in-progress marketing email sends
   // eslint-disable-next-line no-console

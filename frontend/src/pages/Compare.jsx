@@ -192,7 +192,7 @@ export default function Compare() {
           action={<Link to="/recommendations" className="button">Browse recommended universities →</Link>}
         />
       ) : (
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
+        <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Your college list (scrolls sideways)">
           <table style={{ minWidth: "900px" }}>
             <thead>
               <tr>

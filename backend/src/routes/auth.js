@@ -8,6 +8,7 @@ const { authRequired } = require("../middleware/auth");
 const { TRIAL_DAYS, getPlanStatus } = require("../services/plan");
 const { attachAtSignup } = require("../services/referrals");
 const consents = require("../services/consents");
+const { isMailConfigured, sendMail } = require("../services/mailer");
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -103,45 +104,74 @@ router.post("/register", async (req, res) => {
     await pool.query("INSERT INTO counselors (user_id) VALUES (?)", [userId]);
   }
   await attachAtSignup(userId, role, ref);
-  await saveSignupConsents(userId, email, name, consent);
+  const parentRequest = await saveSignupConsents(req, userId, email, consent);
   const token = buildToken({ id: userId, role, email });
-  return res.json({ token });
+  return res.json({ token, parent_consent: consent?.minor ? { pending: true, emailed: !!parentRequest?.emailed } : null });
 });
 
-// Records the consent form at sign-up: the audit rows, the age group, the marketing choice,
-// and a copy to the guardian of a student under 20. A failure here never blocks sign-up.
-async function saveSignupConsents(userId, email, name, consent) {
-  if (!consent) return;
+// Records the consent form at sign-up: the audit rows (with IP), date of birth, the
+// marketing choice and — for students under 20 — the request to a parent. A failure here
+// never blocks the sign-up itself; a minor without a sent request simply stays pending.
+async function saveSignupConsents(req, userId, email, consent) {
+  if (!consent) return null;
   try {
-    await consents.recordConsents(userId, consent.rows, "signup");
-    await pool.query("UPDATE users SET age_group = ?, guardian_email = ? WHERE id = ?", [consent.ageGroup, consent.guardianEmail, userId]);
-    await consents.applyMarketingChoice(email, consent.rows.some(([k, g]) => k === "marketing_email" && g));
-    if (consent.guardianEmail) consents.notifyGuardian({ guardianEmail: consent.guardianEmail, studentName: name, rows: consent.rows });
+    await consents.recordConsents(userId, consent.rows, { source: "signup", ip: consents.clientIp(req) });
+    await pool.query("UPDATE users SET birth_date = ?, age_group = ?, parent_consent_status = ? WHERE id = ?",
+      [consent.birthDate, consent.birthDate ? (consent.minor ? "minor" : "adult") : "adult", consent.minor ? "pending" : "not_required", userId]);
+    await consents.applyMarketingChoice(email, consent.rows.some(([k, g]) => k === "marketing" && g));
+    if (consent.minor) return await consents.startParentRequest(userId, { parentEmail: consent.parentEmail, parentPhone: consent.parentPhone });
   } catch (err) {
     console.error("Saving sign-up consents failed:", err.message);
   }
+  return null;
 }
 
-// The current consent choices (Settings shows and changes the optional ones)
+// The current consent choices (Privacy settings shows and changes the optional ones)
 router.get("/consents", authRequired, async (req, res) => {
   const current = await consents.currentConsents(req.user.id).catch(() => ({}));
-  // What's actually in effect, including accounts from before the form: marketing follows the
-  // unsubscribe list every campaign uses; results sharing follows the notice they reported under.
+  // What's in effect, including accounts from before the form: marketing follows the
+  // unsubscribe list every campaign uses; AI improvement follows the earlier notice.
   const [[unsub]] = await pool.query("SELECT 1 x FROM email_unsubscribes WHERE email = ?", [String(req.user.email || "").toLowerCase()]).catch(() => [[null]]);
-  const effective = {
-    outcomes_sharing: current.outcomes_sharing ? current.outcomes_sharing.granted : true,
-    marketing_email: !unsub
-  };
-  res.json({ version: consents.CONSENT_VERSION, optional: consents.OPTIONAL, current, effective });
+  const ai = current.ai_improvement || current.outcomes_sharing;
+  const effective = { marketing: !unsub, ai_improvement: ai ? ai.granted : true };
+  const [[u]] = await pool.query("SELECT age_group, parent_consent_status FROM users WHERE id = ?", [req.user.id]).catch(() => [[{}]]);
+  res.json({ version: consents.CONSENT_VERSION, optional: consents.OPTIONAL, current, effective, minor: u?.age_group === "minor", parent_consent_status: u?.parent_consent_status || null });
 });
 
 router.put("/consents/:key", authRequired, async (req, res) => {
   try {
-    await consents.setOptionalConsent(req.user, req.params.key, req.body?.granted === true);
+    await consents.setOptionalConsent(req.user, req.params.key, req.body?.granted === true, { ip: consents.clientIp(req) });
     res.json({ current: await consents.currentConsents(req.user.id) });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.status ? err.message : "Couldn't save that choice." });
   }
+});
+
+// Agree to the current wording again (after it changed), from the sign-in prompt. Students
+// without a date of birth on file give it here; under-20s start the parent confirmation,
+// with 14 days of normal use before their account is restricted (never deleted).
+router.post("/consents/reconsent", authRequired, async (req, res) => {
+  const [[u]] = await pool.query("SELECT id, email, role, birth_date, parent_consent_status FROM users WHERE id = ?", [req.user.id]);
+  if (!u) return res.status(404).json({ error: "Account not found" });
+  const c = req.body?.consents || {};
+  if (!consents.SELF_REQUIRED.every((k) => c[k] === true)) return res.status(400).json({ error: "Tick the two required boxes to continue." });
+  let birth = u.birth_date ? { birthDate: null, minor: consents.ageOn(u.birth_date) < consents.ADULT_AGE } : null;
+  if (u.role === "student" && !u.birth_date) {
+    birth = consents.readBirthDate(req.body?.birth_date);
+    if (birth.error) return res.status(400).json({ error: birth.error });
+  }
+  let parent = null;
+  if (u.role === "student" && birth?.minor && !["pending", "confirmed"].includes(u.parent_consent_status)) {
+    parent = consents.readParentContact(req.body, u.email);
+    if (parent.error) return res.status(400).json({ error: parent.error });
+  }
+  const ip = consents.clientIp(req);
+  await consents.recordConsents(u.id, [...consents.SELF_REQUIRED.map((k) => [k, 1]), ...consents.OPTIONAL.map((k) => [k, c[k] === true ? 1 : 0])], { source: "reconsent", ip });
+  await consents.applyMarketingChoice(u.email, c.marketing === true);
+  if (birth?.birthDate) await pool.query("UPDATE users SET birth_date = ?, age_group = ? WHERE id = ?", [birth.birthDate, birth.minor ? "minor" : "adult", u.id]);
+  if (u.role === "student" && birth && !birth.minor && !u.parent_consent_status) await pool.query("UPDATE users SET parent_consent_status = 'not_required' WHERE id = ?", [u.id]);
+  const request = parent ? await consents.startParentRequest(u.id, { parentEmail: parent.parentEmail, parentPhone: parent.parentPhone, isExisting: true }) : null;
+  res.json({ ok: true, parent_request: request ? { emailed: request.emailed } : null });
 });
 
 router.post("/login", async (req, res) => {
@@ -246,9 +276,9 @@ router.post("/google", async (req, res) => {
       await pool.query("INSERT INTO counselors (user_id) VALUES (?)", [userId]);
     }
     await attachAtSignup(userId, role, ref);
-    await saveSignupConsents(userId, email, displayName, consent);
+    const parentRequest = await saveSignupConsents(req, userId, email, consent);
     const token = buildToken({ id: userId, role, email });
-    return res.json({ token });
+    return res.json({ token, parent_consent: consent?.minor ? { pending: true, emailed: !!parentRequest?.emailed } : null });
   } catch (err) {
     console.error("Google auth error:", err);
     return res.status(401).json({ error: "Invalid Google credential" });
@@ -272,9 +302,18 @@ router.post("/forgot", async (req, res) => {
       [tokenHash, new Date(Date.now() + 60 * 60 * 1000), user.id]
     );
     const resetUrl = `${process.env.APP_URL || "https://myeduport.ai"}/reset?token=${token}`;
-    // Deliver by email (needs SMTP integration) — never return the token in the HTTP
-    // response, or anyone could reset another user's password by email alone.
-    console.log(`[password-reset] ${email} -> ${resetUrl}`);
+    // Delivered by email only — never returned in the HTTP response, or anyone could reset
+    // another user's password by knowing their email.
+    if (isMailConfigured()) {
+      sendMail({
+        to: email,
+        subject: "Reset your MyEduPort password",
+        text: `Someone asked to reset the password for your MyEduPort account.\n\nReset it here (the link works for 1 hour): ${resetUrl}\n\nIf this wasn't you, ignore this email — your password won't change.`,
+        html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#334155"><p>Someone asked to reset the password for your MyEduPort account.</p><p><a href="${resetUrl}" style="display:inline-block;background:#1f3461;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Reset my password</a></p><p style="color:#64748b;font-size:13px">The link works for 1 hour. If this wasn't you, ignore this email — your password won't change.</p></div>`
+      }).catch((err) => console.error("[password-reset] email failed:", err.message));
+    } else {
+      console.log(`[password-reset] email not set up — link for ${email}: ${resetUrl}`);
+    }
   }
   return res.json(generic);
 });
@@ -320,7 +359,18 @@ router.get("/me", authRequired, async (req, res) => {
   const { password_hash, google_id, ...rest } = user;
   const authProvider = (user.google_id && !user.password_hash) ? "google" : "password";
   const status = await getPlanStatus(user.id);
-  return res.json({ ...rest, plan: status.plan, base_plan: status.basePlan, trial: status.trial, auth_provider: authProvider });
+  // Consent state, so the app can ask again after a wording change and show the parent step
+  const [[cs]] = await pool.query("SELECT birth_date, age_group, parent_consent_status FROM users WHERE id = ?", [user.id]).catch(() => [[{}]]);
+  const needs_reconsent = ["student", "parent", "counselor"].includes(user.role) ? await consents.needsReconsent(user.id) : false;
+  const { password_hash: _p, reset_token_hash: _r, ...safe } = rest;
+  return res.json({
+    ...safe, plan: status.plan, base_plan: status.basePlan, trial: status.trial, auth_provider: authProvider,
+    consent: {
+      needs_reconsent, version: consents.CONSENT_VERSION, has_birth_date: !!cs?.birth_date, minor: cs?.age_group === "minor",
+      parent_consent_status: cs?.parent_consent_status || null,
+      limited: user.role === "student" ? await consents.isLimited(user.id).catch(() => false) : false
+    }
+  });
 });
 
 // Reset password
@@ -414,3 +464,4 @@ router.delete("/me", authRequired, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.helpers = { buildToken, startTrial };

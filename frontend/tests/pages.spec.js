@@ -3,12 +3,12 @@ import { test } from "@playwright/test";
 import { signIn, watchForProblems, expectNoSeriousA11y, expectNoHorizontalOverflow, expectNoPageScroll } from "./helpers.js";
 import { expect } from "@playwright/test";
 
-const PUBLIC = ["/", "/pricing", "/login", "/guide", "/about", "/contact", "/privacy", "/application", "/admission-resources", "/career-resources", "/user-manual", "/news-events",
+const PUBLIC = ["/", "/pricing", "/login", "/guide", "/about", "/contact", "/privacy", "/terms", "/application", "/admission-resources", "/career-resources", "/user-manual", "/news-events",
   // campaign landing pages — the shared template and one campaign built on it
   "/lp", "/lp/example-parents",
   // partner program sign-up
   "/partners"];
-const STUDENT_PAGES = ["/dashboard", "/profile", "/activities", "/recommendations", "/compare", "/tasks", "/chat", "/essay", "/export", "/settings", "/rewards", "/admission-results"];
+const STUDENT_PAGES = ["/dashboard", "/profile", "/activities", "/recommendations", "/compare", "/tasks", "/chat", "/essay", "/export", "/settings", "/rewards", "/admission-results", "/my-plan"];
 const STUDENT = { id: 1, role: "student", email: "admin@gmail.com" };
 
 for (const path of PUBLIC) {

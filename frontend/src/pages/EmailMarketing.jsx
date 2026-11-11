@@ -95,7 +95,7 @@ function CampaignList({ onOpen }) {
       {!rows ? <p className="muted">Loading…</p> : rows.length === 0 ? (
         <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No campaigns yet. Create one to get started.</p>
       ) : (
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
+        <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
           <table style={{ width: "100%", minWidth: "760px" }}>
             <thead>
               <tr><th style={{ textAlign: "left" }}>Campaign</th><th>Status</th><th>Recipients</th><th>Sent</th><th>Opened</th><th>Clicked</th><th style={{ textAlign: "left" }}>When</th><th /></tr>
@@ -1120,7 +1120,7 @@ function Unsubscribes() {
       <h2 className="section-title" style={{ fontSize: "1.2rem", marginBottom: "0.25rem" }}>Unsubscribed</h2>
       <p className="muted" style={{ fontSize: "0.85rem" }}>These addresses are automatically excluded from every campaign. Only re-subscribe someone who asked to be added back.</p>
       {!rows ? <p className="muted">Loading…</p> : rows.length === 0 ? <p className="muted">Nobody has unsubscribed.</p> : (
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
+        <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
           <table style={{ width: "100%", fontSize: "0.85rem" }}>
             <thead><tr><th style={{ textAlign: "left" }}>Email</th><th style={{ textAlign: "left" }}>When</th><th /></tr></thead>
             <tbody>

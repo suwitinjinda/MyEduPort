@@ -7,7 +7,7 @@ import Login from "./pages/Login.jsx";
 import UserProfileDropdown from "./components/UserProfileDropdown.jsx";
 import Skeleton from "./components/Skeleton.jsx";
 import { StudentShell } from "./components/StudentMenu.jsx";
-import { useNavLayout } from "./utils/navLayout.js";
+import ConsentGate from "./components/ConsentGate.jsx";
 
 // Lazy-loaded — splits the bundle so the landing page loads fast.
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
@@ -22,9 +22,13 @@ const ExportPortfolio = lazy(() => import("./pages/ExportPortfolio.jsx"));
 const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy.jsx"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService.jsx"));
 const ApplicationProcess = lazy(() => import("./pages/ApplicationProcess.jsx"));
 const AdmissionResources = lazy(() => import("./pages/AdmissionResources.jsx"));
 const BlogPost = lazy(() => import("./pages/blog/BlogPost.jsx"));
+const MyPlan = lazy(() => import("./pages/MyPlan.jsx"));
+const WaitingForParent = lazy(() => import("./pages/WaitingForParent.jsx"));
+const ParentConsent = lazy(() => import("./pages/ParentConsent.jsx"));
 const CareerResources = lazy(() => import("./pages/CareerResources.jsx"));
 const About = lazy(() => import("./pages/About.jsx"));
 const NewsEvents = lazy(() => import("./pages/NewsEvents.jsx"));
@@ -78,7 +82,7 @@ function ProtectedRoute({ children, role }) {
 // One Back button, same place on every inner page. It goes to the previous page in the app,
 // or to the user's home when the page was opened directly (a link, a bookmark, a refresh).
 // Start pages — home, landing, sign-in, each role's dashboard — don't need one.
-const NO_BACK = [/^\/$/, /^\/lp(\/|$)/, /^\/login$/, /^\/reset$/, /^\/share\//, /^\/dashboard$/, /^\/parent$/, /^\/counselor$/, /^\/affiliate$/];
+const NO_BACK = [/^\/$/, /^\/lp(\/|$)/, /^\/login$/, /^\/reset$/, /^\/share\//, /^\/parent-consent\//, /^\/waiting-for-parent$/, /^\/dashboard$/, /^\/parent$/, /^\/counselor$/, /^\/affiliate$/];
 function BackButton() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -93,9 +97,6 @@ function BackButton() {
     </button>
   );
 }
-
-// Pages inside the student app (they carry the student side menu)
-const STUDENT_APP = /^\/(dashboard|profile|recommendations|compare|tasks|chat|export|settings)(\/|$)/;
 
 // Old essay links (/essay, /essay?id=12) open the essay inside Portfolio → Documents
 function EssayRedirect() {
@@ -154,7 +155,6 @@ export default function App() {
   // /lp and /lp/<campaign> are marketing landing pages — no site nav, one button to the app.
   const isLanding = location.pathname === "/lp" || location.pathname.startsWith("/lp/");
   const appHref = isSignedIn ? roleHome(userRole) : "/login";
-  const navLayout = useNavLayout();
 
   const handleAuthClick = () => {
     if (isSignedIn) {
@@ -183,13 +183,6 @@ export default function App() {
             <NavLink to="/parent">Parent</NavLink>
           ) : userRole === "counselor" ? (
             <NavLink to="/counselor">Counselor</NavLink>
-          ) : isSignedIn && userRole === "student" && navLayout === "unified" ? (
-            <>
-              {/* The unified side menu already lists Dashboard, Portfolio and Compare */}
-              <NavLink to="/dashboard" className={() => (STUDENT_APP.test(location.pathname) ? "active" : "")}>My Portfolio</NavLink>
-              <NavLink to="/admission-resources">Admissions</NavLink>
-              <NavLink to="/career-resources">Career</NavLink>
-            </>
           ) : (
             <>
               <NavLink to="/dashboard">Dashboard</NavLink>
@@ -217,6 +210,7 @@ export default function App() {
       </header>
 
       <main className="page-container">
+        <ConsentGate />
         <BackButton />
         <Suspense fallback={<div style={{ padding: "2rem" }}><Skeleton lines={5} /></div>}>
           <Routes>
@@ -242,12 +236,16 @@ export default function App() {
           <Route path="/billing/success" element={<ProtectedRoute><BillingSuccess /></ProtectedRoute>} />
           <Route path="/export" element={<ProtectedRoute role="student"><StudentShell><ExportPortfolio /></StudentShell></ProtectedRoute>} />
           <Route path="/admission-results" element={<ProtectedRoute role="student"><AdmissionResults /></ProtectedRoute>} />
+          <Route path="/my-plan" element={<ProtectedRoute role="student"><StudentShell><MyPlan /></StudentShell></ProtectedRoute>} />
+          <Route path="/waiting-for-parent" element={<ProtectedRoute role="student"><WaitingForParent /></ProtectedRoute>} />
+          <Route path="/parent-consent/:token" element={<ParentConsent />} />
           <Route path="/rewards" element={<ProtectedRoute role={["student", "parent"]}><Rewards /></ProtectedRoute>} />
           <Route path="/partners" element={<Partners />} />
           <Route path="/affiliate" element={<ProtectedRoute role="affiliate"><AffiliateDashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><StudentShell><Settings /></StudentShell></ProtectedRoute>} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route path="/about" element={<About />} />
           <Route path="/news-events" element={<NewsEvents />} />
           <Route path="/user-manual" element={<UserManual />} />
@@ -315,7 +313,8 @@ export default function App() {
                 { to: "/about", label: "About" },
                 { to: "/news-events", label: "News & Events" },
                 { to: "/contact", label: "Contact" },
-                { to: "/privacy", label: "Privacy" }
+                { to: "/privacy", label: "Privacy" },
+                { to: "/terms", label: "Terms" }
               ]}
             />
           </div>

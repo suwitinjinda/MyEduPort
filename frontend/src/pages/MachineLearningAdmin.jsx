@@ -211,7 +211,7 @@ function Outcomes() {
         <h2 className="section-title" style={{ fontSize: "1.2rem", marginBottom: "0.25rem" }}>Results by university</h2>
         <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.75rem" }}>Students report results on their college list (Compare page). Each result keeps a snapshot of their profile at that time.</p>
         {stats.length === 0 ? <p className="muted">No results yet.</p> : (
-          <div className="table-scroll" style={{ overflowX: "auto" }}>
+          <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
             <table style={{ width: "100%", fontSize: "0.85rem" }}>
               <thead><tr><th style={{ textAlign: "left" }}>University</th><th>Applicants</th><th>Admitted</th><th>Waitlisted / deferred</th><th>Rejected</th></tr></thead>
               <tbody>{stats.map((s) => <tr key={s.university_name}><td>{s.university_name}</td><td style={{ textAlign: "center" }}>{s.total}</td><td style={{ textAlign: "center" }}>{s.admitted}</td><td style={{ textAlign: "center" }}>{s.waitlisted}</td><td style={{ textAlign: "center" }}>{s.rejected}</td></tr>)}</tbody>
@@ -253,7 +253,7 @@ function Outcomes() {
       <div className="card">
         <h2 className="section-title" style={{ fontSize: "1.2rem", marginBottom: "0.75rem" }}>All results</h2>
         {!rows ? <p className="muted">Loading…</p> : rows.length === 0 ? <p className="muted">No results yet.</p> : (
-          <div className="table-scroll" style={{ overflowX: "auto" }}>
+          <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
             <table style={{ width: "100%", minWidth: "760px", fontSize: "0.82rem" }}>
               <thead><tr><th style={{ textAlign: "left" }}>University</th><th>Result</th><th>Year</th><th>Round</th><th style={{ textAlign: "left" }}>Applicant</th><th style={{ textAlign: "left" }}>Profile at the time</th><th /></tr></thead>
               <tbody>

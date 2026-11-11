@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch, loadSaved } from "../api/client";
 
 // MEPAi writing workspace: the student writes and edits on the left; MEPAi suggests on the
@@ -31,6 +32,16 @@ export default function MepaiWorkspace({
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState({ text: "", error: false });
   const [tips, setTips] = useState([]);
+  // Allowance counters shown on the buttons, e.g. "MEPAi Guidance 1/5" (hidden when unlimited)
+  const guideCounter = { statement_guidance: "essay_feedback", activity_guidance: "essai_activity", award_guidance: "essai_award" }[guidanceKind];
+  const [usage, setUsage] = useState(null);
+  const loadUsage = () => apiFetch("/api/ai/usage").then(setUsage).catch(() => {});
+  useEffect(() => { loadUsage(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const counterText = (key) => {
+    const u = usage?.[key];
+    return u && u.limit > 0 ? ` ${Math.min(u.used, u.limit)}/${u.limit}` : "";
+  };
+  const usedUp = (key) => { const u = usage?.[key]; return !!u && u.limit > 0 && u.used >= u.limit; };
   // Snapshots of the text from before each applied grammar fix, newest last.
   const [undoStack, setUndoStack] = useState([]);
 
@@ -57,7 +68,7 @@ export default function MepaiWorkspace({
 
   const run = async (label, fn) => {
     setBusy(label); setMsg({ text: "", error: false });
-    try { await fn(); } catch (e) { setMsg({ text: e.message, error: true }); } finally { setBusy(""); }
+    try { await fn(); } catch (e) { setMsg({ text: e.message, error: true }); } finally { setBusy(""); loadUsage(); }
   };
   const getGuidance = () => run("guide", async () => { setGuidance({ ...(await requestGuidance()), done: [] }); });
   const checkGrammar = () => run("grammar", async () => {
@@ -212,14 +223,20 @@ export default function MepaiWorkspace({
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", padding: "0.75rem", borderTop: "1px solid var(--rule)", background: "var(--surface)" }}>
-          <button type="button" className="button" style={btn} disabled={!!busy} onClick={getGuidance}>{busy === "guide" ? "Thinking…" : "MEPAi Guidance"}</button>
-          <button type="button" className="button ghost" style={btn} disabled={!!busy || !(value || "").trim()} onClick={checkGrammar}>{busy === "grammar" ? "Checking…" : "Check Grammar"}</button>
+          <button type="button" className="button" style={btn} disabled={!!busy} onClick={getGuidance}>{busy === "guide" ? "Thinking…" : <>MEPAi Guidance<span style={{ opacity: 0.8, fontWeight: 500 }}>{counterText(guideCounter)}</span></>}</button>
+          <button type="button" className="button ghost" style={btn} disabled={!!busy || !(value || "").trim()} onClick={checkGrammar}>{busy === "grammar" ? "Checking…" : <>Check Grammar<span style={{ opacity: 0.8, fontWeight: 500 }}>{counterText("essay_revise")}</span></>}</button>
           {saveButton && (
             <button type="button" className="button gold" style={btn} disabled={!!busy || saveButton.disabled || saveButton.busy} onClick={saveButton.onClick}>
               {saveButton.busy ? "Saving…" : saveButton.label}
             </button>
           )}
         </div>
+        {(usedUp(guideCounter) || usedUp("essay_revise")) && (
+          <p className="text-muted" style={{ fontSize: "0.75rem", margin: "0.4rem 0 0", textAlign: "center" }}>
+            {usedUp(guideCounter) ? "MEPAi Guidance" : "Check Grammar"} is used up for {usage?.essay_feedback?.period === "lifetime" ? "your Free plan" : "this month"}.{" "}
+            <Link to="/my-plan" style={{ color: "var(--teal-deep)", fontWeight: 600 }}>See my plan</Link>
+          </p>
+        )}
       </div>
     </div>
   );

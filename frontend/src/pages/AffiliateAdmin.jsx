@@ -52,7 +52,7 @@ export default function AffiliateAdmin() {
       </div>
 
       <section className="card">
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
+        <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
           <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse", fontSize: "0.87rem" }}>
             <thead>
               <tr style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)", textAlign: "left" }}>
@@ -262,7 +262,7 @@ function PartnerDetail({ id, onBack }) {
       <section className="card" style={{ marginBottom: "1.25rem" }}>
         <h3 className="section-title" style={{ fontSize: "1.05rem", marginBottom: "0.75rem" }}>Commissions</h3>
         {a.commissions.length === 0 ? <p className="muted" style={{ margin: 0 }}>None yet.</p> : (
-          <div className="table-scroll" style={{ overflowX: "auto" }}>
+          <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
             <table style={{ width: "100%", minWidth: "640px", borderCollapse: "collapse", fontSize: "0.85rem" }}>
               <thead><tr style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)", textAlign: "left" }}>
                 <th style={th}>Date</th><th style={th}>Student</th><th style={thr}>They paid</th><th style={thr}>Commission</th><th style={th}>Status</th><th style={th}></th>

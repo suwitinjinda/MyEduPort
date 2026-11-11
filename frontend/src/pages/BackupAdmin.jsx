@@ -115,7 +115,7 @@ export default function BackupAdmin() {
           {data.dir} · kept 14 days daily, then weekly for 12 weeks
         </p>
 
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
+        <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
           <table style={{ width: "100%", minWidth: "720px", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)" }}>

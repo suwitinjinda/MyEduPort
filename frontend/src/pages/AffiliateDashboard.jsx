@@ -189,7 +189,7 @@ export default function AffiliateDashboard() {
         {d.referrals.length === 0 ? (
           <p className="muted" style={{ margin: 0 }}>No sign-ups yet. Share your link to get started.</p>
         ) : (
-          <div className="table-scroll" style={{ overflowX: "auto" }}>
+          <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Your referred students (scrolls sideways)">
             <table style={{ width: "100%", minWidth: "520px", borderCollapse: "collapse", fontSize: "0.88rem" }}>
               <thead>
                 <tr style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)", textAlign: "left" }}>

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { apiFetch, getUserRole } from "../api/client";
-import { useNavLayout, setNavLayout } from "../utils/navLayout.js";
 
 // The student "Quick menu" side nav. It sits beside every page it links to (StudentShell),
 // and inside the Portfolio editor's own sidebar, so moving between student pages never
@@ -15,7 +14,7 @@ const ITEMS = [
   { to: "/tasks", label: "Tasks", Icon: TaskIcon, badge: "overdue" },
   { to: "/chat", label: "EduBot Chat", Icon: ChatIcon },
   { to: "/profile", section: "documents", label: "Essays", Icon: EssayIcon },
-  { to: "/export", label: "Portfolio Report", Icon: ExportIcon },
+  { to: "/export", label: "Export MyPort", Icon: ExportIcon },
   { to: "/settings", label: "Settings", Icon: SettingsIcon }
 ];
 
@@ -85,107 +84,14 @@ export function QuickMenu({ overdue, defaultOpen }) {
   );
 }
 
-// ---------------------------------------------------------------- unified menu
-// One menu, identical on every student page; only the highlight moves. The five Portfolio
-// sections sit under Portfolio (so the Portfolio page has no second menu of its own).
-const PORTFOLIO_SECTIONS = [
-  ["personal", "01", "Personal"],
-  ["academics", "02", "Academics"],
-  ["extracurriculars", "03", "Extracurricular"],
-  ["awards", "04", "Awards"],
-  ["documents", "05", "Documents & essays"]
-];
-const GROUPS = [
-  { title: "Universities", items: [["/recommendations", "Recommendations", UniversityIcon], ["/compare", "Compare my list", CompareIcon]] },
-  { title: "Tools", items: [["/tasks", "Tasks", TaskIcon, "overdue"], ["/chat", "EduBot chat", ChatIcon], ["/export", "Portfolio report", ExportIcon]] }
-];
-
-export function StudentNav({ overdue }) {
-  const location = useLocation();
-  const [open, setOpen] = useState(wide()); // phones: folded behind a Menu button
-  const overdueCount = useOverdue(overdue);
-  const path = location.pathname;
-  const onPortfolio = path === "/profile";
-  const section = new URLSearchParams(location.search).get("section") || "personal";
-  const close = () => { if (!wide()) setOpen(false); };
-  // Portfolio's sections open on the Portfolio page; the arrow also folds/unfolds them anywhere
-  const [subOpen, setSubOpen] = useState(onPortfolio);
-  useEffect(() => { setSubOpen(onPortfolio); }, [onPortfolio]);
-
-  return (
-    <div className="student-nav">
-      <button type="button" className="student-nav-toggle" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-        <span aria-hidden="true">☰</span> Menu
-      </button>
-      {open && (
-        <nav aria-label="Student menu" onClick={close}>
-          <NavItem to="/dashboard" icon={<DashboardIcon />} label="Dashboard" active={path === "/dashboard"} />
-          <div className="student-nav-parent">
-            <NavItem to="/profile" icon={<PortfolioIcon />} label="Portfolio" active={onPortfolio} />
-            <button
-              type="button"
-              className={`student-nav-caret${subOpen ? " open" : ""}`}
-              aria-label={subOpen ? "Hide Portfolio sections" : "Show Portfolio sections"}
-              aria-expanded={subOpen}
-              onClick={(e) => { e.stopPropagation(); setSubOpen((v) => !v); }}
-            >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
-          </div>
-          {subOpen && (
-            <div className="student-nav-sub">
-              {PORTFOLIO_SECTIONS.map(([key, num, label]) => (
-                <Link key={key} to={`/profile?section=${key}`} className={onPortfolio && section === key ? "active" : ""} aria-current={onPortfolio && section === key ? "page" : undefined}>
-                  <span className="num">{num}</span> {label}
-                </Link>
-              ))}
-            </div>
-          )}
-          {GROUPS.map((g) => (
-            <div key={g.title}>
-              <div className="student-nav-group">{g.title}</div>
-              {g.items.map(([to, label, Icon, badge]) => (
-                <NavItem key={to} to={to} icon={<Icon />} label={label} active={path === to} badge={badge === "overdue" ? overdueCount : 0} />
-              ))}
-            </div>
-          ))}
-          <div className="student-nav-rule" />
-          <NavItem to="/settings" icon={<SettingsIcon />} label="Settings" active={path === "/settings"} />
-        </nav>
-      )}
-    </div>
-  );
-}
-
-// Lets each student try the other menu; shown under either one.
-export function NavLayoutSwitch() {
-  const layout = useNavLayout();
-  return (
-    <button type="button" className="nav-layout-switch" onClick={() => setNavLayout(layout === "unified" ? "classic" : "unified")}>
-      {layout === "unified" ? "Switch back to the classic menu" : "✨ Try the new menu"}
-    </button>
-  );
-}
-
-// The side menu for the chosen layout
-export function StudentSidebar({ overdue }) {
-  const layout = useNavLayout();
-  return (
-    <>
-      {layout === "unified" ? <StudentNav overdue={overdue} /> : <QuickMenu overdue={overdue} />}
-      <NavLayoutSwitch />
-    </>
-  );
-}
-
-// Page frame for the student tools the menu links to. Other roles (e.g. a parent on
+// Page frame for the student tools the Quick menu links to. Other roles (e.g. a parent on
 // Settings) get the page alone.
 export function StudentShell({ children }) {
   if (getUserRole() !== "student") return children;
   return (
     <div className="dash-layout">
       <aside className="dash-sidebar">
-        <StudentSidebar />
+        <QuickMenu />
       </aside>
       <div style={{ minWidth: 0 }}>{children}</div>
     </div>
@@ -218,15 +124,6 @@ function NavItem({ to, icon, label, active, badge }) {
 }
 
 /* === Sidebar SVG icons === */
-function DashboardIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" />
-      <rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" />
-    </svg>
-  );
-}
-
 function ProfileIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

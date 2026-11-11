@@ -474,6 +474,20 @@ router.post("/award-description", authRequired, async (req, res) => {
   res.json(result);
 });
 
+// How much of each MEPAi allowance is used this period, for the counters on the MEPAi
+// buttons. Counters are the usage keys the endpoints below increment; all share the
+// MEPAi Essay Score limit (Admin → Plan Settings). limit -1 = unlimited.
+const MEPAI_COUNTERS = ["essay_feedback", "essai_activity", "essai_award", "essay_revise"];
+router.get("/usage", authRequired, async (req, res) => {
+  if (req.user.role !== "student") return res.status(403).json({ error: "Student only" });
+  const out = {};
+  for (const c of MEPAI_COUNTERS) {
+    const q = await checkQuota(req.user.id, c, "essay_feedback");
+    out[c] = { used: q.used, limit: q.limit, period: q.period };
+  }
+  res.json(out);
+});
+
 // MEPAi Essay workspace — actionable guidance (uses the MEPAi Essay Score allowance)
 router.post("/statement-guidance", authRequired, async (req, res) => {
   if (req.user.role !== "student") return res.status(403).json({ error: "Student only" });

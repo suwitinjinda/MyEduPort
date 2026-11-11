@@ -50,9 +50,18 @@ test.describe("Pricing", () => {
   });
 
   test("signed-in student can start checkout and reach Stripe", async ({ page }) => {
+    // This is a real account: leave its privacy choices for the owner to make, and just
+    // keep the "Privacy update" dialog out of the way for this test.
+    await page.route("**/api/auth/me", async (route) => {
+      const res = await route.fetch();
+      const body = await res.json();
+      if (body?.consent) body.consent = { ...body.consent, needs_reconsent: false, limited: false };
+      await route.fulfill({ response: res, json: body });
+    });
     await signIn(page, STUDENT);
     await page.goto("/pricing");
     await page.waitForTimeout(1500);
+    await expect(page.locator(".consent-overlay")).toHaveCount(0);
     const btn = page.getByRole("button", { name: /^Subscribe to / }).first();
     await expect(btn).toBeEnabled();
     await Promise.all([page.waitForURL(/checkout\.stripe\.com/, { timeout: 45_000 }), btn.click()]);

@@ -646,7 +646,7 @@ export default function ExportPortfolio() {
   return (
     <div style={{ maxWidth: "1120px", margin: "0 auto" }}>
       <header style={{ borderBottom: "1px solid var(--rule)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
-        <div className="eyebrow">Portfolio Report</div>
+        <div className="eyebrow">Export MyPort</div>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2.25rem", color: "var(--ink)", letterSpacing: "-0.02em" }}>
           Generate your portfolio report.
         </h1>

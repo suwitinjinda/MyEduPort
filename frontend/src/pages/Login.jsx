@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { apiFetch, setToken, getUserRole } from "../api/client";
 import GoogleSignIn from "../components/GoogleSignIn";
-import SignupConsent, { BLANK_CONSENT, consentProblem } from "../components/SignupConsent.jsx";
+import SignupConsent, { BLANK_CONSENT, consentProblem, consentPayload } from "../components/SignupConsent.jsx";
 import { storedReferral, clearReferral } from "../utils/referral.js";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -32,7 +32,6 @@ export default function Login() {
   // The sign-up consent form (components/SignupConsent.jsx)
   const [consent, setConsent] = useState(BLANK_CONSENT);
   const consentRef = useRef(consent); consentRef.current = consent;
-  const consentPayload = (c) => ({ consents: c.consents, age_group: c.age_group, guardian_email: c.guardian_email, data_consent: c.consents.terms && c.consents.ai_processing });
   const [refInfo, setRefInfo] = useState(null); // { valid, from, discount_percent }
   useEffect(() => {
     const code = form.ref.trim();
@@ -59,7 +58,7 @@ export default function Login() {
       const body = { credential };
       if (registering) {
         body.role = formRef.current.role;
-        Object.assign(body, consentPayload(consentRef.current));
+        Object.assign(body, consentPayload(consentRef.current, formRef.current.role));
         body.ref = formRef.current.ref || undefined;
       }
       const result = await apiFetch("/api/auth/google", {
@@ -70,7 +69,8 @@ export default function Login() {
       if (registering) clearReferral();
       window.dispatchEvent(new Event("auth-change"));
       const role = getUserRole();
-      const redirectPath = backTo || homeFor(role);
+      // Under-20s go to the page that tracks their parent's approval
+      const redirectPath = result.parent_consent?.pending ? "/waiting-for-parent" : backTo || homeFor(role);
       setStatus("Signed in. Redirecting…");
       setTimeout(() => navigate(redirectPath), 400);
     } catch (err) {
@@ -85,7 +85,7 @@ export default function Login() {
       const path = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const payload = mode === "login"
         ? { email: form.email, password: form.password }
-        : { ...form, ...consentPayload(consent) };
+        : { ...form, ...consentPayload(consent, form.role) };
       const result = await apiFetch(path, {
         method: "POST",
         body: JSON.stringify(payload)
@@ -94,7 +94,8 @@ export default function Login() {
       if (mode === "register") clearReferral();
       window.dispatchEvent(new Event("auth-change"));
       const role = getUserRole();
-      const redirectPath = backTo || homeFor(role);
+      // Under-20s go to the page that tracks their parent's approval
+      const redirectPath = result.parent_consent?.pending ? "/waiting-for-parent" : backTo || homeFor(role);
       setStatus("Signed in. Redirecting…");
       setTimeout(() => navigate(redirectPath), 400);
     } catch (err) {
@@ -254,14 +255,14 @@ export default function Login() {
           )}
 
           {isRegister && (
-            <SignupConsent value={consent} onChange={setConsent} role={form.role} />
+            <SignupConsent value={consent} onChange={setConsent} role={form.role} ownEmail={form.email} />
           )}
 
           <button
             className="button"
             type="submit"
             style={{ width: "100%" }}
-            disabled={isRegister && !!consentProblem(consent, form.role)}
+            disabled={isRegister && !!consentProblem(consent, form.role, form.email)}
           >
             {isRegister ? "Create account" : "Sign in"}
           </button>
@@ -270,11 +271,11 @@ export default function Login() {
             <>
               <GoogleSignIn
                 onSuccess={handleGoogleSuccess}
-                disabled={!!status || (isRegister && !!consentProblem(consent, form.role))}
+                disabled={!!status || (isRegister && !!consentProblem(consent, form.role, form.email))}
               />
-              {isRegister && consentProblem(consent, form.role) && (
+              {isRegister && consentProblem(consent, form.role, form.email) && (
                 <p className="muted" style={{ fontSize: "0.78rem", textAlign: "center", marginTop: "0.5rem" }}>
-                  {consentProblem(consent, form.role)} Then you can continue with Google.
+                  {consentProblem(consent, form.role, form.email)} Then you can continue with Google.
                 </p>
               )}
               {isRegister && (

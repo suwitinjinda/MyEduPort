@@ -7,6 +7,8 @@ import AffiliateAdmin from "./AffiliateAdmin.jsx";
 import CoinsAdmin from "./CoinsAdmin.jsx";
 import { STUDY_COUNTRIES } from "../utils/countries.js";
 import CampaignsAdmin from "./CampaignsAdmin.jsx";
+import EmailSettingsAdmin from "./EmailSettingsAdmin.jsx";
+import ConsentsAdmin from "./ConsentsAdmin.jsx";
 import BlogAdmin from "./BlogAdmin.jsx";
 import { fmtDateTime } from "../utils/date.js";
 
@@ -125,6 +127,8 @@ export default function Admin() {
     { id: "universities", label: "Universities" },
     { id: "ml", label: "Machine Learning" },
     { id: "email", label: "Email Marketing" },
+    { id: "email-settings", label: "Email Settings" },
+    { id: "consents", label: "Consents" },
     { id: "campaigns", label: "Campaigns" },
     { id: "blog", label: "Blog" },
     { id: "lists", label: "Dropdown Lists" },
@@ -211,7 +215,7 @@ export default function Admin() {
           {activeTab === "users" && (
             <div className="card">
               <h2 className="section-title" style={{ fontSize: "1.35rem", marginBottom: "1rem" }}>User management</h2>
-              <div className="table-scroll" style={{ overflowX: "auto" }}>
+              <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
                 <table>
                   <thead>
                     <tr>
@@ -264,7 +268,7 @@ export default function Admin() {
           {activeTab === "students" && (
             <div className="card">
               <h2 className="section-title" style={{ fontSize: "1.35rem", marginBottom: "1rem" }}>Students overview</h2>
-              <div className="table-scroll" style={{ overflowX: "auto" }}>
+              <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
                 <table>
                   <thead>
                     <tr>
@@ -365,7 +369,7 @@ export default function Admin() {
                   </div>
                 )}
 
-                <div className="table-scroll" style={{ overflowX: "auto" }}>
+                <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
                   <table>
                     <thead>
                       <tr><th>Name</th><th>Country</th><th>City</th><th>QS</th><th>Selectivity</th><th></th></tr>
@@ -409,6 +413,8 @@ export default function Admin() {
           {activeTab === "affiliates" && <AffiliateAdmin />}
           {activeTab === "coins" && <CoinsAdmin />}
           {activeTab === "campaigns" && <CampaignsAdmin />}
+          {activeTab === "email-settings" && <EmailSettingsAdmin />}
+          {activeTab === "consents" && <ConsentsAdmin />}
           {activeTab === "blog" && <BlogAdmin />}
           {activeTab === "backup" && <BackupAdmin />}
 
@@ -447,7 +453,7 @@ export default function Admin() {
                 {!planLimits ? (
                   <p className="muted">Loading…</p>
                 ) : (
-                  <div className="table-scroll" style={{ overflowX: "auto" }}>
+                  <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
                     <table>
                       <thead>
                         <tr><th>Feature</th>{TIERS.map((t) => <th key={t} style={{ textTransform: "capitalize" }}>{t}</th>)}</tr>

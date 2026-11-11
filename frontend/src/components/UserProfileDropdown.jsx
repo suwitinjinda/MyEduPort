@@ -2,6 +2,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { clearToken, apiFetch } from "../api/client";
 
+// Plan badge colours next to the role badge in the menu header
+const PLAN_LABEL = { free: "Free", essential: "Essential", professional: "Professional", elite: "Elite" };
+const PLAN_BADGE = {
+  free: { background: "var(--surface)", color: "var(--ink-soft)", borderColor: "var(--rule)" },
+  essential: { background: "#ccfbf1", color: "#0f5e57", borderColor: "#5eead4" },
+  professional: { background: "#ecfdf5", color: "#047857", borderColor: "#10b981" },
+  elite: { background: "#fef3c7", color: "#92400e", borderColor: "#f59e0b" }
+};
+
 export default function UserProfileDropdown({ userRole, isAdmin: propIsAdmin }) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -79,7 +88,7 @@ export default function UserProfileDropdown({ userRole, isAdmin: propIsAdmin }) 
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1rem", color: "var(--ink)", marginBottom: "0.2rem" }}>
               {user?.name || "User"}
             </div>
-            <div style={{ fontSize: "0.78rem", color: "var(--ink-muted)" }}>{user?.email || ""}</div>
+            <div style={{ fontSize: "0.78rem", color: "var(--ink-soft)" }}>{user?.email || ""}</div>
             <div
               style={{
                 marginTop: "0.65rem",
@@ -95,6 +104,22 @@ export default function UserProfileDropdown({ userRole, isAdmin: propIsAdmin }) 
             >
               {roleLabel}
             </div>
+            {/* The plan in use (including a free trial) — opens My plan */}
+            {user?.role === "student" && user?.plan && (
+              <button
+                type="button"
+                onClick={() => handleMenuClick("/my-plan")}
+                title="See what's in your plan"
+                style={{
+                  marginTop: "0.65rem", marginLeft: "0.4rem", fontSize: "0.65rem", padding: "0.25rem 0.6rem",
+                  fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", cursor: "pointer",
+                  border: "1px solid", fontFamily: "inherit", verticalAlign: "top",
+                  ...(PLAN_BADGE[user.plan] || PLAN_BADGE.free)
+                }}
+              >
+                {PLAN_LABEL[user.plan] || user.plan}{user.trial?.active ? " · trial" : ""} ›
+              </button>
+            )}
           </div>
 
           <div style={{ padding: "0.4rem" }}>
@@ -102,6 +127,12 @@ export default function UserProfileDropdown({ userRole, isAdmin: propIsAdmin }) 
               <button className="user-dropdown-menu-item" onClick={() => handleMenuClick("/admin")}>
                 <span style={{ color: "var(--gold-deep)" }}>◆</span>
                 <span>Admin Panel</span>
+              </button>
+            )}
+            {userRole === "student" && (
+              <button className="user-dropdown-menu-item" onClick={() => handleMenuClick("/my-plan")}>
+                <span style={{ color: "var(--gold-deep)" }}>✦</span>
+                <span>My plan</span>
               </button>
             )}
             {userRole === "student" && (
@@ -119,7 +150,7 @@ export default function UserProfileDropdown({ userRole, isAdmin: propIsAdmin }) 
             {userRole === "student" && (
               <button className="user-dropdown-menu-item" onClick={() => handleMenuClick("/export")}>
                 <span style={{ color: "var(--gold-deep)" }}>↓</span>
-                <span>Export PDF</span>
+                <span>Export MyPort</span>
               </button>
             )}
             <button className="user-dropdown-menu-item" onClick={() => handleMenuClick("/settings")}>

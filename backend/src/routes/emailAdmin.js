@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const multer = require("multer");
 const pool = require("../db");
 const { authRequired } = require("../middleware/auth");
-const { isMailConfigured, sendMail } = require("../services/mailer");
+const { isMailConfigured, sendMail, publicSettings, saveMailSettings, clearMailSettings, testMailSettings } = require("../services/mailer");
 const { SEGMENTS, APP_URL, normEmail, isEmail, parseEmailList, resolveAudience, renderEmail, tick } = require("../services/emailMarketing");
 const { draftMarketingEmailWithClaude } = require("../services/aiClient");
 const { listAudience, applyFilters, cleanFilters } = require("../services/audience");
@@ -31,9 +31,31 @@ const cleanAudience = (a = {}) => ({
 router.get("/status", async (req, res) => {
   res.json({
     configured: isMailConfigured(),
-    from: process.env.MAIL_FROM || null,
+    from: publicSettings().from || null,
     segments: Object.entries(SEGMENTS).map(([key, s]) => ({ key, label: s.label }))
   });
+});
+
+// ---- Email Settings (SMTP) — used by every email the platform sends ----
+router.get("/settings", (req, res) => res.json(publicSettings()));
+
+router.put("/settings", async (req, res) => {
+  try { res.json(await saveMailSettings(req.body || {}, req.user.id)); }
+  catch (err) { res.status(err.status || 500).json({ error: err.status ? err.message : "Couldn't save the email settings." }); }
+});
+
+router.delete("/settings", async (req, res) => res.json(await clearMailSettings()));
+
+// Check the connection (with the values in the form, before saving) and optionally send a test
+router.post("/settings/test", async (req, res) => {
+  const to = String(req.body?.send_to || "").trim();
+  if (to && !isEmail(to)) return res.status(400).json({ error: "Enter a valid email address to send the test to." });
+  try {
+    res.json(await testMailSettings(req.body?.settings || null, to || null));
+  } catch (err) {
+    // SMTP errors are safe to show the admin (e.g. "Invalid login: 535 …"); never echo the password
+    res.status(err.status || 400).json({ error: err.message || "Couldn't connect to the email server." });
+  }
 });
 
 // System users to pick from (defaults to Free students)
@@ -337,7 +359,7 @@ router.post("/campaigns/:id/duplicate", async (req, res) => {
 
 // Test send to the admin (or a given address) — not tracked, not counted
 router.post("/campaigns/:id/test", async (req, res) => {
-  if (!isMailConfigured()) return res.status(400).json({ error: "Email sending isn't configured yet (SMTP settings missing in backend/.env)." });
+  if (!isMailConfigured()) return res.status(400).json({ error: "Email sending isn't set up yet — add it in Admin → Email Settings." });
   const [[c]] = await pool.query("SELECT * FROM email_campaigns WHERE id = ?", [req.params.id]);
   if (!c) return res.status(404).json({ error: "Not found" });
   const to = normEmail(req.body?.to || req.user.email);
@@ -354,7 +376,7 @@ router.post("/campaigns/:id/test", async (req, res) => {
 
 // Send now (scheduled_at omitted/past) or schedule for later
 router.post("/campaigns/:id/send", async (req, res) => {
-  if (!isMailConfigured()) return res.status(400).json({ error: "Email sending isn't configured yet (SMTP settings missing in backend/.env)." });
+  if (!isMailConfigured()) return res.status(400).json({ error: "Email sending isn't set up yet — add it in Admin → Email Settings." });
   const [[c]] = await pool.query("SELECT * FROM email_campaigns WHERE id = ?", [req.params.id]);
   if (!c) return res.status(404).json({ error: "Not found" });
   if (!["draft", "scheduled", "cancelled", "failed"].includes(c.status)) return res.status(400).json({ error: `Campaign is already ${c.status}.` });

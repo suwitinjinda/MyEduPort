@@ -20,6 +20,7 @@ const SAFE_METHOD = /^(GET|HEAD|OPTIONS)$/i;
 // Writes a lapsed account must still be able to make.
 const ALWAYS_ALLOWED = [
   /^\/api\/auth\//,                      // sign in / out, password reset
+  /^\/api\/consent\//,                   // a parent's consent request and the parent's answer
   /^\/api\/billing\//,                   // subscribing again is the way out of this state
   /^\/api\/email\//,                     // unsubscribe links
   /^\/api\/share\//,                     // public share pages
