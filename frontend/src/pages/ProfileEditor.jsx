@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
+import { MobilePortfolioOverview } from "../components/MobileStudent.jsx";
+import { useIsMobile } from "../components/MobileNav.jsx";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { apiFetch, apiUpload, getUserRole, openFile, loadSaved } from "../api/client";
 import AdvisoryNote, { PORTFOLIO_GUIDE } from "../components/AdvisoryNote.jsx";
@@ -76,6 +78,42 @@ function GroupedOptions({ groups }) {
 }
 const flatOptions = (groups) => groups.flatMap((g) => g.options);
 
+// A ranked dropdown where choosing "Other" opens a box to type your own answer. What's typed
+// is what gets saved (in place of "Other"); a saved value that isn't in the list reopens the box.
+const isOtherOption = (v) => /^other\b/i.test(v || "");
+function SelectOrOther({ value, listed, otherOption, onChange, typePlaceholder, typeLabel, selectLabel, children }) {
+  const custom = !!value && (isOtherOption(value) || !listed.includes(value));
+  const inputRef = useRef(null);
+  const typed = custom && !isOtherOption(value) ? value : "";
+  return (
+    <div style={{ flex: 1, minWidth: 0, display: "grid", gap: "0.4rem" }}>
+      <select
+        aria-label={selectLabel}
+        style={{ width: "100%" }}
+        value={custom ? otherOption : value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          if (e.target.value === otherOption) setTimeout(() => inputRef.current?.focus(), 0);
+        }}
+      >
+        {children}
+      </select>
+      {custom && (
+        <input
+          ref={inputRef}
+          aria-label={typeLabel}
+          value={typed}
+          placeholder={typePlaceholder}
+          maxLength={60}
+          // Commas separate the ranked picks when saved, so they can't be part of a name
+          onChange={(e) => onChange(e.target.value.replace(/,/g, " ").replace(/^\s+/, "") || otherOption)}
+          style={{ width: "100%", borderColor: typed ? undefined : "var(--teal)" }}
+        />
+      )}
+    </div>
+  );
+}
+
 const STATEMENT_WORD_LIMIT = 500;
 const wordCount = (t) => (t || "").trim() ? (t || "").trim().split(/\s+/).length : 0;
 
@@ -98,6 +136,7 @@ export default function ProfileEditor() {
   const setActiveSection = (id) => setSearchParams({ section: id });
   const showEssay = (id) => setSearchParams({ section: "documents", essay: id ? String(id) : "new" });
   const closeEssay = () => setSearchParams({ section: "documents" });
+  const isMobile = useIsMobile();
   const [profile, setProfile] = useState({
     grade_level: "",
     school: "",
@@ -145,6 +184,7 @@ export default function ProfileEditor() {
   const testsReady = planLoaded && profileLoaded;
   // Dropdown lists — from Admin → Dropdown Lists, falling back to the built-in defaults
   const majorGroups = optionLists?.majors?.length ? optionLists.majors : [{ label: "Majors", options: MAJOR_OPTIONS }];
+  const majorOther = flatOptions(majorGroups).find(isOtherOption) || "Other";
   const curriculumGroups = optionLists?.curriculums?.length ? optionLists.curriculums : CURRICULUM_GROUPS;
   const subjectGroups = optionLists?.subjects?.length ? optionLists.subjects : SUBJECT_GROUPS;
   const testGroups = optionLists?.tests?.length ? optionLists.tests : TEST_GROUPS; // gate the tests until grade/plan are known
@@ -154,6 +194,12 @@ export default function ProfileEditor() {
     setYearForms((prev) => ({ ...prev, [yr]: { course: "", grade: "", ...(prev[yr] || {}), [key]: val } }));
   // A curriculum that isn't one of the listed names was typed in under "Other (please specify)"
   const curriculumIsOther = !!curriculum && (curriculum === CURRICULUM_OTHER || !flatOptions(curriculumGroups).includes(curriculum));
+  // Subjects follow the curriculum: groups tagged for it (untagged groups fit every curriculum).
+  // No curriculum yet, a typed-in one, or one with nothing tagged → the whole list.
+  const curriculumSubjects = curriculum && !curriculumIsOther
+    ? subjectGroups.filter((g) => !Array.isArray(g.curriculums) || !g.curriculums.length || g.curriculums.includes(curriculum))
+    : [];
+  const subjectsShown = curriculumSubjects.length ? curriculumSubjects : subjectGroups;
   const saveCurriculum = async (value) => {
     const prev = curriculum;
     setCurriculum(value);
@@ -273,7 +319,7 @@ export default function ProfileEditor() {
   const namedUniCountries = STUDY_COUNTRIES.map((c) => c.value);
   const chosenCountries = (profile.target_countries || "").split(",").map((s) => s.trim()).filter(Boolean);
   const uniMatchesCountries = (u) => !chosenCountries.length || chosenCountries.some((c) =>
-    c === "Other" ? !namedUniCountries.includes(u.country) : u.country === uniCountryOf(c));
+    c === "Other" ? !namedUniCountries.includes(u.country) : String(u.country || "").toLowerCase() === uniCountryOf(c).toLowerCase());
   const countryUnis = uniOptions.filter(uniMatchesCountries);
 
   const setIntendedUni = (i) => (e) => {
@@ -443,9 +489,15 @@ export default function ProfileEditor() {
     { id: "documents", label: "Documents", num: "05" }
   ];
 
+  // Phones (Concept A): the five sections at a glance first; tapping one opens it
+  if (isMobile && !searchParams.get("section")) return <MobilePortfolioOverview />;
+
   return (
     <div>
-      <header style={{ borderBottom: "1px solid var(--rule)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
+      {isMobile && (
+        <button type="button" className="m-back" onClick={() => setSearchParams({})}>← All sections</button>
+      )}
+      <header className="d-only" style={{ borderBottom: "1px solid var(--rule)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
         <div className="eyebrow">Portfolio Editor</div>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2.25rem", color: "var(--ink)", letterSpacing: "-0.02em" }}>
           Your portfolio, section by section.
@@ -591,11 +643,11 @@ export default function ProfileEditor() {
               <div className="grid two">
                 <div className="input">
                   <label>School Name</label>
-                  <input value={profile.school} onChange={updateField("school")} placeholder="Your school" />
+                  <input value={profile.school} onChange={updateField("school")} maxLength={120} placeholder="Your school" />
                 </div>
                 <div className="input">
                   <label>Current Grade/Year</label>
-                  <select value={profile.grade_level} onChange={updateField("grade_level")}>
+                  <select aria-label="Current grade or year" value={profile.grade_level} onChange={updateField("grade_level")}>
                     <option value="">Select grade/year</option>
                     {GRADE_YEAR_OPTIONS.map((g) => (
                       <option key={g} value={g}>{g}</option>
@@ -610,15 +662,20 @@ export default function ProfileEditor() {
                   {[0, 1, 2].map((i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                       <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", fontWeight: 700, color: "var(--gold-deep)", minWidth: "1.5rem" }}>{i + 1}.</span>
-                      <select style={{ flex: 1 }} value={countries[i]} onChange={setCountry(i)}>
+                      <SelectOrOther
+                        value={countries[i]}
+                        listed={TARGET_COUNTRY_OPTIONS}
+                        otherOption="Other"
+                        onChange={(v) => setCountry(i)({ target: { value: v } })}
+                        selectLabel={`Target country ${i + 1}`}
+                        typeLabel={`Country ${i + 1} — type the country`}
+                        typePlaceholder="Type the country, e.g. Italy"
+                      >
                         <option value="">{i === 0 ? "1st choice — select a country" : i === 1 ? "2nd choice" : "3rd choice"}</option>
-                        {countries[i] && !TARGET_COUNTRY_OPTIONS.includes(countries[i]) && (
-                          <option value={countries[i]}>{countries[i]}</option>
-                        )}
-                        {TARGET_COUNTRY_OPTIONS.filter((c) => c === countries[i] || !countries.includes(c)).map((c) => (
+                        {TARGET_COUNTRY_OPTIONS.filter((c) => c === "Other" || c === countries[i] || !countries.includes(c)).map((c) => (
                           <option key={c} value={c}>{c}</option>
                         ))}
-                      </select>
+                      </SelectOrOther>
                     </div>
                   ))}
                 </div>
@@ -630,7 +687,7 @@ export default function ProfileEditor() {
                   {[0, 1, 2].map((i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                       <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", fontWeight: 700, color: "var(--gold-deep)", minWidth: "1.5rem" }}>{i + 1}.</span>
-                      <select style={{ flex: 1 }} value={intendedUnis[i]} onChange={setIntendedUni(i)}>
+                      <select aria-label={`Intended university ${i + 1}`} style={{ flex: 1 }} value={intendedUnis[i]} onChange={setIntendedUni(i)}>
                         <option value="">{i === 0 ? "1st choice — select a university" : i === 1 ? "2nd choice" : "3rd choice"}</option>
                         {/* A pick made before the countries changed stays visible, flagged, until it's replaced */}
                         {intendedUnis[i] && !countryUnis.some((u) => u.name === intendedUnis[i]) && (
@@ -665,13 +722,19 @@ export default function ProfileEditor() {
                   {[0, 1, 2].map((i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                       <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8rem", fontWeight: 700, color: "var(--gold-deep)", minWidth: "1.5rem" }}>{i + 1}.</span>
-                      <select style={{ flex: 1 }} value={majors[i]} onChange={setMajor(i)}>
+                      <SelectOrOther
+                        value={majors[i]}
+                        listed={flatOptions(majorGroups)}
+                        otherOption={majorOther}
+                        onChange={(v) => setMajor(i)({ target: { value: v } })}
+                        selectLabel={`Intended major ${i + 1}`}
+                        typeLabel={`Major ${i + 1} — type the major`}
+                        typePlaceholder="Type the major, e.g. Marine Biology"
+                      >
                         <option value="">{i === 0 ? "1st choice — select a major" : i === 1 ? "2nd choice" : "3rd choice"}</option>
-                        {majors[i] && !flatOptions(majorGroups).includes(majors[i]) && (
-                          <option value={majors[i]}>{majors[i]}</option>
-                        )}
                         <GroupedOptions groups={majorGroups} />
-                      </select>
+                        {!flatOptions(majorGroups).some(isOtherOption) && <option value={majorOther}>{majorOther}</option>}
+                      </SelectOrOther>
                     </div>
                   ))}
                 </div>
@@ -679,7 +742,7 @@ export default function ProfileEditor() {
 
               <div className="input">
                 <label>Class Rank (optional)</label>
-                <input value={profile.class_rank} onChange={updateField("class_rank")} placeholder="e.g. 5 / 420 or Top 2%" />
+                <input value={profile.class_rank} onChange={updateField("class_rank")} maxLength={40} placeholder="e.g. 5 / 420 or Top 2%" />
               </div>
               <MepaiStatementWorkspace
                 value={profile.bio}
@@ -722,7 +785,7 @@ export default function ProfileEditor() {
 
               <div className="input form-section" style={{ marginTop: 0 }}>
                 <label>Curriculums</label>
-                <select value={curriculumIsOther ? CURRICULUM_OTHER : curriculum} onChange={(e) => saveCurriculum(e.target.value)} style={{ maxWidth: "420px" }}>
+                <select aria-label="Curriculum" value={curriculumIsOther ? CURRICULUM_OTHER : curriculum} onChange={(e) => saveCurriculum(e.target.value)} style={{ maxWidth: "420px" }}>
                   <option value="">— Select your curriculum —</option>
                   {curriculumIsOther && !flatOptions(curriculumGroups).includes(CURRICULUM_OTHER) && <option value={CURRICULUM_OTHER}>{CURRICULUM_OTHER}</option>}
                   <GroupedOptions groups={curriculumGroups} />
@@ -739,7 +802,10 @@ export default function ProfileEditor() {
                     style={{ maxWidth: "420px", marginTop: "0.5rem" }}
                   />
                 )}
-                <p className="text-muted" style={{ fontSize: "0.78rem", margin: 0 }}>Applies to all years below. Saved automatically.</p>
+                <p className="text-muted" style={{ fontSize: "0.78rem", margin: 0 }}>
+                  Applies to all years below. Saved automatically.{" "}
+                  {curriculumSubjects.length ? <>The subject lists below show {curriculum} subjects.</> : <>Choose a curriculum to see its subjects below.</>}
+                </p>
               </div>
 
               <div style={{ display: "grid", gap: "0.85rem", marginBottom: "2rem" }}>
@@ -772,7 +838,7 @@ export default function ProfileEditor() {
                               <tbody>
                                 {rows.map((item) => editingAcademic?.id === item.id ? (
                                   <tr key={item.id}>
-                                    <td><SubjectPicker groups={subjectGroups} value={editingAcademic.course} onChange={(v) => setEditingAcademic({ ...editingAcademic, course: v })} /></td>
+                                    <td><SubjectPicker groups={subjectsShown} value={editingAcademic.course} onChange={(v) => setEditingAcademic({ ...editingAcademic, course: v })} /></td>
                                     <td><input value={editingAcademic.grade} onChange={(e) => setEditingAcademic({ ...editingAcademic, grade: e.target.value })} style={{ width: "6rem" }} /></td>
                                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                                       <button className="button" style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem", marginRight: "0.35rem" }} onClick={saveAcademicEdit}>Save</button>
@@ -806,7 +872,7 @@ export default function ProfileEditor() {
                             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 3fr) minmax(0, 1fr) auto", gap: "0.6rem", alignItems: "end" }}>
                               <div className="input" style={{ marginBottom: 0 }}>
                                 <label>Subject</label>
-                                <SubjectPicker groups={subjectGroups} value={f.course} onChange={(v) => setYearField(yr, "course", v)} />
+                                <SubjectPicker groups={subjectsShown} value={f.course} onChange={(v) => setYearField(yr, "course", v)} />
                               </div>
                               <div className="input" style={{ marginBottom: 0 }}>
                                 <label>Grade</label>
@@ -836,7 +902,7 @@ export default function ProfileEditor() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr)) auto", gap: "0.75rem", alignItems: "end" }}>
                   <div className="input" style={{ marginBottom: 0 }}>
                     <label>Test</label>
-                    <select value={testForm.test_type} onChange={(e) => setTestForm({ ...testForm, test_type: e.target.value })}>
+                    <select aria-label="Test" value={testForm.test_type} onChange={(e) => setTestForm({ ...testForm, test_type: e.target.value })}>
                       <option value="">—</option>
                       {testForm.test_type && !flatOptions(testGroups).includes(testForm.test_type) && <option value={testForm.test_type}>{testForm.test_type}</option>}
                       <GroupedOptions groups={testGroups} />
@@ -855,7 +921,7 @@ export default function ProfileEditor() {
                   </div>
                   <div className="input" style={{ marginBottom: 0 }}>
                     <label>Date</label>
-                    <input type="date" value={testForm.test_date} onChange={(e) => setTestForm({ ...testForm, test_date: e.target.value })} />
+                    <input type="date" aria-label="Test date" value={testForm.test_date} onChange={(e) => setTestForm({ ...testForm, test_date: e.target.value })} />
                   </div>
                   <div className="input" style={{ marginBottom: 0 }}>
                     <label>Score</label>
@@ -943,7 +1009,7 @@ export default function ProfileEditor() {
                   </div>
                   <div className="input">
                     <label>Date</label>
-                    <input type="date" value={awardForm.award_date} onChange={(e) => setAwardForm({ ...awardForm, award_date: e.target.value })} />
+                    <input type="date" aria-label="Award date" value={awardForm.award_date} onChange={(e) => setAwardForm({ ...awardForm, award_date: e.target.value })} />
                   </div>
                 </div>
                 <div className="input">
@@ -1127,7 +1193,7 @@ export default function ProfileEditor() {
                 <div className="grid two">
                   <div className="input">
                     <label>Category</label>
-                    <select value={uploadForm.category} onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}>
+                    <select aria-label="Document type" value={uploadForm.category} onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}>
                       <option value="academics">Academics</option>
                       <option value="awards">Awards</option>
                       <option value="tests">Test Scores</option>
@@ -1233,6 +1299,7 @@ export default function ProfileEditor() {
                   Upload teacher/counselor letters here. {adviaiOn ? "Use MEPAi for who to ask and when." : "Upgrade to unlock MEPAi advice on who to ask and when."}
                 </p>
                 <SectionUpload category="recommendation" hint="Recommendation letter (PDF, image, doc)" documents={documents} onChanged={() => apiFetch("/api/uploads/me").then(setDocuments).catch(() => {})} />
+                <RecommendationRequests />
                 {adviaiOn && <AdvisoryPanel data={recAdvisory} />}
                 <div style={{ marginTop: "0.75rem" }}>
                   <button type="button" onClick={() => showEssay(essays[0]?.id)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: "0.78rem", fontWeight: 600, color: "var(--teal-deep)" }}>Open MEPAi →</button>
@@ -1640,6 +1707,7 @@ function SubjectPicker({ groups, value, onChange }) {
   return (
     <div style={{ display: "grid", gap: "0.4rem" }}>
       <select
+        aria-label="Subject"
         value={custom ? "__other" : (listed ? value : "")}
         onChange={(e) => {
           // Keep the current text so the effect below doesn't see "" and close the custom box
@@ -1652,7 +1720,7 @@ function SubjectPicker({ groups, value, onChange }) {
         <option value="__other">Other — type a subject…</option>
       </select>
       {custom && (
-        <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="e.g. Mathematics, IB Physics HL" autoFocus />
+        <input aria-label="Subject name" value={value} onChange={(e) => onChange(e.target.value)} placeholder="e.g. Mathematics, IB Physics HL" autoFocus />
       )}
     </div>
   );
@@ -1676,5 +1744,87 @@ function SectionHead({ num, title, sub }) {
       <h2 className="section-title" style={{ marginBottom: "0.4rem" }}>{title}</h2>
       {sub && <p className="muted" style={{ fontSize: "0.95rem", fontStyle: "italic", fontFamily: "var(--font-serif)" }}>{sub}</p>}
     </header>
+  );
+}
+
+// Documents → Section II: ask a linked counsellor for a recommendation letter and follow it
+const REC_LABEL = {
+  requested: ["Waiting for your counsellor", "#fef3c7", "#92400e"],
+  in_progress: ["Being written", "rgba(31,52,97,0.08)", "var(--navy)"],
+  sent: ["Sent", "var(--success-soft)", "var(--success-deep)"],
+  declined: ["Declined", "#e5e7eb", "#374151"]
+};
+function RecommendationRequests() {
+  const [counselors, setCounselors] = useState(null);
+  const [recs, setRecs] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ counselor_id: "", purpose: "", due_date: "", student_note: "" });
+  const [msg, setMsg] = useState({ text: "", error: false });
+  const [busy, setBusy] = useState(false);
+  const load = () => {
+    apiFetch("/api/students/me/counselors").then((c) => { setCounselors(c); if (c.length === 1) setForm((f) => ({ ...f, counselor_id: String(c[0].id) })); }).catch(() => setCounselors([]));
+    apiFetch("/api/students/me/recommendations").then(setRecs).catch(() => {});
+  };
+  useEffect(load, []);
+  if (counselors === null) return null;
+  const send = async (e) => {
+    e.preventDefault(); setBusy(true); setMsg({ text: "", error: false });
+    try {
+      await apiFetch("/api/students/me/recommendations", { method: "POST", body: JSON.stringify({ ...form, counselor_id: Number(form.counselor_id) }) });
+      setForm((f) => ({ ...f, purpose: "", due_date: "", student_note: "" })); setOpen(false);
+      setMsg({ text: "Request sent to your counsellor.", error: false }); load();
+    } catch (err) { setMsg({ text: err.message, error: true }); } finally { setBusy(false); }
+  };
+  const cancel = async (id) => {
+    try { await apiFetch(`/api/students/me/recommendations/${id}`, { method: "DELETE" }); load(); } catch (err) { setMsg({ text: err.message, error: true }); }
+  };
+  return (
+    <div style={{ marginTop: "1rem", padding: "1rem 1.1rem", border: "1px solid var(--rule)", borderRadius: "var(--r-md)", background: "var(--surface-warm, #f8fafc)" }}>
+      <div className="flex-between" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
+        <strong style={{ color: "var(--ink)", fontSize: "0.92rem" }}>Ask your counsellor for a letter</strong>
+        {counselors.length > 0 && !open && <button type="button" className="button ghost" style={{ padding: "0.35rem 0.85rem", fontSize: "0.75rem" }} onClick={() => setOpen(true)}>+ New request</button>}
+      </div>
+      {counselors.length === 0 ? (
+        <p className="muted" style={{ fontSize: "0.84rem", margin: "0.35rem 0 0" }}>No counsellor is connected yet. Give your counsellor your invite code (in the menu on the left) so they can follow your progress and receive letter requests.</p>
+      ) : open && (
+        <form onSubmit={send} style={{ display: "grid", gap: "0.6rem", marginTop: "0.75rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.6rem" }}>
+            {counselors.length > 1 && (
+              <div className="input" style={{ marginBottom: 0 }}><label htmlFor="rec-c">Counsellor</label>
+                <select id="rec-c" value={form.counselor_id} onChange={(e) => setForm({ ...form, counselor_id: e.target.value })}>
+                  <option value="">Choose…</option>{counselors.map((c) => <option key={c.id} value={c.id}>{c.name}{c.organization ? ` · ${c.organization}` : ""}</option>)}
+                </select></div>
+            )}
+            <div className="input" style={{ marginBottom: 0 }}><label htmlFor="rec-p">What it's for</label><input id="rec-p" value={form.purpose} maxLength={200} onChange={(e) => setForm({ ...form, purpose: e.target.value })} placeholder="e.g. UCL — Economics, or a scholarship" /></div>
+            <div className="input" style={{ marginBottom: 0 }}><label htmlFor="rec-d">Needed by (optional)</label><input id="rec-d" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+          </div>
+          <div className="input" style={{ marginBottom: 0 }}><label htmlFor="rec-n">Message (optional)</label><textarea id="rec-n" rows={3} maxLength={2000} value={form.student_note} onChange={(e) => setForm({ ...form, student_note: e.target.value })} placeholder="Anything that helps — achievements to mention, the programme, how to submit it" /></div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button className="button" disabled={busy || !form.purpose.trim() || !form.counselor_id}>{busy ? "Sending…" : "Send request"}</button>
+            <button type="button" className="button ghost" onClick={() => setOpen(false)}>Cancel</button>
+          </div>
+        </form>
+      )}
+      {msg.text && <p style={{ fontSize: "0.82rem", margin: "0.5rem 0 0", color: msg.error ? "var(--error-deep)" : "var(--success-deep)" }}>{msg.text}</p>}
+      {recs.length > 0 && (
+        <ul style={{ listStyle: "none", padding: 0, margin: "0.75rem 0 0", display: "grid", gap: "0.5rem" }}>
+          {recs.map((r) => {
+            const [label, bg, fg] = REC_LABEL[r.status] || REC_LABEL.requested;
+            return (
+              <li key={r.id} style={{ background: "var(--surface)", border: "1px solid var(--rule)", borderRadius: "var(--r-md)", padding: "0.65rem 0.8rem" }}>
+                <div className="flex-between" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "0.88rem", color: "var(--ink)" }}><strong>{r.purpose}</strong> <span className="text-muted">· {r.counselor_name}{r.due_date ? ` · by ${fmtDate(r.due_date)}` : ""}</span></span>
+                  <span style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                    <span className="badge" style={{ background: bg, color: fg }}>{label}</span>
+                    {r.status === "requested" && <button type="button" onClick={() => cancel(r.id)} style={{ background: "none", border: "none", color: "var(--error-deep)", fontSize: "0.75rem", cursor: "pointer", textDecoration: "underline" }}>Withdraw</button>}
+                  </span>
+                </div>
+                {r.counselor_note && <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", color: "var(--ink-soft)" }}>Your counsellor: “{r.counselor_note}”</p>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

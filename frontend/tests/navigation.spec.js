@@ -8,15 +8,22 @@ test("back + tasks + unis", async ({ page }, info) => {
   page.on("dialog", (d) => d.accept());
   await signIn(page, S);
   const back = page.locator(".back-button");
-  for (const [p, n] of [["/dashboard", 0], ["/", 0], ["/tasks", 1], ["/recommendations", 1], ["/compare", 1], ["/about", 1], ["/pricing", 1], ["/profile", 1]]) {
+  // Phones reach the main tabs (Home, Portfolio, Universities, EduBot) from the tab bar, so those have no Back
+  const mob = tag === "mobile";
+  for (const [p, n] of [["/dashboard", 0], ["/", 0], ["/tasks", 1], ["/recommendations", mob ? 0 : 1], ["/compare", 1], ["/about", 1], ["/pricing", 1], ["/profile", mob ? 0 : 1]]) {
     await page.goto(p); await page.waitForTimeout(700);
     await expect(back, p).toHaveCount(n);
   }
   // in-app back returns to previous page; direct open goes home
   await page.goto("/dashboard"); await page.waitForTimeout(800);
-  const qm = page.locator(".dash-sidebar").getByRole("button", { name: "Quick menu" });
-  if ((await qm.getAttribute("aria-expanded")) === "false") await qm.click();
-  await page.locator(".dash-sidebar a.nav-link", { hasText: "Tasks" }).click();
+  if (mob) {
+    await page.locator(".mnav-tabbar").getByRole("button", { name: "Me", exact: true }).click();
+    await page.locator(".mnav-sheet").getByRole("link", { name: /Tasks/ }).click();
+  } else {
+    const qm = page.locator(".dash-sidebar").getByRole("button", { name: "Quick menu" });
+    if ((await qm.getAttribute("aria-expanded")) === "false") await qm.click();
+    await page.locator(".dash-sidebar a.nav-link", { hasText: "Tasks" }).click();
+  }
   await expect(page).toHaveURL(/\/tasks/);
   await back.click(); await expect(page).toHaveURL(/\/dashboard/);
   await page.goto("/compare"); await back.click(); await expect(page).toHaveURL(/\/dashboard|\/tasks/);

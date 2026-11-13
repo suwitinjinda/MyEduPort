@@ -185,7 +185,7 @@ export default function PersonalityTest({ adviaiOn, gradeLevel, ready = true }) 
 
           <ShareResult kind="personality" title="Big Five personality profile" />
           <div style={{ marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--rule-soft)", fontSize: "0.7rem", color: "var(--ink-faint)", lineHeight: 1.55 }}>
-            A self-insight tool, not a clinical diagnosis — don't submit it as a formal assessment to universities. Bands are indicative, not a percentile. Source: items from the International Personality Item Pool (<a href="https://ipip.ori.org" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-deep)" }}>ipip.ori.org</a>) — public domain, source acknowledged.
+            A self-insight tool, not a clinical diagnosis — don't submit it as a formal assessment to universities. Bands are indicative, not a percentile. Source: items from the International Personality Item Pool (<a href="https://ipip.ori.org" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-deep)", textDecoration: "underline" }}>ipip.ori.org</a>) — public domain, source acknowledged.
           </div>
         </div>
       </div>
@@ -271,7 +271,7 @@ export default function PersonalityTest({ adviaiOn, gradeLevel, ready = true }) 
         )}
         <button className="button" disabled={loading || (needsConsent && !consent)} onClick={start}>{loading ? "Loading…" : "Start the test →"}</button>
         <div style={{ marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--rule-soft)", fontSize: "0.7rem", color: "var(--ink-faint)", lineHeight: 1.55 }}>
-          A self-insight tool for exploring strengths and interests — not a clinical or diagnostic assessment. Source: items from the International Personality Item Pool (<a href="https://ipip.ori.org" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-deep)" }}>ipip.ori.org</a>) — public domain, source acknowledged.
+          A self-insight tool for exploring strengths and interests — not a clinical or diagnostic assessment. Source: items from the International Personality Item Pool (<a href="https://ipip.ori.org" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-deep)", textDecoration: "underline" }}>ipip.ori.org</a>) — public domain, source acknowledged.
         </div>
       </div>
     </div>

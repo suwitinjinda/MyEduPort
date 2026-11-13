@@ -23,6 +23,9 @@ const Admin = lazy(() => import("./pages/Admin.jsx"));
 const Settings = lazy(() => import("./pages/Settings.jsx"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy.jsx"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService.jsx"));
+const ConsultHome = lazy(() => import("./pages/ConsultHome.jsx"));
+const WhyMyEduPort = lazy(() => import("./pages/WhyMyEduPort.jsx"));
+const PlatformOverview = lazy(() => import("./pages/PlatformOverview.jsx"));
 const ApplicationProcess = lazy(() => import("./pages/ApplicationProcess.jsx"));
 const AdmissionResources = lazy(() => import("./pages/AdmissionResources.jsx"));
 const BlogPost = lazy(() => import("./pages/blog/BlogPost.jsx"));
@@ -51,8 +54,9 @@ const Rewards = lazy(() => import("./pages/Rewards.jsx"));
 
 import { clearToken, getToken, getUserRole, apiFetch } from "./api/client.js";
 import { captureReferral } from "./utils/referral.js";
+import { MobileMenuButton, MobileTabBar, useIsMobile } from "./components/MobileNav.jsx";
 
-const roleHome = (r) => (r === "parent" ? "/parent" : r === "counselor" ? "/counselor" : r === "affiliate" ? "/affiliate" : "/dashboard");
+const roleHome = (r) => (r === "parent" ? "/parent" : r === "counselor" ? "/counselor" : r === "affiliate" ? "/affiliate" : r === "admin" ? "/admin" : r === "consult" ? "/consult" : "/dashboard");
 
 // Defined at module level so its identity is stable: when it lived inside App, every App
 // re-render (any navigation, auth sync) created a new component type and React remounted the
@@ -82,11 +86,15 @@ function ProtectedRoute({ children, role }) {
 // One Back button, same place on every inner page. It goes to the previous page in the app,
 // or to the user's home when the page was opened directly (a link, a bookmark, a refresh).
 // Start pages — home, landing, sign-in, each role's dashboard — don't need one.
-const NO_BACK = [/^\/$/, /^\/lp(\/|$)/, /^\/login$/, /^\/reset$/, /^\/share\//, /^\/parent-consent\//, /^\/waiting-for-parent$/, /^\/dashboard$/, /^\/parent$/, /^\/counselor$/, /^\/affiliate$/];
+const NO_BACK = [/^\/consult$/, /^\/admin$/, /^\/$/, /^\/lp(\/|$)/, /^\/login$/, /^\/reset$/, /^\/share\//, /^\/parent-consent\//, /^\/waiting-for-parent$/, /^\/dashboard$/, /^\/parent$/, /^\/counselor$/, /^\/affiliate$/];
+// On phones the main tabs (Home, Portfolio, Universities, EduBot) are reached from the tab bar
+const TAB_ROOTS = /^\/(dashboard|profile|recommendations|chat)$/;
 function BackButton() {
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   if (NO_BACK.some((re) => re.test(location.pathname))) return null;
+  if (isMobile && getToken() && TAB_ROOTS.test(location.pathname)) return null;
   const goBack = () => {
     if ((window.history.state?.idx ?? 0) > 0) navigate(-1);
     else navigate(getToken() ? roleHome(getUserRole()) : "/");
@@ -171,10 +179,10 @@ export default function App() {
     <div className="app-shell">
       <header className="top-nav">
         <NavLink to="/" className="logo" style={{ display: "flex", alignItems: "center", gap: 0 }}>
-          <img src="/logo.png" alt="MyEduPort" style={{ height: "56px", width: "auto", display: "block" }} />
+          <img src="/logo.png" alt="MyEduPort" />
         </NavLink>
         {!isLanding && (
-        <nav>
+        <nav className="desk-nav">
           {/* Home is redundant with Dashboard once signed in (the logo still links home). */}
           {!isSignedIn && <NavLink to="/" end>Home</NavLink>}
           {userRole === "affiliate" ? (
@@ -183,12 +191,16 @@ export default function App() {
             <NavLink to="/parent">Parent</NavLink>
           ) : userRole === "counselor" ? (
             <NavLink to="/counselor">Counselor</NavLink>
+          ) : userRole === "admin" ? (
+            <NavLink to="/admin">Admin</NavLink>
+          ) : userRole === "consult" ? (
+            <NavLink to="/consult">Consultant</NavLink>
           ) : (
             <>
               <NavLink to="/dashboard">Dashboard</NavLink>
               <NavLink to="/profile">Portfolio</NavLink>
               <NavLink to="/compare">Compare</NavLink>
-              <NavLink to="/admission-resources">Admissions</NavLink>
+              <NavLink to="/admission-resources">Resources</NavLink>
               <NavLink to="/career-resources">Career</NavLink>
             </>
           )}
@@ -203,9 +215,12 @@ export default function App() {
         ) : isSignedIn ? (
           <UserProfileDropdown userRole={userRole} isAdmin={isAdmin} />
         ) : (
-          <button className="button gold" type="button" onClick={handleAuthClick}>
-            Sign In
-          </button>
+          <div className="nav-actions">
+            <button className="button gold" type="button" onClick={handleAuthClick}>
+              Sign In
+            </button>
+            <MobileMenuButton />
+          </div>
         )}
       </header>
 
@@ -243,9 +258,12 @@ export default function App() {
           <Route path="/partners" element={<Partners />} />
           <Route path="/affiliate" element={<ProtectedRoute role="affiliate"><AffiliateDashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+          <Route path="/consult" element={<ProtectedRoute role="consult"><ConsultHome /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><StudentShell><Settings /></StudentShell></ProtectedRoute>} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/why-myeduport" element={<WhyMyEduPort />} />
+          <Route path="/platform-overview" element={<PlatformOverview />} />
           <Route path="/about" element={<About />} />
           <Route path="/news-events" element={<NewsEvents />} />
           <Route path="/user-manual" element={<UserManual />} />
@@ -259,6 +277,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </main>
+      {isSignedIn && !isLanding && <MobileTabBar role={userRole} />}
 
       <footer className="page-footer">
         <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
@@ -310,6 +329,8 @@ export default function App() {
             <FooterColumn
               title="Company"
               links={[
+                { to: "/why-myeduport", label: "Why MyEduPort" },
+                { to: "/platform-overview", label: "Platform Overview" },
                 { to: "/about", label: "About" },
                 { to: "/news-events", label: "News & Events" },
                 { to: "/contact", label: "Contact" },

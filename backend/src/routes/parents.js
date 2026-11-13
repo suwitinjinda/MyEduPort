@@ -4,6 +4,7 @@ const { authRequired } = require("../middleware/auth");
 const { estimateAcceptanceProbability } = require("../services/aiClient");
 const { getPlanLimits, effectivePlan } = require("../services/plan");
 const consents = require("../services/consents");
+const { completion: progressOf, recentActivity } = require("../services/studentProgress");
 
 const router = express.Router();
 
@@ -43,16 +44,7 @@ router.get("/me/students", authRequired, async (req, res) => {
   const [[me]] = await pool.query("SELECT plan, trial_ends_at FROM users WHERE id = ?", [req.user.id]);
   const parentHas = !!limits[effectivePlan(me)]?.parent_dashboard;
   const enriched = await Promise.all(rows.map(async ({ plan, trial_ends_at, user_id, ...student }) => {
-    const profileFields = ["grade_level", "school", "target_countries", "intended_major"];
-    const filledProfile = profileFields.filter((field) => student[field]).length;
-    const profileScore = filledProfile / profileFields.length;
-    const dataScore =
-      Math.min(1, student.academics_count / 4) * 0.3 +
-      Math.min(1, student.tests_count / 2) * 0.2 +
-      Math.min(1, student.activities_count / 4) * 0.3 +
-      Math.min(1, student.awards_count / 2) * 0.1 +
-      Math.min(1, student.documents_count / 3) * 0.1;
-    const completion = Math.round((profileScore * 0.4 + dataScore * 0.6) * 100);
+    const completion = progressOf(student);
     const cur = await consents.currentConsents(user_id).catch(() => ({}));
     return {
       ...student, completion,
@@ -64,22 +56,6 @@ router.get("/me/students", authRequired, async (req, res) => {
   }));
   return res.json(enriched);
 });
-
-// What the student has actually done lately, newest first (replaces placeholder notifications)
-async function recentActivity(studentId) {
-  const q = async (sql) => { try { const [r] = await pool.query(sql, [studentId]); return r; } catch { return []; } };
-  const items = [
-    ...(await q("SELECT title, created_at AS at FROM activities WHERE student_id = ? ORDER BY created_at DESC LIMIT 3")).map((r) => ({ kind: "activity", text: `Added an activity: ${r.title || "untitled"}`, at: r.at })),
-    ...(await q("SELECT title, created_at AS at FROM awards WHERE student_id = ? ORDER BY created_at DESC LIMIT 3")).map((r) => ({ kind: "award", text: `Added an award: ${r.title || "untitled"}`, at: r.at })),
-    ...(await q("SELECT title, last_edited_at AS at FROM essays WHERE student_id = ? ORDER BY last_edited_at DESC LIMIT 3")).map((r) => ({ kind: "essay", text: `Worked on an essay: ${r.title || "Untitled"}`, at: r.at })),
-    ...(await q("SELECT course, grade, created_at AS at FROM academic_records WHERE student_id = ? ORDER BY created_at DESC LIMIT 2")).map((r) => ({ kind: "academic", text: `Added a grade: ${r.course || "subject"}${r.grade ? ` (${r.grade})` : ""}`, at: r.at })),
-    ...(await q("SELECT test_type, score, created_at AS at FROM test_scores WHERE student_id = ? ORDER BY created_at DESC LIMIT 2")).map((r) => ({ kind: "test", text: `Added a test score: ${r.test_type}${r.score ? ` ${r.score}` : ""}`, at: r.at })),
-    ...(await q("SELECT original_name, uploaded_at AS at FROM documents WHERE student_id = ? ORDER BY uploaded_at DESC LIMIT 2")).map((r) => ({ kind: "document", text: `Uploaded a document: ${r.original_name || "file"}`, at: r.at }))
-  ].filter((x) => x.at);
-  const upcoming = (await q("SELECT title, due_date FROM tasks WHERE student_id = ? AND status <> 'done' AND due_date >= CURDATE() ORDER BY due_date LIMIT 3"))
-    .map((t) => ({ kind: "deadline", text: `Due: ${t.title}`, at: t.due_date, upcoming: true }));
-  return [...upcoming, ...items.sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 6)];
-}
 
 // The linked student's user row, if this parent is linked to them
 async function linkedStudent(parentUserId, studentId) {

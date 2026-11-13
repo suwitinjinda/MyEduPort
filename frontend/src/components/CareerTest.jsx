@@ -66,8 +66,8 @@ export default function CareerTest({ adviaiOn, gradeLevel, ready = true }) {
   const attribution = (
     <div style={{ marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--rule-soft)", fontSize: "0.7rem", color: "var(--ink-faint)", lineHeight: 1.55 }}>
       A self-insight tool for exploring interests — not a guarantee of career fit or a formal credential for universities. Source: this assessment uses the{" "}
-      <a href="https://www.onetcenter.org/IP.html" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-deep)" }}>O*NET® Interest Profiler Short Form</a>, sponsored by the U.S. Department of Labor, Employment and Training Administration (USDOL/ETA), used under{" "}
-      <a href="https://creativecommons.org/licenses/by-nd/4.0/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-deep)" }}>CC BY-ND 4.0</a>. USDOL/ETA has not endorsed MyEduPort.
+      <a href="https://www.onetcenter.org/IP.html" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-deep)", textDecoration: "underline" }}>O*NET® Interest Profiler Short Form</a>, sponsored by the U.S. Department of Labor, Employment and Training Administration (USDOL/ETA), used under{" "}
+      <a href="https://creativecommons.org/licenses/by-nd/4.0/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal-deep)", textDecoration: "underline" }}>CC BY-ND 4.0</a>. USDOL/ETA has not endorsed MyEduPort.
     </div>
   );
 

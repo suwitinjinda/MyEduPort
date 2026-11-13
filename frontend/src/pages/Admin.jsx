@@ -9,6 +9,7 @@ import { STUDY_COUNTRIES } from "../utils/countries.js";
 import CampaignsAdmin from "./CampaignsAdmin.jsx";
 import EmailSettingsAdmin from "./EmailSettingsAdmin.jsx";
 import ConsentsAdmin from "./ConsentsAdmin.jsx";
+import AdminCreateUser, { InviteResult } from "./AdminCreateUser.jsx";
 import BlogAdmin from "./BlogAdmin.jsx";
 import { fmtDateTime } from "../utils/date.js";
 
@@ -62,6 +63,11 @@ export default function Admin() {
       loadData();
       setStatus(`User ${!current ? "disabled" : "enabled"}`);
     } catch (err) { setStatus(err.message); }
+  };
+  const [invite, setInvite] = useState(null);
+  const resendInvite = async (u) => {
+    try { setInvite({ resent: true, user: { name: u.name, email: u.email }, invite: await apiFetch(`/api/admin/users/${u.id}/invite`, { method: "POST" }) }); }
+    catch (err) { setStatus(err.message); }
   };
   const deleteUser = async (id) => {
     if (!window.confirm("Permanently delete this user?")) return;
@@ -215,6 +221,8 @@ export default function Admin() {
           {activeTab === "users" && (
             <div className="card">
               <h2 className="section-title" style={{ fontSize: "1.35rem", marginBottom: "1rem" }}>User management</h2>
+              {invite && <InviteResult result={invite} onClose={() => setInvite(null)} />}
+              <AdminCreateUser onCreated={(r) => { setInvite(r); loadData(); }} />
               <div className="table-scroll" style={{ overflowX: "auto" }} tabIndex={0} role="region" aria-label="Table (scrolls sideways)">
                 <table>
                   <thead>
@@ -226,10 +234,11 @@ export default function Admin() {
                     {users.map((u) => (
                       <tr key={u.id}>
                         <td>{u.name}</td>
-                        <td>{u.email}</td>
+                        <td>{u.email}{/@local$/.test(u.email || "") && <span className="badge" style={{ marginLeft: "0.4rem", background: "rgba(31,52,97,0.08)", color: "var(--navy)" }} title="Username account — no real email">Local</span>}</td>
                         <td><span className="badge">{u.role}</span></td>
                         <td>
                           <select
+                            aria-label={`Plan for ${u.name}`}
                             value={u.plan || "free"}
                             onChange={(e) => setUserPlan(u.id, e.target.value)}
                             style={{ padding: "0.25rem 0.4rem", fontSize: "0.75rem" }}
@@ -241,18 +250,21 @@ export default function Admin() {
                           </select>
                           {(u.plan || "free") === "free" && u.trial_ends_at && (
                             new Date(u.trial_ends_at) > new Date()
-                              ? <div style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: 600, marginTop: "0.2rem" }}>Trial · {Math.ceil((new Date(u.trial_ends_at) - new Date()) / 86400000)}d left</div>
+                              ? <div style={{ fontSize: "0.7rem", color: "var(--success-deep)", fontWeight: 600, marginTop: "0.2rem" }}>Trial · {Math.ceil((new Date(u.trial_ends_at) - new Date()) / 86400000)}d left</div>
                               : <div className="muted" style={{ fontSize: "0.7rem", marginTop: "0.2rem" }}>Trial ended</div>
                           )}
                         </td>
-                        <td style={{ color: u.data_consent ? "var(--success)" : "var(--error)", fontWeight: 600 }}>{u.data_consent ? "Yes" : "No"}</td>
-                        <td>{u.is_disabled ? <span className="badge" style={{ background: "var(--error-soft)", color: "var(--error)" }}>Disabled</span> : <span className="badge success">Active</span>}</td>
+                        <td style={{ color: u.data_consent ? "var(--success-deep)" : "var(--error-deep)", fontWeight: 600 }}>{u.data_consent ? "Yes" : "No"}</td>
+                        <td>{u.is_disabled ? <span className="badge" style={{ background: "var(--error-soft)", color: "var(--error-deep)" }}>Disabled</span> : u.invited ? <span className="badge" style={{ background: "#fef3c7", color: "#92400e" }} title="Hasn't chosen a password yet">Invited</span> : <span className="badge success">Active</span>}</td>
                         <td>
                           <div style={{ display: "flex", gap: "0.5rem" }}>
+                            {(!!u.invited || /@local$/.test(u.email || "")) && !u.is_disabled && (
+                              <button className="button ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.7rem" }} onClick={() => resendInvite(u)} title={u.invited ? "New invite link" : "Password reset link (local accounts can't use Forgot password)"}>{u.invited ? "New link" : "Reset link"}</button>
+                            )}
                             <button className="button ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.7rem" }} onClick={() => toggleUserStatus(u.id, u.is_disabled)}>
                               {u.is_disabled ? "Enable" : "Disable"}
                             </button>
-                            <button className="button ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.7rem", color: "var(--error)", borderColor: "var(--error)" }} onClick={() => deleteUser(u.id)}>
+                            <button className="button ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.7rem", color: "var(--error-deep)", borderColor: "var(--error-deep)" }} onClick={() => deleteUser(u.id)}>
                               Delete
                             </button>
                           </div>
@@ -614,6 +626,8 @@ const OPTION_LISTS = [
   { key: "tests", label: "Academics › Section II › Tests" }
 ];
 
+const flatOptions = (groups) => groups.flatMap((g) => g.options || []);
+
 function OptionListsAdmin({ onGoUniversities, setStatus }) {
   const [data, setData] = useState(null); // { lists, defaults }
   const [active, setActive] = useState("majors");
@@ -635,7 +649,7 @@ function OptionListsAdmin({ onGoUniversities, setStatus }) {
   const addItem = (gi) => {
     const v = (newItem[gi] || "").trim();
     if (!v) return;
-    if (groups.some((g) => g.options.some((o) => o.toLowerCase() === v.toLowerCase()))) { setStatus(`"${v}" is already in this list`); return; }
+    if (groups[gi].options.some((o) => o.toLowerCase() === v.toLowerCase())) { setStatus(`"${v}" is already in this group`); return; }
     edit((g) => { g[gi].options.push(v); return g; });
     setNewItem((n) => ({ ...n, [gi]: "" }));
   };
@@ -700,6 +714,24 @@ function OptionListsAdmin({ onGoUniversities, setStatus }) {
                     Delete group
                   </button>
                 </div>
+                {active === "subjects" && (
+                  <fieldset style={{ border: "none", padding: 0, margin: "0 0 0.75rem" }}>
+                    <legend style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--ink-soft)", marginBottom: "0.35rem" }}>
+                      Show for curriculum {(!g.curriculums || !g.curriculums.length) && <span className="text-muted" style={{ fontWeight: 400 }}>— none ticked: shown for every curriculum</span>}
+                    </legend>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+                      {flatOptions(data.lists.curriculums || []).filter((c) => !/^other\b/i.test(c)).map((c) => {
+                        const on = (g.curriculums || []).includes(c);
+                        return (
+                          <label key={c} style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.6rem", borderRadius: "var(--r-full)", border: `1px solid ${on ? "var(--teal)" : "var(--rule)"}`, background: on ? "var(--teal-soft)" : "var(--surface)", fontSize: "0.75rem", cursor: "pointer" }}>
+                            <input type="checkbox" checked={on} onChange={() => edit((x) => { const cur = x[gi].curriculums || []; x[gi].curriculums = on ? cur.filter((y) => y !== c) : [...cur, c]; return x; })} style={{ accentColor: "var(--teal)" }} />
+                            {c}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                )}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.75rem" }}>
                   {g.options.map((o, oi) => (
                     <span key={o} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.4rem 0.25rem 0.7rem", border: "1px solid var(--rule)", borderRadius: "var(--r-full)", fontSize: "0.8rem", background: "var(--surface)" }}>

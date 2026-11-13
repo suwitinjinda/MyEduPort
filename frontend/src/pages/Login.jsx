@@ -14,14 +14,15 @@ const discountText = (r) => {
   if (r.discount_duration === "repeating") return `${pct} for your first ${r.discount_months} months`;
   return `${pct} your first bill`;
 };
-const homeFor = (role) => (role === "parent" ? "/parent" : role === "counselor" ? "/counselor" : role === "affiliate" ? "/affiliate" : "/dashboard");
+const homeFor = (role) => (role === "parent" ? "/parent" : role === "counselor" ? "/counselor" : role === "affiliate" ? "/affiliate" : role === "admin" ? "/admin" : role === "consult" ? "/consult" : "/dashboard");
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   // where to go after signing in: wherever they were sent from (e.g. Pricing), else their home
   const backTo = location.state?.from && location.state.from !== "/login" ? location.state.from : null;
-  const [mode, setMode] = useState("login");
+  // /login?mode=register opens straight on "Create your account" (links from the public pages)
+  const [mode, setMode] = useState(() => (new URLSearchParams(location.search).get("mode") === "register" ? "register" : "login"));
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -84,7 +85,8 @@ export default function Login() {
     try {
       const path = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const payload = mode === "login"
-        ? { email: form.email, password: form.password }
+        // Accounts an admin made without an email sign in with just a username → "name@local"
+        ? { email: form.email.includes("@") ? form.email.trim() : `${form.email.trim().toLowerCase()}@local`, password: form.password }
         : { ...form, ...consentPayload(consent, form.role) };
       const result = await apiFetch(path, {
         method: "POST",
@@ -207,8 +209,8 @@ export default function Login() {
             </>
           )}
           <div className="input">
-            <label htmlFor="auth-email">Email</label>
-            <input id="auth-email" type="email" value={form.email} onChange={updateField("email")} placeholder="you@email.com" />
+            <label htmlFor="auth-email">{isRegister ? "Email" : "Email or username"}</label>
+            <input id="auth-email" type={isRegister ? "email" : "text"} inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false} value={form.email} onChange={updateField("email")} placeholder={isRegister ? "you@email.com" : "you@email.com or username"} />
           </div>
           <div className="input">
             <label htmlFor="auth-password">Password</label>

@@ -8,6 +8,7 @@ export default function ResetPassword() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const token = params.get("token") || "";
+  const invite = params.get("invite") === "1"; // link from an account an admin created
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,23 +46,24 @@ export default function ResetPassword() {
   return (
     <div style={{ maxWidth: "420px", margin: "3rem auto" }}>
       <div className="card" style={{ padding: "2rem" }}>
-        <div className="eyebrow">Account</div>
+        <div className="eyebrow">{invite ? "Welcome to MyEduPort" : "Account"}</div>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.6rem", color: "var(--ink)", marginBottom: "0.75rem" }}>
-          {token ? "Set a new password" : "Reset your password"}
+          {invite ? "Choose your password" : token ? "Set a new password" : "Reset your password"}
         </h1>
+        {invite && <p className="muted" style={{ fontSize: "0.9rem", marginTop: 0 }}>Your account is ready. Choose a password, then sign in with your email.</p>}
 
         {token ? (
           <form onSubmit={submitNewPassword}>
             <div className="input">
-              <label>New password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
+              <label htmlFor="rp-new">{invite ? "Password" : "New password"}</label>
+              <input id="rp-new" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
             </div>
             <div className="input">
-              <label>Confirm new password</label>
-              <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Re-enter password" />
+              <label htmlFor="rp-confirm">Confirm password</label>
+              <input id="rp-confirm" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Re-enter password" />
             </div>
             <button className="button" type="submit" disabled={busy} style={{ width: "100%", marginTop: "0.5rem" }}>
-              {busy ? "Saving…" : "Set new password"}
+              {busy ? "Saving…" : invite ? "Save and continue" : "Set new password"}
             </button>
           </form>
         ) : (

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { MobileHomeTop, pickNextStep } from "../components/MobileStudent.jsx";
+import { useIsMobile } from "../components/MobileNav.jsx";
 import { useNavigate, NavLink, Link } from "react-router-dom";
 import { apiFetch, getUserRole, loadSaved } from "../api/client";
 import Skeleton, { SkeletonStats } from "../components/Skeleton.jsx";
@@ -34,6 +36,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     loadFastData();
@@ -168,8 +171,21 @@ export default function Dashboard() {
 
       {/* ───────── Main ───────── */}
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "1.5rem" }}>
+        {/* Phones: Concept A home — greeting, score, one next step */}
+        {isMobile && (
+          <MobileHomeTop
+            name={user?.name?.split(" ")[0] || "Student"}
+            score={score}
+            completion={completion}
+            aiLoading={aiLoading}
+            tasks={tasks}
+            savedUnis={savedUnis}
+            next={pickNextStep({ profile, tasks, essays, activities, gap })}
+          />
+        )}
         {/* Welcome banner */}
         <div
+          className="d-only"
           style={{
             background: "var(--grad)",
             color: "#fff",
@@ -264,7 +280,7 @@ export default function Dashboard() {
         )}
 
         {/* Metric cards: Profile strength · Universities matched · Avg. acceptance */}
-        <div className="grid three">
+        <div className="grid three" id="score" style={{ scrollMarginTop: "80px" }}>
           <MetricStat
             label="Profile Strength"
             ring={{ value: score ? score.overall : (aiLoading ? null : completion), loading: !score && aiLoading, center: score ? `${score.overall}` : (aiLoading ? undefined : `${completion}`), sub: "/ 100" }}
@@ -446,7 +462,7 @@ export default function Dashboard() {
         )}
 
         {/* Next Steps Timeline */}
-        <div className="card">
+        <div className="card" id="next-steps" style={{ scrollMarginTop: "80px" }}>
           <div className="flex-between" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
             <h2 className="section-title" style={{ marginBottom: "0.25rem" }}>Next Steps Timeline</h2>
             {gap.length > 0 && !aiLoading && (
@@ -467,7 +483,7 @@ export default function Dashboard() {
             <div>
               <Skeleton lines={5} />
               <p className="muted" style={{ marginTop: "1rem", fontSize: "0.85rem", fontStyle: "italic" }}>
-                Claude is building your timeline… (~5–10 seconds)
+                MEPAi is building your timeline… (~5–10 seconds)
               </p>
             </div>
           ) : gap.length > 0 ? (

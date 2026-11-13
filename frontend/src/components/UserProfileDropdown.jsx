@@ -62,11 +62,11 @@ export default function UserProfileDropdown({ userRole, isAdmin: propIsAdmin }) 
     return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   };
 
-  const roleLabel = isAdmin ? "Admin" : userRole === "parent" ? "Parent" : userRole === "counselor" ? "Counselor" : "Student";
+  const roleLabel = isAdmin ? "Admin" : userRole === "parent" ? "Parent" : userRole === "counselor" ? "Counselor" : userRole === "consult" ? "Consultant" : "Student";
 
   return (
     <div ref={dropdownRef} className="user-profile-dropdown">
-      <button className="user-profile-button" onClick={() => setIsOpen(!isOpen)}>
+      <button className="user-profile-button" aria-label={`Account menu${user?.name ? ` — ${user.name}` : ""}`} aria-expanded={isOpen} onClick={() => setIsOpen(!isOpen)}>
         <div className="user-avatar">{user ? getInitials(user.name) : "U"}</div>
         <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
           {user?.name?.split(" ")[0] || "User"}

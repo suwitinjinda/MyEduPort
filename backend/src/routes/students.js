@@ -43,7 +43,10 @@ router.put("/me", authRequired, async (req, res) => {
   // bio (personal statement) is only touched when sent — the Personal page autosaves the
   // other fields without it; the statement has its own Save (/me/statement)
   const sets = ["grade_level = ?", "school = ?", "target_countries = ?", "intended_major = ?", "intended_universities = ?", "class_rank = ?"];
-  const vals = [grade_level || "", school || "", target_countries || "", intended_major || "", intended_universities || "", class_rank || ""];
+  // Clip to the column sizes: one over-long field used to make the whole save fail
+  // ("Data too long for column 'class_rank'"), losing everything else the student typed.
+  const clip = (v, n) => String(v || "").slice(0, n);
+  const vals = [clip(grade_level, 50), clip(school, 120), clip(target_countries, 255), clip(intended_major, 255), clip(intended_universities, 500), clip(class_rank, 40)];
   if (bio !== undefined) { sets.push("bio = ?"); vals.push(bio || ""); }
   await pool.query(`UPDATE students SET ${sets.join(", ")} WHERE user_id = ?`, [...vals, req.user.id]);
   return res.json({ status: "ok" });
@@ -249,9 +252,12 @@ router.get("/me/summary", authRequired, async (req, res) => {
   const studentId = await getStudentIdByUser(req.user.id);
   if (!studentId) return res.status(403).json({ error: "Student only" });
   const [[student]] = await pool.query(
-    "SELECT grade_level, school, target_countries, intended_major FROM students WHERE id = ?",
+    "SELECT grade_level, school, target_countries, intended_major, curriculum, bio FROM students WHERE id = ?",
     [studentId]
   );
+  const count = async (sql) => { try { const [[r]] = await pool.query(sql, [studentId]); return Number(r.count) || 0; } catch { return 0; } };
+  const essays = await count("SELECT COUNT(*) AS count FROM essays WHERE student_id = ?");
+  const letters = await count("SELECT COUNT(*) AS count FROM documents WHERE student_id = ? AND category = 'recommendation'");
   const [[academics]] = await pool.query("SELECT COUNT(*) AS count FROM academic_records WHERE student_id = ?", [studentId]);
   const [[tests]] = await pool.query("SELECT COUNT(*) AS count FROM test_scores WHERE student_id = ?", [studentId]);
   const [[activities]] = await pool.query("SELECT COUNT(*) AS count FROM activities WHERE student_id = ?", [studentId]);
@@ -276,7 +282,14 @@ router.get("/me/summary", authRequired, async (req, res) => {
       tests: tests.count,
       activities: activities.count,
       awards: awards.count,
-      documents: documents.count
+      documents: documents.count,
+      essays,
+      letters
+    },
+    // for the phone Portfolio overview: which basics are filled in
+    profile: {
+      grade_level: student?.grade_level || "", school: student?.school || "", target_countries: student?.target_countries || "",
+      intended_major: student?.intended_major || "", curriculum: student?.curriculum || "", has_statement: !!(student?.bio || "").trim()
     }
   });
 });
@@ -990,6 +1003,54 @@ router.get("/public/:token", async (req, res) => {
     console.error(err);
     return res.status(500).json({ error: "Failed to load shared portfolio" });
   }
+});
+
+// ---- Counsellors & recommendation letters (student side) ----
+// Counsellors linked to me (they connected with my invite code)
+router.get("/me/counselors", authRequired, async (req, res) => {
+  const sid = await getStudentIdByUser(req.user.id);
+  if (!sid) return res.json([]);
+  const [rows] = await pool.query(
+    `SELECT c.id, u.name, c.organization, c.title FROM counselor_student_links l
+     JOIN counselors c ON c.id = l.counselor_id JOIN users u ON u.id = c.user_id
+     WHERE l.student_id = ? AND u.deleted_at IS NULL ORDER BY u.name`, [sid]);
+  res.json(rows);
+});
+
+router.get("/me/recommendations", authRequired, async (req, res) => {
+  const sid = await getStudentIdByUser(req.user.id);
+  if (!sid) return res.json([]);
+  try {
+    const [rows] = await pool.query(
+      `SELECT r.id, r.purpose, r.due_date, r.student_note, r.status, r.counselor_note, r.created_at, r.updated_at, u.name AS counselor_name
+       FROM recommendation_requests r JOIN counselors c ON c.id = r.counselor_id JOIN users u ON u.id = c.user_id
+       WHERE r.student_id = ? AND r.status <> 'cancelled' ORDER BY r.id DESC`, [sid]);
+    res.json(rows);
+  } catch { res.json([]); }
+});
+
+router.post("/me/recommendations", authRequired, async (req, res) => {
+  const sid = await getStudentIdByUser(req.user.id);
+  if (!sid) return res.status(403).json({ error: "Student only" });
+  const { counselor_id, purpose, due_date, student_note } = req.body || {};
+  const p = String(purpose || "").trim().slice(0, 200);
+  if (!p) return res.status(400).json({ error: "Say what the letter is for, e.g. a university or scholarship." });
+  const [[link]] = await pool.query("SELECT 1 FROM counselor_student_links WHERE counselor_id = ? AND student_id = ?", [counselor_id, sid]);
+  if (!link) return res.status(400).json({ error: "Choose one of your counsellors." });
+  const due = due_date && /^\d{4}-\d{2}-\d{2}$/.test(due_date) ? due_date : null;
+  const [r] = await pool.query(
+    "INSERT INTO recommendation_requests (student_id, counselor_id, purpose, due_date, student_note) VALUES (?, ?, ?, ?, ?)",
+    [sid, counselor_id, p, due, String(student_note || "").slice(0, 2000) || null]
+  );
+  res.json({ id: r.insertId });
+});
+
+// Withdraw a request the counsellor hasn't started yet
+router.delete("/me/recommendations/:id", authRequired, async (req, res) => {
+  const sid = await getStudentIdByUser(req.user.id);
+  const [r] = await pool.query("UPDATE recommendation_requests SET status = 'cancelled' WHERE id = ? AND student_id = ? AND status = 'requested'", [req.params.id, sid]);
+  if (!r.affectedRows) return res.status(400).json({ error: "This request is already being worked on." });
+  res.json({ ok: true });
 });
 
 module.exports = router;

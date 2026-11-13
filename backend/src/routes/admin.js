@@ -4,6 +4,10 @@ const { authRequired } = require("../middleware/auth");
 const { getPlanLimits, setPlanLimits, DEFAULT_LIMITS, PREDICTION_TIERS, PLAN_TIERS, DEFAULT_DISPLAY, getPlanDisplay, setPlanDisplay } = require("../services/plan");
 const { OPTION_LIST_KEYS, DEFAULT_OPTION_LISTS, getOptionLists, cleanGroups, setOptionList } = require("../services/options");
 
+const crypto = require("crypto");
+const { isMailConfigured, sendMail, isLocalAddress } = require("../services/mailer");
+const { startTrial } = require("./auth").helpers;
+
 const router = express.Router();
 
 function isAdmin(user) {
@@ -21,7 +25,8 @@ router.get("/users", authRequired, async (req, res) => {
   let rows;
   try {
     [rows] = await pool.query(
-      `SELECT id, email, role, name, plan, trial_ends_at, data_consent, is_disabled, deleted_at, created_at
+      `SELECT id, email, role, name, plan, trial_ends_at, data_consent, is_disabled, deleted_at, created_at,
+              (password_hash IS NULL AND google_id IS NULL) AS invited
        FROM users
        WHERE deleted_at IS NULL
        ORDER BY created_at DESC LIMIT 100`
@@ -141,6 +146,8 @@ router.get("/stats", authRequired, async (req, res) => {
 router.put("/users/:id/disable", authRequired, async (req, res) => {
   if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
   const userId = Number(req.params.id);
+  const block = await protectedAccount(req.user, userId);
+  if (block) return res.status(400).json({ error: block });
   const { disabled } = req.body || {};
   
   // Check if column exists
@@ -157,6 +164,8 @@ router.put("/users/:id/disable", authRequired, async (req, res) => {
 router.delete("/users/:id", authRequired, async (req, res) => {
   if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
   const userId = Number(req.params.id);
+  const block = await protectedAccount(req.user, userId);
+  if (block) return res.status(400).json({ error: block });
   
   // Check if columns exist
   try {
@@ -372,6 +381,86 @@ router.put("/advisor-sessions/:id", authRequired, async (req, res) => {
   );
   if (!r.affectedRows) return res.status(404).json({ error: "Session not found" });
   return res.json({ status: "ok" });
+});
+
+// ---- Accounts an admin creates ----
+// The admin never sets or sees a password: the new user gets an invite link (the same
+// one-time token as "forgot password", valid 7 days) and chooses their own. Consent is
+// asked from the user at their first sign-in — an admin can't give it for them.
+const CREATABLE_ROLES = ["student", "parent", "counselor", "consult", "admin"];
+const INVITE_DAYS = 7;
+
+// An admin can't lock themselves out, and only the owner (ADMIN_EMAIL) can touch the owner
+async function protectedAccount(actor, userId) {
+  if (Number(actor.id) === Number(userId)) return "You can't disable or delete your own account.";
+  const [[u]] = await pool.query("SELECT email FROM users WHERE id = ?", [userId]);
+  if (u && process.env.ADMIN_EMAIL && u.email === process.env.ADMIN_EMAIL && actor.email !== process.env.ADMIN_EMAIL) return "Only the main admin can change this account.";
+  return null;
+}
+
+const actorName = async (req) => { try { const [[a]] = await pool.query("SELECT name FROM users WHERE id = ?", [req.user.id]); return a?.name || null; } catch { return null; } };
+
+async function issueInvite(user, invitedBy) {
+  const token = crypto.randomBytes(32).toString("hex");
+  await pool.query("UPDATE users SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?",
+    [crypto.createHash("sha256").update(token).digest("hex"), new Date(Date.now() + INVITE_DAYS * 86400000), user.id]);
+  const link = `${process.env.APP_URL || "https://myeduport.ai"}/reset?token=${token}&invite=1`;
+  let emailed = false;
+  if (isMailConfigured() && !isLocalAddress(user.email)) {
+    const esc = (t) => String(t || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    try {
+      await sendMail({
+        to: user.email,
+        subject: "Your MyEduPort account is ready",
+        text: `Hi ${user.name},\n\n${invitedBy || "The MyEduPort team"} created a MyEduPort account for you (${user.email}).\n\nChoose your password here — the link works for ${INVITE_DAYS} days:\n${link}\n\nIf you weren't expecting this, you can ignore this email.`,
+        html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#334155"><p>Hi ${esc(user.name)},</p><p>${esc(invitedBy || "The MyEduPort team")} created a MyEduPort account for you (<strong>${esc(user.email)}</strong>).</p><p><a href="${link}" style="display:inline-block;background:#1f3461;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Choose my password</a></p><p style="color:#64748b;font-size:13px">The link works for ${INVITE_DAYS} days. If you weren't expecting this, you can ignore this email.</p></div>`
+      });
+      emailed = true;
+    } catch (err) { console.error("[invite] email failed:", err.message); }
+  }
+  return { link, emailed, expires_in_days: INVITE_DAYS };
+}
+
+router.post("/users", authRequired, async (req, res) => {
+  if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
+  const name = String(req.body?.name || "").trim().slice(0, 120);
+  // No real email? The admin types a username and the account signs in as "username@local"
+  const username = String(req.body?.username || "").trim().toLowerCase();
+  if (username && !/^[a-z0-9][a-z0-9._-]{1,39}$/.test(username)) return res.status(400).json({ error: "Username: 2–40 letters, numbers, dots, dashes or underscores, starting with a letter or number." });
+  const email = username ? `${username}@local` : String(req.body?.email || "").trim().toLowerCase().slice(0, 190);
+  const role = String(req.body?.role || "");
+  const plan = String(req.body?.plan || "");
+  if (!name) return res.status(400).json({ error: "Enter the person's name." });
+  if (!username && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Enter a valid email address." });
+  if (!CREATABLE_ROLES.includes(role)) return res.status(400).json({ error: "Choose a role." });
+  if (plan && !PLAN_TIERS.includes(plan)) return res.status(400).json({ error: "Unknown plan." });
+  const [[dupe]] = await pool.query("SELECT id, deleted_at FROM users WHERE email = ?", [email]);
+  if (dupe && !dupe.deleted_at) return res.status(409).json({ error: username ? `The username "${username}" is already taken.` : "An account with this email already exists." });
+  if (dupe) return res.status(409).json({ error: "This email belongs to a closed account that hasn't been purged yet — use another email or wait for the clean-up." });
+  let id;
+  try {
+    const [r] = await pool.query("INSERT INTO users (email, password_hash, role, name, data_consent) VALUES (?, NULL, ?, ?, 0)", [email, role, name]);
+    id = r.insertId;
+  } catch (err) {
+    if (/role/i.test(err.message) && ["admin", "consult"].includes(role)) return res.status(400).json({ error: "The admin and consult roles need database update 30 first." });
+    throw err;
+  }
+  if (role === "student") await pool.query("INSERT INTO students (user_id, grade_level) VALUES (?, '')", [id]);
+  else if (role === "parent") await pool.query("INSERT INTO parents (user_id) VALUES (?)", [id]);
+  else if (role === "counselor") await pool.query("INSERT INTO counselors (user_id) VALUES (?)", [id]);
+  if (plan && plan !== "free") await pool.query("UPDATE users SET plan = ? WHERE id = ?", [plan, id]);
+  else if (["student", "parent"].includes(role)) await startTrial(id);
+  const invite = await issueInvite({ id, email, name }, await actorName(req));
+  res.json({ user: { id, email, name, role, plan: plan || "free" }, invite });
+});
+
+// A fresh invite link for someone who hasn't set their password yet
+router.post("/users/:id/invite", authRequired, async (req, res) => {
+  if (!isAdmin(req.user)) return res.status(403).json({ error: "Admin only" });
+  const [[u]] = await pool.query("SELECT id, email, name, password_hash, google_id FROM users WHERE id = ? AND deleted_at IS NULL", [req.params.id]);
+  if (!u) return res.status(404).json({ error: "User not found" });
+  if ((u.password_hash || u.google_id) && !isLocalAddress(u.email)) return res.status(400).json({ error: "This person has already set up their account — they can use “Forgot password” on the sign-in page." });
+  res.json(await issueInvite(u, await actorName(req)));
 });
 
 module.exports = router;

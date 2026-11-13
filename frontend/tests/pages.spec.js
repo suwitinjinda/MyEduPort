@@ -3,7 +3,7 @@ import { test } from "@playwright/test";
 import { signIn, watchForProblems, expectNoSeriousA11y, expectNoHorizontalOverflow, expectNoPageScroll } from "./helpers.js";
 import { expect } from "@playwright/test";
 
-const PUBLIC = ["/", "/pricing", "/login", "/guide", "/about", "/contact", "/privacy", "/terms", "/application", "/admission-resources", "/career-resources", "/user-manual", "/news-events",
+const PUBLIC = ["/", "/pricing", "/login", "/guide", "/about", "/contact", "/privacy", "/terms", "/why-myeduport", "/platform-overview", "/application", "/admission-resources", "/career-resources", "/user-manual", "/news-events",
   // campaign landing pages — the shared template and one campaign built on it
   "/lp", "/lp/example-parents",
   // partner program sign-up

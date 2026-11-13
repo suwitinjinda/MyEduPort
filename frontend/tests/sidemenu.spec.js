@@ -5,6 +5,7 @@ import { signIn, watchForProblems, expectNoHorizontalOverflow } from "./helpers.
 const S = { id: 1, role: "student", email: "admin@gmail.com" };
 test("side menus stay", async ({ page }, info) => {
   const tag = info.project.name, mob = tag === "mobile";
+  test.skip(mob, "Phones use the bottom tab bar instead of side menus — see the tab bar test below");
   const problems = watchForProblems(page);
   await signIn(page, S);
   await page.goto("/profile");
@@ -38,5 +39,31 @@ test("side menus stay", async ({ page }, info) => {
   await page.goto("/profile?section=documents");
   await page.locator(".pe-sidebar").getByRole("button", { name: "Quick menu" }).click();
   await expect(page.locator(".pe-sidebar .nav-link.active")).toHaveText(/Essays/);
+  expect(problems, problems.join("\n")).toEqual([]);
+});
+
+// Phones (Figma Concept A): bottom tab bar + "Me" sheet, Portfolio opens on the five sections
+test("phone tab bar", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile", "phone layout only");
+  const problems = watchForProblems(page);
+  await signIn(page, S);
+  await page.goto("/dashboard"); await page.waitForTimeout(1200);
+  const bar = page.locator(".mnav-tabbar");
+  await expect(bar).toBeVisible();
+  await expect(page.locator(".top-nav .desk-nav")).toBeHidden();
+  await bar.getByRole("link", { name: "Portfolio" }).click();
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page.locator(".m-port li")).toHaveCount(5);
+  await page.locator(".m-port").getByRole("button", { name: /Awards/ }).click();
+  await expect(page).toHaveURL(/section=awards/);
+  await page.getByRole("button", { name: "← All sections" }).click();
+  await expect(page).toHaveURL(/\/profile$/);
+  await bar.getByRole("link", { name: "EduBot" }).click();
+  await expect(page).toHaveURL(/\/chat/);
+  await bar.getByRole("button", { name: "Me", exact: true }).click();
+  await expect(page.locator(".mnav-sheet")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".mnav-sheet")).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
   expect(problems, problems.join("\n")).toEqual([]);
 });

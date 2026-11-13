@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch, openFile } from "../api/client";
 import Skeleton from "../components/Skeleton.jsx";
-import { fmtDate, fmtDayMonth } from "../utils/date.js";
+import { fmtDate, fmtDateTime, fmtDayMonth } from "../utils/date.js";
+import { RecCard } from "./CounselorDashboard.jsx";
 
 const FLAG = { US: "🇺🇸", UK: "🇬🇧", China: "🇨🇳" };
 
@@ -46,7 +47,8 @@ export default function CounselorStudentDetail() {
     { id: "essays", label: "Essays", count: essays.length },
     { id: "colleges", label: "College List", count: savedUniversities.length },
     { id: "tasks", label: "Tasks", count: tasks.length, alert: overdueTasks.length > 0 },
-    { id: "documents", label: "Documents", count: documents.length }
+    { id: "documents", label: "Documents", count: documents.length },
+    { id: "notes", label: "Notes & letters" }
   ];
 
   return (
@@ -371,6 +373,8 @@ export default function CounselorStudentDetail() {
         </div>
       )}
 
+      {activeTab === "notes" && <NotesAndLetters studentId={studentId} name={profile.name} />}
+
       {activeTab === "documents" && (
         <div style={{ display: "grid", gap: "0.5rem" }}>
           {documents.length === 0 && <p className="muted" style={{ textAlign: "center", padding: "2rem" }}>No documents.</p>}
@@ -398,6 +402,58 @@ function Row({ label, value }) {
     <div style={{ display: "flex", justifyContent: "space-between", padding: "0.7rem 0", borderBottom: "1px solid var(--rule-soft)" }}>
       <span className="muted" style={{ fontSize: "0.85rem" }}>{label}</span>
       <strong style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>{value || "—"}</strong>
+    </div>
+  );
+}
+
+// Private counsellor notes (the student never sees them) and this student's letter requests
+function NotesAndLetters({ studentId, name }) {
+  const [note, setNote] = useState(null);
+  const [saved, setSaved] = useState({ text: "", at: null });
+  const [state, setState] = useState("");
+  const [recs, setRecs] = useState([]);
+  const loadRecs = () => apiFetch("/api/counselors/me/recommendations").then((all) => setRecs(all.filter((r) => String(r.student_id) === String(studentId)))).catch(() => {});
+  useEffect(() => {
+    apiFetch(`/api/counselors/me/students/${studentId}/note`).then((r) => { setNote(r.note || ""); setSaved({ text: r.note || "", at: r.updated_at }); }).catch(() => setNote(""));
+    loadRecs();
+  }, [studentId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Autosave a moment after typing stops
+  useEffect(() => {
+    if (note === null || note === saved.text) return undefined;
+    setState("Saving…");
+    const t = setTimeout(async () => {
+      try {
+        const r = await apiFetch(`/api/counselors/me/students/${studentId}/note`, { method: "PUT", body: JSON.stringify({ note }) });
+        setSaved({ text: r.note || "", at: r.updated_at }); setState("Saved");
+      } catch (e) { setState(`Not saved: ${e.message}`); }
+    }, 900);
+    return () => clearTimeout(t);
+  }, [note]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setRec = async (id, patch) => { await apiFetch(`/api/counselors/me/recommendations/${id}`, { method: "PUT", body: JSON.stringify(patch) }); loadRecs(); };
+
+  return (
+    <div style={{ display: "grid", gap: "1.25rem" }}>
+      <section className="card">
+        <div className="flex-between" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
+          <h3 className="subtitle" style={{ margin: 0 }}>Private notes</h3>
+          <small className="text-muted">{state || (saved.at ? `Last saved ${fmtDateTime(saved.at)}` : "Only you can see these")}</small>
+        </div>
+        <textarea
+          aria-label={`Private notes about ${name}`}
+          value={note ?? ""}
+          disabled={note === null}
+          onChange={(e) => setNote(e.target.value)}
+          rows={8}
+          placeholder={`Meeting notes, goals agreed with ${name}, things to follow up…`}
+          style={{ width: "100%", marginTop: "0.75rem", padding: "0.85rem 1rem", border: "1.5px solid var(--rule)", borderRadius: "var(--r-md)", font: "inherit", lineHeight: 1.6, resize: "vertical", background: "var(--surface)", color: "var(--ink)" }}
+        />
+        <small className="text-muted">Only you can see these notes. {name} and their parents never see them.</small>
+      </section>
+      <section className="card">
+        <h3 className="subtitle" style={{ marginTop: 0 }}>Recommendation letters</h3>
+        {recs.length === 0 ? <p className="muted" style={{ margin: 0 }}>{name} hasn't asked you for a letter yet.</p>
+          : <div style={{ display: "grid", gap: "0.75rem" }}>{recs.map((r) => <RecCard key={r.id} r={r} onSet={setRec} />)}</div>}
+      </section>
     </div>
   );
 }

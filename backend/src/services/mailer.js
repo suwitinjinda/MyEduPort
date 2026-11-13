@@ -71,7 +71,12 @@ function getTransporter() {
 }
 
 // { to, subject, html, text, headers } → nodemailer info. Throws if not configured or on SMTP error.
+// Accounts an admin creates without an email sign in as "name@local". Nothing is ever
+// sent to those — they aren't real mailboxes.
+const isLocalAddress = (addr) => /@local$/i.test(String(addr || "").trim());
+
 async function sendMail({ to, subject, html, text, headers }) {
+  if (isLocalAddress(to)) throw new Error("This account has no real email address (it ends in @local).");
   const t = getTransporter();
   if (!t) throw new Error("Email isn't set up yet — add the SMTP settings in Admin → Email Settings.");
   const s = current();
@@ -142,4 +147,5 @@ async function testMailSettings(input, sendTo) {
   }
 }
 
-module.exports = { isMailConfigured, sendMail, loadMailSettings, publicSettings, saveMailSettings, clearMailSettings, testMailSettings };
+module.exports = {
+  isLocalAddress, isMailConfigured, sendMail, loadMailSettings, publicSettings, saveMailSettings, clearMailSettings, testMailSettings };

@@ -39,7 +39,12 @@ export default function Chatbot() {
     }).catch(() => {});
   }, []);
 
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Scroll the message list itself — scrollIntoView would also scroll the whole page down
+  // (on phones that lands on the footer instead of the chat)
+  const scrollToBottom = () => {
+    const box = messagesEndRef.current?.parentElement;
+    if (box) box.scrollTop = box.scrollHeight;
+  };
   useEffect(() => { scrollToBottom(); }, [messages]);
 
   const sendMessage = async (text) => {
@@ -71,7 +76,7 @@ export default function Chatbot() {
 
   return (
     <div>
-      <header style={{ borderBottom: "1px solid var(--rule)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
+      <header className="d-only" style={{ borderBottom: "1px solid var(--rule)", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
         <div className="eyebrow">EduBot · AI Admissions Advisor</div>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2.25rem", color: "var(--ink)", letterSpacing: "-0.02em" }}>
           Ask anything about admissions.

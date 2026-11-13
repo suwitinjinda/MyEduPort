@@ -322,7 +322,7 @@ async function estimateAcceptanceProbability(summary, savedUniversities = [], di
     return {
       average: avg(allProbs),
       by_bucket,
-      note: "Heuristic estimate — set ANTHROPIC_API_KEY for Claude-driven analysis"
+      note: "Quick estimate — full MEPAi analysis is temporarily unavailable"
     };
   };
 
@@ -398,7 +398,7 @@ async function estimateAcceptanceAdvanced(summary, savedUniversities = [], diges
     if (safeNumber(summary.essayCount) < 1) factors.push("Draft your personal statement — essays are 20% of review.");
     if (safeNumber(summary.awardCount) < 2) factors.push("Add awards or recognitions that support your spike.");
     if (!factors.length) factors.push("Portfolio is well covered — focus on depth and leadership in your top activity.");
-    return { ...rollUp(per_university), per_university, factors, note: "Heuristic estimate — set ANTHROPIC_API_KEY for Claude-driven analysis" };
+    return { ...rollUp(per_university), per_university, factors, note: "Quick estimate — full MEPAi analysis is temporarily unavailable" };
   };
 
   if (!savedUniversities.length) return { average: 0, by_bucket: { reach: 0, target: 0, safety: 0 }, per_university: [], factors: [] };
@@ -507,7 +507,7 @@ ${profileContext ? `\nStudent profile context:\n${profileContext}` : ""}${await 
 
   if (!anthropicClient) {
     return {
-      reply: `Thanks for your question! Based on the Excellent Portfolio Guide, here's a starting point: ${message.slice(0, 120)}. I can tailor guidance once your profile is more complete. Add ANTHROPIC_API_KEY to enable Claude-powered responses.`,
+      reply: `Thanks for your question! Based on the Excellent Portfolio Guide, here's a starting point: ${message.slice(0, 120)}. I can tailor guidance once your profile is more complete.`,
       sources: ["MyEduPort Portfolio Guide", "Profile data"]
     };
   }
@@ -524,7 +524,7 @@ ${profileContext ? `\nStudent profile context:\n${profileContext}` : ""}${await 
     });
     const textBlock = msg.content?.find((b) => b.type === "text");
     const reply = textBlock?.text?.trim() || "I couldn't generate a response. Please try again.";
-    return { reply, sources: ["Excellent Portfolio Guide", "Claude AI", "Your profile"] };
+    return { reply, sources: ["Excellent Portfolio Guide", "MEPAi", "Your profile"] };
   } catch (err) {
     console.error("Claude chat error:", err.message);
     return { reply: "Sorry, I encountered an error. Please try again.", sources: [] };
